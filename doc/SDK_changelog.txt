@@ -1,0 +1,6 @@
+SDK used: 12.2
+
+Changes:
+$(SDK_DIR)/softdevice/s132/ folder contents have been updated to sd132 3.1.0 from sd132 3.0.0
+
+

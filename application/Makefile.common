@@ -1,0 +1,256 @@
+#### To be included at the end of a makefile ####
+
+#Required the board to be defined
+ifndef BOARD
+${error BOARD not specified}
+endif
+
+#Required the SDK directory to be defined to find the
+#start-up and CMSIS code
+ifndef SDK_DIR
+${error SDK_DIR not specified}
+endif
+
+GCC_PREFIX          := arm-none-eabi
+
+CC      := $(GCC_PREFIX)-gcc
+AS      := $(GCC_PREFIX)-as
+AR      := $(GCC_PREFIX)-ar -r
+LD      := $(GCC_PREFIX)-ld
+NM      := $(GCC_PREFIX)-nm
+OBJDUMP := $(GCC_PREFIX)-objdump
+OBJCOPY := $(GCC_PREFIX)-objcopy
+GDB     := $(GCC_PREFIX)-gdb
+SIZE    := $(GCC_PREFIX)-size
+
+MK	:= mkdir -p
+RM	:= rm -rf
+
+### Device related stuff ###
+CPU             := cortex-m4
+SOC_FAMILY_UC   := NRF52
+SOC_FAMILY_LC   := nrf52
+SOC_NAME_UC     := NRF52832
+SOC_NAME_LC     := nrf52832
+SOC_VERSION     := xxaa
+
+SD_USED_LC      := s132
+SD_USED_UC      := s132
+SD_VERSION      := 3.1.0
+
+### JLink related stuff ###
+JLINK_DIR           := /opt/SEGGER/JLink
+JLINK_EXE 			= $(JLINK_DIR)/JLinkExe -Speed 4000 -If SWD
+
+ifdef SLNO
+JLINK 				  = $(JLINK_EXE) -SelectEmuBySN $(SLNO)
+else
+JLINK 				  = $(JLINK_EXE)
+endif
+JLINKGDBSERVER	= $(JLINK_DIR)/JLinkGDBServer
+JLINKDEVICE			= $(SOC_FAMILY_LC)
+
+### nrfjprog related stuff ###
+NRFJPROG_DIR    = ../../utils/nrfjprog
+ifdef SLNO
+NRFJPROG        = $(NRFJPROG_DIR)/nrfjprog -f nrf52 -s $(SLNO)
+else
+NRFJPROG        = $(NRFJPROG_DIR)/nrfjprog -f nrf52
+endif
+
+### NVMC Address defines ###
+NVMC_CONFIG_ADRS	 = 4001E504
+NVMC_ERASEALL_ADRS = 4001E50C
+
+
+### Folder structure Variables ####
+OUTPUT_NAME     = $(APPLN)
+OUTPUT_MERGED   = $(APPLN)_$(SD_USED_LC)
+OUTPUT_DIR      = build
+OBJ_DIR         = obj
+
+### Verbosity control. Use  make V=1  to get verbose builds.
+ifeq ($(V),1)
+  Q=
+else
+  Q=@
+endif
+
+# Include directories
+INCLUDEDIRS	+= $(SDK_DIR)/device
+INCLUDEDIRS	+= $(SDK_DIR)/toolchain
+INCLUDEDIRS	+= $(SDK_DIR)/toolchain/cmsis/include
+INCLUDEDIRS	+= /usr/arm-none-eabi/include/
+
+SOFTDEVICE 	= $(SDK_DIR)/softdevice/$(SD_USED_LC)/hex/$(SD_USED_LC)_$(SOC_FAMILY_LC)_$(SD_VERSION)_softdevice.hex
+SD_PRESENT  = SOFTDEVICE_PRESENT
+
+LD_SCRIPT 	= $(SDK_DIR)/softdevice/$(SD_USED_LC)/toolchain/armgcc/armgcc_$(SD_USED_LC)_$(SOC_NAME_LC)_$(SOC_VERSION).ld
+
+### Source files ###
+# Project Source
+C_SRC  += system_nrf51.c
+
+### Assembly source files
+ASSEMBLY_SRC = gcc_startup_$(SOC_FAMILY_LC).S
+
+### Compiler related stuff ###
+#Small size, good for cache
+CFLAGS	+= -O3
+#Max info for the debugger
+CFLAGS  += -ggdb3
+CFLAGS	+= -mcpu=$(CPU)
+CFLAGS	+= -mthumb
+CFLAGS	+= -mabi=aapcs
+CFLAGS  += -mfloat-abi=hard -mfpu=fpv4-sp-d16
+#Use the GCC extensions to C
+CFLAGS	+= --std=gnu11
+#Give a warning when using the GCC extensions to C
+CFLAGS  += -pedantic
+CFLAGS	+= -Wall -Werror
+CFLAGS	+= -D$(SOC_FAMILY_UC)
+CFLAGS  += -D$(SOC_NAME_UC)
+CFLAGS	+= -D$(BOARD)
+CFLAGS  += -D$(SD_PRESENT)
+CFLAGS  += -D$(SD_USED_UC)
+ifdef BLE_REQD #For BLE_STACK_SUPPORT_REQD
+CFLAGS  += -D$(BLE_REQD)
+endif
+ifdef NO_NFC_REQD #For CONFIG_NFCT_PINS_AS_GPIOS
+CFLAGS  += -D$(NO_NFC_REQD)
+endif
+ifdef PINRESET_REQD #For CONFIG_GPIO_AS_PINRESET
+CFLAGS  += -D$(PINRESET_REQD)
+endif
+CFLAGS  += -DNRF_SD_BLE_API_VERSION=3 #TODO get from Makefile
+#TODO remove if not required
+CFLAGS  += -DSWI_DISABLE0 
+CFLAGS	+= $(patsubst %,-I%, $(INCLUDEDIRS))
+# keep every function in separate section, this allows linker to discard unused ones
+CFLAGS += -ffunction-sections -fdata-sections -fno-strict-aliasing
+CFLAGS += -fno-builtin --short-enums
+#Product Anamoly Notice work-arounds
+CFLAGS += -DNRF52_PAN_64
+CFLAGS += -DNRF52_PAN_12
+CFLAGS += -DNRF52_PAN_58
+CFLAGS += -DNRF52_PAN_54
+CFLAGS += -DNRF52_PAN_31
+CFLAGS += -DNRF52_PAN_51
+CFLAGS += -DNRF52_PAN_36
+CFLAGS += -DNRF52_PAN_15
+CFLAGS += -DNRF52_PAN_20
+CFLAGS += -DNRF52_PAN_55
+
+### Linker related stuff ###
+LDDIRS	+= $(SDK_DIR)/softdevice/$(SD_USED_LC)/toolchain/armgcc/
+LDDIRS	+= $(SDK_DIR)/toolchain/gcc/
+
+LDFLAGS += -Xlinker
+LDFLAGS += -Map=$(OUTPUT_DIR)/$(OUTPUT_NAME).map
+# use newlib in nano version
+LDFLAGS += --specs=nano.specs
+LDFLAGS += -lc -lnosys
+LDFLAGS += -mcpu=$(CPU) 
+LDFLAGS += -mthumb 
+LDFLAGS += -mabi=aapcs
+LDFLAGS += -mfloat-abi=hard -mfpu=fpv4-sp-d16
+LDFLAGS += -T$(LD_SCRIPT)
+# let linker to dump unused sections
+LDFLAGS += -Wl,--gc-sections
+LDFLAGS	+= $(patsubst %,-L%, $(LDDIRS))
+#TODO Add linking time optimizations
+
+# Sorting removes duplicates
+BUILD_DIRS := $(sort $(OBJ_DIR) $(OUTPUT_DIR) )
+
+# Make a list of source paths
+C_SRC_DIRS  += $(SDK_DIR)/toolchain
+
+ASSEMBLY_SRC_DIRS	= $(SDK_DIR)/toolchain/gcc
+
+# Object files
+C_OBJ 			= $(addprefix $(OBJ_DIR)/, $(C_SRC:.c=.o))
+ASSEMBLY_OBJ 	= $(addprefix $(OBJ_DIR)/, $(ASSEMBLY_SRC:.S=.o))
+
+# Set source lookup paths
+vpath %.c $(C_SRC_DIRS)
+vpath %.S $(ASSEMBLY_SRC_DIRS)
+
+# Include automatically previously generated dependencies
+-include $(addprefix $(OBJ_DIR)/, $(C_OBJ:.o=.d))
+
+### Rules ###
+# Default build target
+.PHONY : all size clean
+
+size :
+	$(SIZE) $(OUTPUT_DIR)/$(OUTPUT_NAME).elf
+
+all : release
+
+clean : 
+	$(RM) $(OUTPUT_DIR)/*
+	$(RM) $(OBJ_DIR)/*
+
+.PHONY: release
+release :$(OUTPUT_DIR)/$(OUTPUT_NAME).bin   $(OUTPUT_DIR)/$(OUTPUT_NAME).hex
+
+$(BUILD_DIRS) : 
+	@echo 
+	@echo "Creating directories"
+	- $(MK) $@
+
+# Create objects from C source files
+$(OBJ_DIR)/%.o : %.c
+	@echo "Build header dependencies & compiling file: " $<
+	$(Q)$(CC) $(CFLAGS) -M $< -MF "$(@:.o=.d)" -MT $@	
+	$(Q)$(CC) $(CFLAGS) -c -o $@ $<
+
+## Assemble .S files
+$(OBJ_DIR)/%.o : %.S
+	@echo "Compiling: " $<
+	$(Q)$(CC) $(CFLAGS) -c -o $@ $<
+
+## Link C and assembler objects to an .elf file
+$(OUTPUT_DIR)/$(OUTPUT_NAME).elf : $(BUILD_DIRS) $(C_OBJ) $(ASSEMBLY_OBJ)
+	@echo
+	@echo "Linking object files to create $(OUTPUT_DIR)/$(OUTPUT_NAME).elf" 
+	$(Q)$(CC) $(LDFLAGS) $(C_OBJ) $(ASSEMBLY_OBJ) -o $(OUTPUT_DIR)/$(OUTPUT_NAME).elf
+
+## Create binary .bin file from the .elf file
+$(OUTPUT_DIR)/$(OUTPUT_NAME).bin : $(OUTPUT_DIR)/$(OUTPUT_NAME).elf
+	@echo
+	@echo "Create binary(.bin) file from: " $<
+	$(Q)$(OBJCOPY) -O binary $(OUTPUT_DIR)/$(OUTPUT_NAME).elf $(OUTPUT_DIR)/$(OUTPUT_NAME).bin
+
+## Create binary .hex file from the .elf file
+$(OUTPUT_DIR)/$(OUTPUT_NAME).hex : $(OUTPUT_DIR)/$(OUTPUT_NAME).elf
+	@echo "Create hex file from: " $<
+	$(Q)$(OBJCOPY) -O ihex $(OUTPUT_DIR)/$(OUTPUT_NAME).elf $(OUTPUT_DIR)/$(OUTPUT_NAME).hex
+	@echo "Combined $(SD_USED_LC).hex and $(APPLN).hex files to form $(OUTPUT_MERGED).hex"
+	$(Q)srec_cat $(PWD)/$(SOFTDEVICE) -Intel $(PWD)/$(OUTPUT_DIR)/$(OUTPUT_NAME).hex -Intel -O $(PWD)/$(OUTPUT_DIR)/$(OUTPUT_MERGED).hex -Intel --line-length=44;
+	
+## Program device
+upload: rm.jlink upload.jlink
+	@echo "Starting uploading"
+	$(JLINK) $(OUTPUT_DIR)/upload.jlink
+	@echo "Done uploading"
+
+rm.jlink:
+	$(RM) $(OUTPUT_DIR)/upload.jlink
+	
+upload.jlink:
+	echo "device $(JLINKDEVICE)\nw4 $(NVMC_CONFIG_ADRS) 1\nloadfile $(PWD)/$(OUTPUT_DIR)/$(OUTPUT_MERGED).hex\nr\ng\nqc\n" > $(OUTPUT_DIR)/upload.jlink
+
+recover:
+	$(NRFJPROG) --recover
+
+eraseall: 
+	$(NRFJPROG) --eraseall
+
+pinreset:
+	$(NRFJPROG) --pinresetenable
+	$(NRFJPROG) --pinreset
+		  
+.PHONY: upload eraseall recover pinreset
+

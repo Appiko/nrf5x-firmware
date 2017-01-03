@@ -1,0 +1,6 @@
+1. Install ARM GCC compiler https://launchpad.net/~team-gcc-arm-embedded/+archive/ubuntu/ppa
+2. Install srecord by 'sudo apt-get install srecord'
+3. Clone the repository
+4. Download the nRF 12.2.0 SDK and extract the contents of the components directory to SDK_components directory
+5. Download and extract the nrfjprog in utils directory from nRF5x-Command-Line-Tools-Linux64 available at https://www.nordicsemi.com/eng/Products/Bluetooth-low-energy/nRF52832#Downloads
+6. Perform the changes mentioned in the doc/SDK_changelog.txt file
