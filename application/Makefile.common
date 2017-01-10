@@ -35,7 +35,7 @@ SOC_NAME_LC     := nrf52832
 SOC_VERSION     := xxaa
 
 SD_USED_LC      := s132
-SD_USED_UC      := s132
+SD_USED_UC      := S132
 SD_VERSION      := 3.1.0
 
 ### JLink related stuff ###
@@ -96,7 +96,7 @@ ASSEMBLY_SRC = gcc_startup_$(SOC_FAMILY_LC).S
 
 ### Compiler related stuff ###
 #Small size, good for cache
-CFLAGS	+= -O3
+CFLAGS	= -Os
 #Max info for the debugger
 CFLAGS  += -ggdb3
 CFLAGS	+= -mcpu=$(CPU)
@@ -108,11 +108,28 @@ CFLAGS	+= --std=gnu11
 #Give a warning when using the GCC extensions to C
 CFLAGS  += -pedantic
 CFLAGS	+= -Wall -Werror
+# keep every function in separate section, this allows linker to discard unused ones
+CFLAGS += -ffunction-sections -fdata-sections -fno-strict-aliasing
+CFLAGS += -fno-builtin --short-enums -flto
+ifdef CFLAGS_APP
+CFLAGS  += $(CFLAGS_APP)
+endif
 CFLAGS	+= -D$(SOC_FAMILY_UC)
 CFLAGS  += -D$(SOC_NAME_UC)
 CFLAGS	+= -D$(BOARD)
 CFLAGS  += -D$(SD_PRESENT)
 CFLAGS  += -D$(SD_USED_UC)
+#Product Anamoly Notice work-arounds
+CFLAGS += -DNRF52_PAN_64
+CFLAGS += -DNRF52_PAN_12
+CFLAGS += -DNRF52_PAN_58
+CFLAGS += -DNRF52_PAN_54
+CFLAGS += -DNRF52_PAN_31
+CFLAGS += -DNRF52_PAN_51
+CFLAGS += -DNRF52_PAN_36
+CFLAGS += -DNRF52_PAN_15
+CFLAGS += -DNRF52_PAN_20
+CFLAGS += -DNRF52_PAN_55
 ifdef BLE_REQD #For BLE_STACK_SUPPORT_REQD
 CFLAGS  += -D$(BLE_REQD)
 endif
@@ -126,20 +143,6 @@ CFLAGS  += -DNRF_SD_BLE_API_VERSION=3 #TODO get from Makefile
 #TODO remove if not required
 CFLAGS  += -DSWI_DISABLE0 
 CFLAGS	+= $(patsubst %,-I%, $(INCLUDEDIRS))
-# keep every function in separate section, this allows linker to discard unused ones
-CFLAGS += -ffunction-sections -fdata-sections -fno-strict-aliasing
-CFLAGS += -fno-builtin --short-enums
-#Product Anamoly Notice work-arounds
-CFLAGS += -DNRF52_PAN_64
-CFLAGS += -DNRF52_PAN_12
-CFLAGS += -DNRF52_PAN_58
-CFLAGS += -DNRF52_PAN_54
-CFLAGS += -DNRF52_PAN_31
-CFLAGS += -DNRF52_PAN_51
-CFLAGS += -DNRF52_PAN_36
-CFLAGS += -DNRF52_PAN_15
-CFLAGS += -DNRF52_PAN_20
-CFLAGS += -DNRF52_PAN_55
 
 ### Linker related stuff ###
 LDDIRS	+= $(SDK_DIR)/softdevice/$(SD_USED_LC)/toolchain/armgcc/
@@ -156,7 +159,7 @@ LDFLAGS += -mabi=aapcs
 LDFLAGS += -mfloat-abi=hard -mfpu=fpv4-sp-d16
 LDFLAGS += -T$(LD_SCRIPT)
 # let linker to dump unused sections
-LDFLAGS += -Wl,--gc-sections
+LDFLAGS += -Wl,--gc-sections -flto
 LDFLAGS	+= $(patsubst %,-L%, $(LDDIRS))
 #TODO Add linking time optimizations
 
