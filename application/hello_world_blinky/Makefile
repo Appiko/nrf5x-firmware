@@ -11,7 +11,7 @@ PLATFORM_DIR    = ../../platform
 CODEBASE_DIR    = ../../codebase
 
 INCLUDEDIRS	= .
-INCLUDEDIRS	+= $(SDK_DIR)/boards
+INCLUDEDIRS	+= $(PLATFORM_DIR)
 INCLUDEDIRS += $(SDK_DIR)/drivers_nrf/delay
 INCLUDEDIRS += $(CODEBASE_DIR)/hal
 
