@@ -27,15 +27,14 @@
  *  POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @file
- *
- * @defgroup blinky_example_main main.c
+/**
+ * @addtogroup group_appln
  * @{
- * @ingroup blinky_example
- * @brief Blinky Example Application main file.
  *
- * This file contains the source code for a sample application to blink LEDs.
- *
+ * @defgroup hello_world_rtt Hello World RTT printf
+ * @brief A simple application that blinks a LED and outputs a printf statement over
+ * SEGGER's Real Time Transfer (RTT) channel through the JLink debugger.
+ * @{
  */
 
 #include <stdbool.h>
@@ -51,11 +50,13 @@
 int main(void){
   /* Configure a LED as output. */
   nrf_gpio_cfg_output(LED_1);
+  /* Initial printf */
   SEGGER_RTT_printf(0, "Hello World over RTT!\n");
 
   uint32_t count = 0;
 
-  /* Toggle LED 1. */
+  /* Toggle LED 1 and keep printing hello and an
+   * incremented integer */
   while (true){
     SEGGER_RTT_printf(0, "Hello %d\n", count);
     nrf_gpio_pin_toggle(LED_1);
@@ -64,6 +65,5 @@ int main(void){
   }
 }
 
-/**
- *@}
- **/
+/** @} */
+/** @} */

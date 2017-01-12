@@ -30,6 +30,14 @@
 #ifndef PLATFORM_BOARDS_H_
 #define PLATFORM_BOARDS_H_
 
+/**
+ * @addtogroup group_platform
+ * @{
+ *
+ * @brief A @ref boards.h file includes the relevant platform based on
+ *  macro from the compile time defines
+ */
+
 #if defined(BOARD_PCA10040)
   #include "pca10040.h"
 #elif defined(BOARD_CUSTOM)
@@ -40,3 +48,5 @@
 #endif
 
 #endif /* PLATFORM_BOARDS_H_ */
+
+/** @} */

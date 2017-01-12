@@ -27,15 +27,13 @@
  *  POSSIBILITY OF SUCH DAMAGE.
  */
  
-/** @file
- *
- * @defgroup blinky_example_main main.c
+/**
+ * @addtogroup group_appln
  * @{
- * @ingroup blinky_example
- * @brief Blinky Example Application main file.
  *
- * This file contains the source code for a sample application to blink LEDs.
- *
+ * @defgroup hello_world_blinky Hello World Blinky
+ * @brief A simple application that blinks a LED.
+ * @{
  */
 
 #include <stdbool.h>
@@ -45,19 +43,18 @@
 #include "boards.h"
 
 /**
- * @brief Function for application main entry.
+ * @brief Function for the main entry of the application.
  */
 int main(void){
-  /* Configure a LED as output. */
+  /* Configure the LED 1 as output. */
   nrf_gpio_cfg_output(LED_1);
 
-  /* Toggle LED 1. */
+  /* Toggle LED 1 after every 500 ms */
   while (true){
     nrf_gpio_pin_toggle(LED_1);
     nrf_delay_ms(500);
   }
 }
 
-/**
- *@}
- **/
+/** @} */
+/** @} */

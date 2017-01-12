@@ -27,35 +27,60 @@
  *  POSSIBILITY OF SUCH DAMAGE.
  */
 
+/**
+ * @addtogroup group_platform
+ * @{
+ *
+ * @defgroup board_pca10040 PCA10040 nRF52-DK
+ * @brief The nRF52 Development Kit (DK) platform PCA10040
+ * @{
+ */
+
 #ifndef PLATFORM_PCA10040_H_
 #define PLATFORM_PCA10040_H_
 
-// LED definitions for PCA10040
+/** @anchor pca10040-leds
+ * @name LED definitions for PCA10040
+ * @{*/
 #define LED_1          17
 #define LED_2          18
 #define LED_3          19
 #define LED_4          20
+/** The output level at which the LEDs shine */
 #define LEDS_ACTIVE_STATE 0
+/** @} */
 
-// Button definitions for PCA10040
+/** @anchor pca10040-buttons
+ * @name Button definitions for PCA10040
+ * @{*/
 #define BUTTON_1       13
 #define BUTTON_2       14
 #define BUTTON_3       15
 #define BUTTON_4       16
-#define BUTTON_PULL    NRF_GPIO_PIN_PULLUP
+/** The input level when the button is pressed */
 #define BUTTONS_ACTIVE_STATE 0
+/** The kind of internal resistors required for the button */
+#define BUTTON_PULL    NRF_GPIO_PIN_PULLUP
+/** @} */
 
-// Serial port definitions for PCA10040
+/** @anchor pca10040-serial
+ * @name Serial port definitions for PCA10040
+ * @{*/
 #define RX_PIN_NUMBER  8
 #define TX_PIN_NUMBER  6
 #define CTS_PIN_NUMBER 7
 #define RTS_PIN_NUMBER 5
+/** Bool to say if the hardware flow control is required */
 #define HWFC           false
+/** @} */
 
-// Low frequency clock source used when initializing the SoftDevice
+/** Low frequency clock source used when initializing the SoftDevice */
 #define NRF_CLOCK_LFCLKSRC      {.source        = NRF_CLOCK_LF_SRC_XTAL,            \
                                  .rc_ctiv       = 0,                                \
                                  .rc_temp_ctiv  = 0,                                \
                                  .xtal_accuracy = NRF_CLOCK_LF_XTAL_ACCURACY_20_PPM}
 
 #endif /* PLATFORM_PCA10040_H_ */
+
+/** @} */
+/** @} */
