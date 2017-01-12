@@ -1,0 +1,6 @@
+/**
+* @defgroup group_appln Applications
+* @brief All the applications that this repository contains. 
+* @{
+*/
+/** @} */
