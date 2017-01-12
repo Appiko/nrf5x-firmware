@@ -1,0 +1,6 @@
+/**
+* @defgroup group_platform Platforms
+* @brief All the hardware platforms that the applications can run on.  
+* @{
+*/
+/** @} */
