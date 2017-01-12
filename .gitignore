@@ -26,7 +26,7 @@
 
 
 #Documentation
-doc/html/*
+doc/build/*
 
 #OS X files
 .DS_Store
