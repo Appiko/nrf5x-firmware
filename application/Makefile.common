@@ -43,9 +43,9 @@ JLINK_DIR           := /opt/SEGGER/JLink
 JLINK_EXE 			= $(JLINK_DIR)/JLinkExe -Speed 4000 -If SWD
 
 ifdef SLNO
-JLINK 				  = $(JLINK_EXE) -SelectEmuBySN $(SLNO)
+JLINK 				= $(JLINK_EXE) -SelectEmuBySN $(SLNO)
 else
-JLINK 				  = $(JLINK_EXE)
+JLINK 				= $(JLINK_EXE)
 endif
 JLINKGDBSERVER	= $(JLINK_DIR)/JLinkGDBServer
 JLINKDEVICE			= $(SOC_FAMILY_LC)
@@ -175,6 +175,10 @@ ASSEMBLY_SRC_DIRS	= $(SDK_DIR)/toolchain/gcc
 C_OBJ 			= $(addprefix $(OBJ_DIR)/, $(C_SRC:.c=.o))
 ASSEMBLY_OBJ 	= $(addprefix $(OBJ_DIR)/, $(ASSEMBLY_SRC:.S=.o))
 
+DOXY_EDITS		= INPUT = $(DOC_DIR) $(CODEBASE_DIR) $(PLATFORM_DIR) ..\n
+DOXY_EDITS	   += OUTPUT_DIRECTORY = $(DOC_DIR)/build\n
+DOXY_EDITS	   += LAYOUT_FILE = $(DOC_DIR)/DoxygenLayout.xml\n
+
 # Set source lookup paths
 vpath %.c $(C_SRC_DIRS)
 vpath %.S $(ASSEMBLY_SRC_DIRS)
@@ -254,6 +258,9 @@ eraseall:
 pinreset:
 	$(NRFJPROG) --pinresetenable
 	$(NRFJPROG) --pinreset
-		  
-.PHONY: upload eraseall recover pinreset
+
+doc:
+	( cat $(DOC_DIR)/Appiko.doxyfile ; echo "$(DOXY_EDITS)" ) | doxygen -
+
+.PHONY: upload eraseall recover pinreset doc
 
