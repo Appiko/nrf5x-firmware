@@ -5,7 +5,7 @@ Since this SDK is not shareable, its not part of this repository.
 Only the components folder in the SDK is used.
 This page provides the list of minimal changes made to the SDK.
 
-**SDK used: 12.20**
+**SDK used: 12.1.0**
 
 Changes made to the SDK:
 
