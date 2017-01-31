@@ -89,7 +89,7 @@ LD_SCRIPT 	= $(SDK_DIR)/softdevice/$(SD_USED_LC)/toolchain/armgcc/armgcc_$(SD_US
 
 ### Source files ###
 # Project Source
-C_SRC  += system_nrf51.c
+C_SRC  += system_nrf52.c
 
 ### Assembly source files
 ASSEMBLY_SRC = gcc_startup_$(SOC_FAMILY_LC).S
@@ -111,9 +111,9 @@ CFLAGS	+= -Wall -Werror
 # keep every function in separate section, this allows linker to discard unused ones
 CFLAGS += -ffunction-sections -fdata-sections -fno-strict-aliasing
 CFLAGS += -fno-builtin --short-enums -flto
-ifdef CFLAGS_APP
+
 CFLAGS  += $(CFLAGS_APP)
-endif
+
 CFLAGS	+= -D$(SOC_FAMILY_UC)
 CFLAGS  += -D$(SOC_NAME_UC)
 CFLAGS	+= -D$(BOARD)
