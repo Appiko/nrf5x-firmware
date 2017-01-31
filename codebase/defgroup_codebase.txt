@@ -1,0 +1,6 @@
+/**
+* @defgroup group_codebase Codebase
+* @brief The various code-base developed for the applications to use. 
+* @{
+*/
+/** @} */

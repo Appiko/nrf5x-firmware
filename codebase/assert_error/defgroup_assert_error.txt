@@ -1,0 +1,9 @@
+/**
+* @addtogroup group_codebase
+* @{
+* @defgroup group_assert_error Assertions and Error Handling
+* @brief Handlers for runtime assertions as well as Nordic Semi's SoftDevice and SDK error handling.  
+* @{
+*/
+/** @} */
+/** @} */
