@@ -13,7 +13,7 @@ CODEBASE_DIR    = ../../codebase
 INCLUDEDIRS	= .
 INCLUDEDIRS	+= $(PLATFORM_DIR)
 INCLUDEDIRS += $(SDK_DIR)/drivers_nrf/delay
-INCLUDEDIRS += $(CODEBASE_DIR)/hal
+INCLUDEDIRS += $(SDK_DIR)/drivers_nrf/hal
 
 C_SRC_DIRS	= .
 
@@ -21,9 +21,7 @@ C_SRC  = main.c
 
 APPLN  = hello_world_blinky
 
-CFLAGS = -DDEBUG
-CFLAGS  += -D$(BLE_REQD)
-
-LDFLAGS  = -D$(BLE_REQD)
+CFLAGS_APP = -DDEBUG
+CFLAGS_APP += -D$(BLE_REQD)
 
 include ../Makefile.common

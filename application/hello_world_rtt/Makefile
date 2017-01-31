@@ -13,11 +13,11 @@ CODEBASE_DIR    = ../../codebase
 INCLUDEDIRS	= .
 INCLUDEDIRS	+= $(PLATFORM_DIR)
 INCLUDEDIRS += $(SDK_DIR)/drivers_nrf/delay
-INCLUDEDIRS += $(CODEBASE_DIR)/hal
+INCLUDEDIRS += $(SDK_DIR)/drivers_nrf/hal
 INCLUDEDIRS += $(CODEBASE_DIR)/segger_rtt
 
 C_SRC_DIRS = .
-C_SRC_DIRS = $(CODEBASE_DIR)/segger_rtt
+C_SRC_DIRS += $(CODEBASE_DIR)/segger_rtt
 
 C_SRC = main.c
 C_SRC += SEGGER_RTT.c SEGGER_RTT_printf.c #SEGGER_RTT_Syscalls_GCC.c
