@@ -32,18 +32,27 @@
  *  POSSIBILITY OF SUCH DAMAGE.
  */
 
+#include "nrf_assert.h"
+
 #ifdef DEBUG
 
-#include "nrf_assert.h"
 #include "SEGGER_RTT.h"
+#include <stdnoreturn.h>
 
-void assert_nrf_callback(uint16_t line_num, const uint8_t * file_name)
+noreturn void assert_nrf_callback(uint16_t line_num, const uint8_t * file_name)
 {
     SEGGER_RTT_printf(0, "Assertion at line %d in file %s.\n", line_num,
             file_name);
     while (1)
     {
     }
+}
+
+#else
+
+void assert_nrf_callback(uint16_t line_num, const uint8_t * file_name)
+{
+
 }
 
 #endif /* DEBUG flag as compiler flag */
