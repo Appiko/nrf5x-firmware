@@ -40,16 +40,15 @@
  * @{
  *
  * @defgroup group_assertion Static and runtime assertion
- * @brief Handlers which prints runtime assertion info over Segger RTT channel
+ * @brief Handler which prints runtime assertion info over Segger RTT channel
  *      and includes assert.h for static assertion wrapper.
  * @{
  */
 
-#ifdef DEBUG
-
 #include "stdint.h"
 #include "stdbool.h"
 #include "assert.h"
+//#include "common_util.h"
 
 /** @brief Function called for handling runtime assertions.
  *     It prints the assertion log and stays in an infinite loop.
@@ -67,9 +66,7 @@ void assert_nrf_callback(uint16_t line_num, const uint8_t * file_name);
     assert_nrf_callback((uint16_t)__LINE__, (uint8_t *)__FILE__);         \
 }
 
-#endif /* DEBUG flag as compiler flag */
-
-/** @} */
-/** @} */
-
 #endif /* CODEBASE_ASSERT_ERROR_NRF_ASSERT_H_ */
+
+/** @} */
+/** @} */
