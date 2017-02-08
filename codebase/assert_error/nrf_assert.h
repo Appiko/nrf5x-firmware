@@ -48,7 +48,7 @@
 #include "stdint.h"
 #include "stdbool.h"
 #include "assert.h"
-//#include "common_util.h"
+#include "common_util.h"
 
 /** @brief Function called for handling runtime assertions.
  *     It prints the assertion log and stays in an infinite loop.
