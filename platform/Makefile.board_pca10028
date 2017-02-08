@@ -1,0 +1,6 @@
+
+### SoC on board related stuff ###
+CPU             := cortex-m0
+SOC_FAMILY      := nrf51
+SOC_NAME        := nrf51422
+SOC_VERSION     := xxac
