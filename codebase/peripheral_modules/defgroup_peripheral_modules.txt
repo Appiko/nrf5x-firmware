@@ -1,0 +1,9 @@
+/**
+* @addtogroup group_codebase
+* @{
+* @defgroup group_peripheral_modules Peripheral Modules
+* @brief Modules that are strongly tied to peripheral(s) directly for their operation  
+* @{
+*/
+/** @} */
+/** @} */

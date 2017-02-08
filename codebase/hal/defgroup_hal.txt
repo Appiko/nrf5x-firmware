@@ -1,0 +1,9 @@
+/**
+* @addtogroup group_codebase
+* @{
+* @defgroup group_hal Hardware Abstraction Layer
+* @brief Hardware abstraction layer for the peripherals to be used with the hal defines in the SDK.  
+* @{
+*/
+/** @} */
+/** @} */
