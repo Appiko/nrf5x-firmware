@@ -1,15 +1,46 @@
 #### To be included at the end of a makefile ####
 
-#Required the board to be defined
 ifndef BOARD
 ${error BOARD not specified}
 endif
 
-#Required the SDK directory to be defined to find the
-#start-up and CMSIS code
 ifndef SDK_DIR
-${error SDK_DIR not specified}
+${error SDK_DIR not specified in application Makefile. Needed to find the start-up and CMSIS code.}
 endif
+
+ifndef CPU
+${error CPU not specified in board Makefile. Needed for CFLAGS.}
+endif
+
+ifndef SOC_FAMILY
+${error SOC_FAMILY not specified in board Makefile.}
+endif
+
+ifndef SOC_NAME
+${error SOC_NAME not specified in board Makefile.}
+endif
+
+ifndef SOC_VERSION
+${error SOC_VERSION not specified in board Makefile.}
+endif
+
+ifndef SD_USED
+${error SD_USED not specified in application Makefile.}
+endif
+
+ifndef SD_VERSION
+${error SD_VERSION not specified in application Makefile.}
+endif
+
+#Lower and upper case versions of SoC family, SoC name and SD used
+SOC_FAMILY_LC  = $(shell echo $(SOC_FAMILY) | tr A-Z a-z)
+SOC_FAMILY_UC  = $(shell echo $(SOC_FAMILY) | tr a-z A-Z)
+
+SOC_NAME_LC  = $(shell echo $(SOC_NAME) | tr A-Z a-z)
+SOC_NAME_UC  = $(shell echo $(SOC_NAME) | tr a-z A-Z)
+
+SD_USED_LC  = $(shell echo $(SD_USED) | tr A-Z a-z)
+SD_USED_UC  = $(shell echo $(SD_USED) | tr a-z A-Z)
 
 GCC_PREFIX          := arm-none-eabi
 
@@ -26,18 +57,6 @@ SIZE    := $(GCC_PREFIX)-size
 MK	:= mkdir -p
 RM	:= rm -rf
 
-### Device related stuff ###
-CPU             := cortex-m4
-SOC_FAMILY_UC   := NRF52
-SOC_FAMILY_LC   := nrf52
-SOC_NAME_UC     := NRF52832
-SOC_NAME_LC     := nrf52832
-SOC_VERSION     := xxaa
-
-SD_USED_LC      := s132
-SD_USED_UC      := S132
-SD_VERSION      := 3.1.0
-
 ### JLink related stuff ###
 JLINK_DIR           := /opt/SEGGER/JLink
 JLINK_EXE 			= $(JLINK_DIR)/JLinkExe -Speed 4000 -If SWD
@@ -53,9 +72,9 @@ JLINKDEVICE			= $(SOC_FAMILY_LC)
 ### nrfjprog related stuff ###
 NRFJPROG_DIR    = ../../utils/nrfjprog
 ifdef SLNO
-NRFJPROG        = $(NRFJPROG_DIR)/nrfjprog -f nrf52 -s $(SLNO)
+NRFJPROG        = $(NRFJPROG_DIR)/nrfjprog -f $(SOC_FAMILY_LC) -s $(SLNO)
 else
-NRFJPROG        = $(NRFJPROG_DIR)/nrfjprog -f nrf52
+NRFJPROG        = $(NRFJPROG_DIR)/nrfjprog -f $(SOC_FAMILY_LC)
 endif
 
 ### NVMC Address defines ###
@@ -89,7 +108,7 @@ LD_SCRIPT 	= $(SDK_DIR)/softdevice/$(SD_USED_LC)/toolchain/armgcc/armgcc_$(SD_US
 
 ### Source files ###
 # Project Source
-C_SRC  += system_nrf52.c
+C_SRC  += system_$(SOC_FAMILY_LC).c
 
 ### Assembly source files
 ASSEMBLY_SRC = gcc_startup_$(SOC_FAMILY_LC).S
@@ -102,7 +121,9 @@ CFLAGS  += -ggdb3
 CFLAGS	+= -mcpu=$(CPU)
 CFLAGS	+= -mthumb
 CFLAGS	+= -mabi=aapcs
-CFLAGS  += -mfloat-abi=hard -mfpu=fpv4-sp-d16
+ifdef FPU_FLAG
+CFLAGS	+= $(FPU_FLAG)
+endif
 #Use the GCC extensions to C
 CFLAGS	+= --std=gnu11
 #Give a warning when using the GCC extensions to C
@@ -111,34 +132,15 @@ CFLAGS	+= -Wall -Werror
 # keep every function in separate section, this allows linker to discard unused ones
 CFLAGS += -ffunction-sections -fdata-sections -fno-strict-aliasing
 CFLAGS += -fno-builtin --short-enums -flto
-
+#CFLAGS from the application Makefile
 CFLAGS  += $(CFLAGS_APP)
-
+#CFLAGS from the board Makefile
+CFLAGS  += $(CFLAGS_BOARD)
 CFLAGS	+= -D$(SOC_FAMILY_UC)
 CFLAGS  += -D$(SOC_NAME_UC)
 CFLAGS	+= -D$(BOARD)
 CFLAGS  += -D$(SD_PRESENT)
 CFLAGS  += -D$(SD_USED_UC)
-#Product Anamoly Notice work-arounds
-CFLAGS += -DNRF52_PAN_64
-CFLAGS += -DNRF52_PAN_12
-CFLAGS += -DNRF52_PAN_58
-CFLAGS += -DNRF52_PAN_54
-CFLAGS += -DNRF52_PAN_31
-CFLAGS += -DNRF52_PAN_51
-CFLAGS += -DNRF52_PAN_36
-CFLAGS += -DNRF52_PAN_15
-CFLAGS += -DNRF52_PAN_20
-CFLAGS += -DNRF52_PAN_55
-ifdef BLE_REQD #For BLE_STACK_SUPPORT_REQD
-CFLAGS  += -D$(BLE_REQD)
-endif
-ifdef NO_NFC_REQD #For CONFIG_NFCT_PINS_AS_GPIOS
-CFLAGS  += -D$(NO_NFC_REQD)
-endif
-ifdef PINRESET_REQD #For CONFIG_GPIO_AS_PINRESET
-CFLAGS  += -D$(PINRESET_REQD)
-endif
 CFLAGS  += -DNRF_SD_BLE_API_VERSION=3 #TODO get from Makefile
 #TODO remove if not required
 CFLAGS  += -DSWI_DISABLE0 
@@ -156,7 +158,9 @@ LDFLAGS += -lc -lnosys
 LDFLAGS += -mcpu=$(CPU) 
 LDFLAGS += -mthumb 
 LDFLAGS += -mabi=aapcs
-LDFLAGS += -mfloat-abi=hard -mfpu=fpv4-sp-d16
+ifdef FPU_FLAG
+LDFLAGS	+= $(FPU_FLAG)
+endif
 LDFLAGS += -T$(LD_SCRIPT)
 # let linker to dump unused sections
 LDFLAGS += -Wl,--gc-sections -flto
