@@ -1,9 +1,12 @@
 
-BOARD				:= BOARD_PCA10040
-SLNO				:= 682073614
-BLE_REQD    := BLE_STACK_SUPPORT_REQD
-NO_NFC_REQD := CONFIG_NFCT_PINS_AS_GPIOS
-PINRESET_REQD := CONFIG_GPIO_AS_PINRESET
+BOARD           := BOARD_PCA10040
+SLNO            := 682073614
+BLE_REQD        := BLE_STACK_SUPPORT_REQD
+NO_NFC_REQD     := CONFIG_NFCT_PINS_AS_GPIOS
+PINRESET_REQD   := CONFIG_GPIO_AS_PINRESET
+
+SD_USED         := s132
+SD_VERSION      := 3.1.0
 
 SDK_DIR         = ../../SDK_components
 DOC_DIR         = ../../doc
@@ -19,9 +22,16 @@ C_SRC_DIRS	= .
 
 C_SRC  = main.c
 
-APPLN  = hello_world_blinky
+#Gets the name of the application folder
+APPLN = $(shell basename $(PWD))
 
 CFLAGS_APP = -DDEBUG
 CFLAGS_APP += -D$(BLE_REQD)
+CFLAGS_APP += -D$(NO_NFC_REQD)
+CFLAGS_APP += -D$(PINRESET_REQD)
+
+#Lower case of BOARD
+BOARD_HEADER  = $(shell echo $(BOARD) | tr A-Z a-z)
+include $(PLATFORM_DIR)/Makefile.$(BOARD_HEADER)
 
 include ../Makefile.common
