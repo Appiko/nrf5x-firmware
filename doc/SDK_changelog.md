@@ -9,4 +9,4 @@ This page provides the list of minimal changes made to the SDK.
 
 Changes made to the SDK:
 
-- SDK_components/softdevice/s132/ folder contents have been updated to sd132 3.1.0 from sd132 3.0.0
+- (Optional) SDK_components/softdevice/s132/ folder contents have been updated to sd132 3.1.0 from sd132 3.0.0
