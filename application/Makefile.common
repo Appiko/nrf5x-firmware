@@ -28,10 +28,6 @@ ifndef SD_USED
 ${error SD_USED not specified in application Makefile.}
 endif
 
-ifndef SD_VERSION
-${error SD_VERSION not specified in application Makefile.}
-endif
-
 #Lower and upper case versions of SoC family, SoC name and SD used
 SOC_FAMILY_LC  = $(shell echo $(SOC_FAMILY) | tr A-Z a-z)
 SOC_FAMILY_UC  = $(shell echo $(SOC_FAMILY) | tr a-z A-Z)
@@ -101,7 +97,7 @@ INCLUDEDIRS	+= $(SDK_DIR)/toolchain
 INCLUDEDIRS	+= $(SDK_DIR)/toolchain/cmsis/include
 INCLUDEDIRS	+= /usr/arm-none-eabi/include/
 
-SOFTDEVICE 	= $(SDK_DIR)/softdevice/$(SD_USED_LC)/hex/$(SD_USED_LC)_$(SOC_FAMILY_LC)_$(SD_VERSION)_softdevice.hex
+SOFTDEVICE  = $(SDK_DIR)/softdevice/$(SD_USED_LC)/hex/$(shell ls $(SDK_DIR)/softdevice/$(SD_USED_LC)/hex)
 SD_PRESENT  = SOFTDEVICE_PRESENT
 
 LD_SCRIPT 	= $(SDK_DIR)/softdevice/$(SD_USED_LC)/toolchain/armgcc/armgcc_$(SD_USED_LC)_$(SOC_NAME_LC)_$(SOC_VERSION).ld
@@ -197,14 +193,11 @@ vpath %.S $(ASSEMBLY_SRC_DIRS)
 size :
 	$(SIZE) $(OUTPUT_DIR)/$(OUTPUT_NAME).elf
 
-all : release
+all : $(OUTPUT_DIR)/$(OUTPUT_NAME).bin $(OUTPUT_DIR)/$(OUTPUT_NAME).hex
 
 clean : 
 	$(RM) $(OUTPUT_DIR)/*
 	$(RM) $(OBJ_DIR)/*
-
-.PHONY: release
-release :$(OUTPUT_DIR)/$(OUTPUT_NAME).bin   $(OUTPUT_DIR)/$(OUTPUT_NAME).hex
 
 $(BUILD_DIRS) : 
 	@echo 
@@ -242,16 +235,12 @@ $(OUTPUT_DIR)/$(OUTPUT_NAME).hex : $(OUTPUT_DIR)/$(OUTPUT_NAME).elf
 	$(Q)srec_cat $(PWD)/$(SOFTDEVICE) -Intel $(PWD)/$(OUTPUT_DIR)/$(OUTPUT_NAME).hex -Intel -O $(PWD)/$(OUTPUT_DIR)/$(OUTPUT_MERGED).hex -Intel --line-length=44;
 	
 ## Program device
-upload: rm.jlink upload.jlink
+upload:
+	$(RM) $(OUTPUT_DIR)/upload.jlink
+	echo "device $(JLINKDEVICE)\nw4 $(NVMC_CONFIG_ADRS) 1\nloadfile $(PWD)/$(OUTPUT_DIR)/$(OUTPUT_MERGED).hex\nr\ng\nqc\n" > $(OUTPUT_DIR)/upload.jlink
 	@echo "Starting uploading"
 	$(JLINK) $(OUTPUT_DIR)/upload.jlink
 	@echo "Done uploading"
-
-rm.jlink:
-	$(RM) $(OUTPUT_DIR)/upload.jlink
-	
-upload.jlink:
-	echo "device $(JLINKDEVICE)\nw4 $(NVMC_CONFIG_ADRS) 1\nloadfile $(PWD)/$(OUTPUT_DIR)/$(OUTPUT_MERGED).hex\nr\ng\nqc\n" > $(OUTPUT_DIR)/upload.jlink
 
 recover:
 	$(NRFJPROG) --recover
