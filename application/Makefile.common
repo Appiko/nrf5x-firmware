@@ -62,7 +62,7 @@ JLINK 				= $(JLINK_EXE) -SelectEmuBySN $(SLNO)
 else
 JLINK 				= $(JLINK_EXE)
 endif
-JLINKGDBSERVER	= $(JLINK_DIR)/JLinkGDBServer
+JLINKGDBSERVER		= $(JLINK_DIR)/JLinkGDBServer
 JLINKDEVICE			= $(SOC_FAMILY_LC)
 
 ### nrfjprog related stuff ###
@@ -75,12 +75,16 @@ endif
 
 ### NVMC Address defines ###
 NVMC_CONFIG_ADRS	 = 4001E504
-NVMC_ERASEALL_ADRS = 4001E50C
+NVMC_ERASEALL_ADRS   = 4001E50C
 
 
 ### Folder structure Variables ####
 OUTPUT_NAME     = $(APPLN)
-OUTPUT_MERGED   = $(APPLN)_$(SD_USED_LC)
+ifneq ($(SD_USED_LC),blank)
+OUTPUT_FLASHING   = $(APPLN)_$(SD_USED_LC)
+else
+OUTPUT_FLASHING   = $(APPLN)
+endif
 OUTPUT_DIR      = build
 OBJ_DIR         = obj
 
@@ -97,10 +101,12 @@ INCLUDEDIRS	+= $(SDK_DIR)/toolchain
 INCLUDEDIRS	+= $(SDK_DIR)/toolchain/cmsis/include
 INCLUDEDIRS	+= /usr/arm-none-eabi/include/
 
+ifneq ($(SD_USED_LC),blank)
 SOFTDEVICE  = $(SDK_DIR)/softdevice/$(SD_USED_LC)/hex/$(shell ls $(SDK_DIR)/softdevice/$(SD_USED_LC)/hex)
 SD_PRESENT  = SOFTDEVICE_PRESENT
+endif
 
-LD_SCRIPT 	= $(SDK_DIR)/softdevice/$(SD_USED_LC)/toolchain/armgcc/armgcc_$(SD_USED_LC)_$(SOC_NAME_LC)_$(SOC_VERSION).ld
+LD_SCRIPT 	= $(SD_USED_LC)_$(SOC_NAME_LC)_$(SOC_VERSION).ld
 
 ### Source files ###
 # Project Source
@@ -135,15 +141,18 @@ CFLAGS  += $(CFLAGS_BOARD)
 CFLAGS	+= -D$(SOC_FAMILY_UC)
 CFLAGS  += -D$(SOC_NAME_UC)
 CFLAGS	+= -D$(BOARD)
+ifneq ($(SD_USED_LC),blank)
 CFLAGS  += -D$(SD_PRESENT)
 CFLAGS  += -D$(SD_USED_UC)
 CFLAGS  += -DNRF_SD_BLE_API_VERSION=3 #TODO get from Makefile
+endif
 #TODO remove if not required
 CFLAGS  += -DSWI_DISABLE0 
 CFLAGS	+= $(patsubst %,-I%, $(INCLUDEDIRS))
 
 ### Linker related stuff ###
-LDDIRS	+= $(SDK_DIR)/softdevice/$(SD_USED_LC)/toolchain/armgcc/
+
+LDDIRS	+= linker
 LDDIRS	+= $(SDK_DIR)/toolchain/gcc/
 
 LDFLAGS += -Xlinker
@@ -188,7 +197,10 @@ vpath %.S $(ASSEMBLY_SRC_DIRS)
 
 ### Rules ###
 # Default build target
-.PHONY : all size clean
+.PHONY : all size clean clean_all
+
+clean_all : clean
+	$(MAKE) all -j
 
 size :
 	$(SIZE) $(OUTPUT_DIR)/$(OUTPUT_NAME).elf
@@ -231,13 +243,15 @@ $(OUTPUT_DIR)/$(OUTPUT_NAME).bin : $(OUTPUT_DIR)/$(OUTPUT_NAME).elf
 $(OUTPUT_DIR)/$(OUTPUT_NAME).hex : $(OUTPUT_DIR)/$(OUTPUT_NAME).elf
 	@echo "Create hex file from: " $<
 	$(Q)$(OBJCOPY) -O ihex $(OUTPUT_DIR)/$(OUTPUT_NAME).elf $(OUTPUT_DIR)/$(OUTPUT_NAME).hex
-	@echo "Combined $(SD_USED_LC).hex and $(APPLN).hex files to form $(OUTPUT_MERGED).hex"
-	$(Q)srec_cat $(PWD)/$(SOFTDEVICE) -Intel $(PWD)/$(OUTPUT_DIR)/$(OUTPUT_NAME).hex -Intel -O $(PWD)/$(OUTPUT_DIR)/$(OUTPUT_MERGED).hex -Intel --line-length=44;
+	@if [ "$(SD_USED_LC)" != "blank" ]; then\
+		echo "Create combined $(SD_USED) and $(APPLN).hex file $(OUTPUT_FLASHING).hex "; \
+		srec_cat $(PWD)/$(SOFTDEVICE) -Intel $(PWD)/$(OUTPUT_DIR)/$(OUTPUT_NAME).hex -Intel -O $(PWD)/$(OUTPUT_DIR)/$(OUTPUT_FLASHING).hex -Intel --line-length=44;	\
+	fi
 	
 ## Program device
 upload:
 	$(RM) $(OUTPUT_DIR)/upload.jlink
-	echo "device $(JLINKDEVICE)\nw4 $(NVMC_CONFIG_ADRS) 1\nloadfile $(PWD)/$(OUTPUT_DIR)/$(OUTPUT_MERGED).hex\nr\ng\nqc\n" > $(OUTPUT_DIR)/upload.jlink
+	echo "device $(JLINKDEVICE)\nw4 $(NVMC_CONFIG_ADRS) 1\nloadfile $(PWD)/$(OUTPUT_DIR)/$(OUTPUT_FLASHING).hex\nr\ng\nqc\n" > $(OUTPUT_DIR)/upload.jlink
 	@echo "Starting uploading"
 	$(JLINK) $(OUTPUT_DIR)/upload.jlink
 	@echo "Done uploading"
