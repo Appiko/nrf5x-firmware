@@ -49,7 +49,7 @@ void lfclk_init(nrf_clock_lfclk_t lfclk_src)
         nrf_clock_event_clear(NRF_CLOCK_EVENT_LFCLKSTARTED);
         nrf_clock_task_trigger(NRF_CLOCK_TASK_LFCLKSTART);
         /* Wait for the external oscillator to start up. */
-        while (nrf_clock_lf_is_running() == false)
+        while (nrf_clock_event_check(NRF_CLOCK_EVENT_LFCLKSTARTED) == 0)
         {
             __WFE();
         }
@@ -87,7 +87,7 @@ void hfclk_xtal_init_blocking(void)
         nrf_clock_event_clear(NRF_CLOCK_EVENT_HFCLKSTARTED);
         nrf_clock_task_trigger(NRF_CLOCK_TASK_HFCLKSTART);
         /* Wait for the external oscillator to start up. */
-        while (nrf_clock_hf_is_running(NRF_CLOCK_HFCLK_HIGH_ACCURACY) == false)
+        while (nrf_clock_event_check(NRF_CLOCK_EVENT_HFCLKSTARTED) == 0)
         {
             __WFE();
         }
