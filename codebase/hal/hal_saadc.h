@@ -48,6 +48,7 @@
 
 #include "nrf_saadc.h"
 #include "nrf_assert.h"
+#include "hal_pin_analog_input.h"
 
 #ifdef NRF51
 #error SAADC peripheral is not present in the nRF51 SoC
@@ -81,6 +82,15 @@ __STATIC_INLINE void saadc_sampling_task_mode_set(void)
     NRF_SAADC->SAMPLERATE = (0 << SAADC_SAMPLERATE_CC_Pos) |
             (SAADC_SAMPLERATE_MODE_Task << SAADC_SAMPLERATE_MODE_Pos);
 }
+
+/**
+ * @brief Function to uninitializes a SAADC channel.
+ */
+__STATIC_INLINE void saadc_channel_uninit(uint8_t channel)
+{
+    nrf_saadc_channel_input_set(channel, NRF_SAADC_INPUT_DISABLED, NRF_SAADC_INPUT_DISABLED);
+}
+
 
 #endif /* CODEBASE_HAL_HAL_SAADC_H_ */
 
