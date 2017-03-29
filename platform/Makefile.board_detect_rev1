@@ -1,0 +1,20 @@
+
+### SoC on board related stuff ###
+CPU             := cortex-m4
+FPU_FLAG        := -mfloat-abi=hard -mfpu=fpv4-sp-d16
+SOC_FAMILY      := nrf52
+SOC_NAME        := nrf52832
+SOC_VERSION     := xxaa
+
+#Product Anamoly Notice work-arounds
+CFLAGS_BOARD += -DNRF52_PAN_64
+CFLAGS_BOARD += -DNRF52_PAN_12
+CFLAGS_BOARD += -DNRF52_PAN_58
+CFLAGS_BOARD += -DNRF52_PAN_54
+CFLAGS_BOARD += -DNRF52_PAN_31
+CFLAGS_BOARD += -DNRF52_PAN_51
+CFLAGS_BOARD += -DNRF52_PAN_36
+CFLAGS_BOARD += -DNRF52_PAN_15
+CFLAGS_BOARD += -DNRF52_PAN_20
+CFLAGS_BOARD += -DNRF52_PAN_55
+CFLAGS_BOARD += -DCONFIG_GPIO_AS_PINRESET
