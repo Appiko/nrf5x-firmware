@@ -40,7 +40,9 @@
  * is shown at compile time.
  * @param PIN_NUM The pin number whose analog input number is needed
  */
-#define PIN_TO_ANALOG_INPUT(PIN_NUM)    __ANALOG_PIN_OF_##PIN_NUM
+#define PIN_TO_ANALOG_INPUT(PIN_NUM)    PIN_TO_ANALOG_INPUT_(PIN_NUM)
+/** Private macro used by @ref PIN_TO_ANALOG_INPUT */
+#define PIN_TO_ANALOG_INPUT_(PIN_NUM)    __ANALOG_PIN_OF_##PIN_NUM
 
 #ifdef NRF51
 /** @warning This pin is also the connection to 32 kHz crystal */
