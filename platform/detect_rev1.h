@@ -85,18 +85,18 @@
  * @name Wide angle PIR definitions for Detect rev1.
  * @{*/
 /** This pin provides the supply for the PIR sensor and RC filter*/
-#define WIDE_VDD_PIN     17
+#define WIDE_VDD_PIN     6
 /** The RC filtered output of the PIR sensor */
-#define WIDE_SIGNAL_PIN  28
+#define WIDE_SIGNAL_PIN  4
 /** The DC offset of the PIR sensor output */
-#define WIDE_OFFSET_PIN  29
+#define WIDE_OFFSET_PIN  5
 /** @} */
 
 /** @anchor detect_rev1_narrow_pir
  * @name Narrow angle PIR definitions for Detect rev1.
  * @{*/
 /** This pin provides the supply for the PIR sensor and RC filter*/
-#define NARROW_VDD_PIN     17
+#define NARROW_VDD_PIN     27
 /** The RC filtered output of the PIR sensor */
 #define NARROW_SIGNAL_PIN  28
 /** The DC offset of the PIR sensor output */
