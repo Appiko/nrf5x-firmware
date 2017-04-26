@@ -45,6 +45,7 @@
 #define PIN_TO_ANALOG_INPUT_(PIN_NUM)    __ANALOG_PIN_OF_##PIN_NUM
 
 #ifdef NRF51
+#error Check these defines, not yet done properly yet
 /** @warning This pin is also the connection to 32 kHz crystal */
 #define __ANALOG_PIN_OF_26                0
 /** @warning This pin is also the connection to 32 kHz crystal */
@@ -59,13 +60,13 @@
 #endif
 
 #ifdef NRF52
-#define __ANALOG_PIN_OF_1                 0
-#define __ANALOG_PIN_OF_3                 1
-#define __ANALOG_PIN_OF_4                 2
-#define __ANALOG_PIN_OF_5                 3
-#define __ANALOG_PIN_OF_28                4
-#define __ANALOG_PIN_OF_29                5
-#define __ANALOG_PIN_OF_30                6
-#define __ANALOG_PIN_OF_31                7
+#define __ANALOG_PIN_OF_2                 SAADC_CH_PSELP_PSELP_AnalogInput0
+#define __ANALOG_PIN_OF_3                 SAADC_CH_PSELP_PSELP_AnalogInput1
+#define __ANALOG_PIN_OF_4                 SAADC_CH_PSELP_PSELP_AnalogInput2
+#define __ANALOG_PIN_OF_5                 SAADC_CH_PSELP_PSELP_AnalogInput3
+#define __ANALOG_PIN_OF_28                SAADC_CH_PSELP_PSELP_AnalogInput4
+#define __ANALOG_PIN_OF_29                SAADC_CH_PSELP_PSELP_AnalogInput5
+#define __ANALOG_PIN_OF_30                SAADC_CH_PSELP_PSELP_AnalogInput6
+#define __ANALOG_PIN_OF_31                SAADC_CH_PSELP_PSELP_AnalogInput7
 #endif
 #endif /* CODEBASE_HAL_HAL_PIN_ANALOG_INPUT_H_ */
