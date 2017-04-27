@@ -44,6 +44,8 @@
   #include "pca10028.h"
 #elif defined(BOARD_DETECT_REV1)
   #include "detect_rev1.h"
+#elif defined(BOARD_BLUEY_1V1)
+  #include "bluey_1v1.h"
 #elif defined(BOARD_CUSTOM)
   #include "custom_board.h"
 #else
