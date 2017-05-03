@@ -98,7 +98,7 @@ int main(void)
     rgb_led_cycle();
     /* Initial printf */
     uart_printf_init(UARTE_BAUDRATE_BAUDRATE_Baud1M);
-    tfp_printf("Hello World %ld!\n", 1);
+    tfp_printf("Hello World %d!\n", 1);
 
     hfclk_xtal_init_blocking();
     lfclk_init(BOARD_LFCLKSRC);
