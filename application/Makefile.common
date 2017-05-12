@@ -293,7 +293,7 @@ reset:
 	@if [ "$(DEBUGGER)" = "JLINK" ]; then\
 		$(NRFJPROG) --reset;\
 	elif [ "$(DEBUGGER)" = "BMP" ]; then \
-		arm-none-eabi-gdb -q -ex 'target extended-remote /dev/ttyBmpGdb' -ex 'monitor swdp_scan' -ex 'attach 1'	; \
+		arm-none-eabi-gdb --batch -q -ex 'target extended-remote /dev/ttyBmpGdb' -ex 'monitor swdp_scan' -ex 'attach 1' -ex 'kill'; \
 	else\
 		echo "Use the DEBUGGER variable to specify the debugger to be used for the reset operation"; \
 	fi
