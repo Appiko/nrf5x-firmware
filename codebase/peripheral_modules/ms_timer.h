@@ -36,7 +36,7 @@
  * @addtogroup group_peripheral_modules
  * @{
  *
- * @defgroup group_ms_timer ms timer module
+ * @defgroup group_ms_timer Millisecond timer
  * @brief Driver to use milli-second timers using the RTC peripheral
  *
  * @warning This module needs the LFCLK to be on and running to be able to work
