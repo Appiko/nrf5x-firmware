@@ -114,5 +114,9 @@
 
 #define BOARD_LFCLKSRC         NRF_CLOCK_LFCLK_Xtal
 
-
 #endif /* PLATFORM_DETECT_REV1_H_ */
+
+/**
+ * @}
+ * @}
+ */
