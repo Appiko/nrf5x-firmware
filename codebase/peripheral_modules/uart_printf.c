@@ -32,16 +32,6 @@
  *  POSSIBILITY OF SUCH DAMAGE.
  */
 
-/**
- * @addtogroup uart-driver
- * @{
- *
- * @file
- * This file contains the UART Driver implementation for the nrf52832 SoC
- * @author
- * Prithvi
- */
-
 #include "nrf.h"
 #include "uart_printf.h"
 #include "nrf_gpio.h"
@@ -49,11 +39,6 @@
 #include "nrf_util.h"
 #include "tinyprintf.h"
 #include <stdbool.h>
-
-//TODO Add the implementation for UART transmission of a string of char
-//TODO UART driver for the reception of data
-
-//#define IS_DATA_RAM_ADDRESS(addr) (0x20000000 == ((uint32_t)addr & 0xFFFF0000))
 
 /** Size of the PING & PONG buffer each to hold the data to be sent*/
 #define BUFFER_SIZE     128

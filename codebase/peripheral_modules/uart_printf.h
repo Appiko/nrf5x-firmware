@@ -36,12 +36,13 @@
 #define CODEBASE_PERIPHERAL_MODULES_UART_PRINTF_H_
 
 /**
- * @addtogroup peripheral-drivers
+ * @addtogroup group_peripheral_modules
  * @{
  *
- * @defgroup uart-driver UART Driver
- * UART Driver for the nrf52832 SoC
- * supports single character printing, stream to printf and a character stream receiver handler
+ * @defgroup group_uart_printf UART printf
+ * @brief UART Driver for sending printf messages.
+ *  To be used in conjunction with @ref tinyprintf.h
+ *
  * @{
  */
 
@@ -49,7 +50,9 @@
 #include <stdint.h>
 
 /**
- * Function to initialize the parameters of UART based on the configurations in @ref board.h
+ * @brief Function to initialize the parameters of UART based on the
+ *  configurations in @ref boards.h
+ * @param baud_rate The baud rate used for the UART to send the printf messages
  */
 void uart_printf_init(uint32_t baud_rate);
 
