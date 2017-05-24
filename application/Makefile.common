@@ -53,6 +53,7 @@ SIZE    := $(GCC_PREFIX)-size
 MK	:= mkdir -p
 RM	:= rm -rf
 
+ifeq ($(DEBUGGER),JLINK)
 ### JLink related stuff ###
 JLINK_DIR           := /opt/SEGGER/JLink
 JLINK_EXE 			= $(JLINK_DIR)/JLinkExe -Speed 4000 -If SWD
@@ -72,6 +73,9 @@ NRFJPROG        = $(NRFJPROG_DIR)/nrfjprog -f $(SOC_FAMILY_LC) -s $(SLNO)
 else
 NRFJPROG        = $(NRFJPROG_DIR)/nrfjprog -f $(SOC_FAMILY_LC)
 endif
+
+endif 	#if Segger JLink is used
+
 
 ### NVMC Address defines ###
 NVMC_CONFIG_ADRS	 = 4001E504
@@ -255,7 +259,7 @@ upload:
 		echo "device $(JLINKDEVICE)\nw4 $(NVMC_CONFIG_ADRS) 1\nloadfile $(PWD)/$(OUTPUT_DIR)/$(OUTPUT_FLASHING).hex\nr\ng\nqc\n" > $(OUTPUT_DIR)/upload.jlink; \
 		$(JLINK) $(OUTPUT_DIR)/upload.jlink; \
 	elif [ "$(DEBUGGER)" = "BMP" ]; then \
-		arm-none-eabi-gdb -q -ex 'target extended-remote /dev/ttyBmpGdb' -ex 'monitor swdp_scan' -ex 'attach 1' -ex 'load' -ex 'detach' -ex 'quit' $(OUTPUT_DIR)/$(OUTPUT_FLASHING).hex; \
+		arm-none-eabi-gdb -q -ex 'target extended-remote /dev/ttyBmpGdb' -ex 'monitor swdp_scan' -ex 'attach 1' -ex 'load' -ex 'compare-sections' -ex 'detach' -ex 'quit' $(OUTPUT_DIR)/$(OUTPUT_FLASHING).hex; \
 	else\
 		echo "Use the DEBUGGER variable to specify the debugger to be used for uploading"; \
 	fi
@@ -298,8 +302,17 @@ reset:
 		echo "Use the DEBUGGER variable to specify the debugger to be used for the reset operation"; \
 	fi
 
+debug:
+	@if [ "$(DEBUGGER)" = "JLINK" ]; then\
+		echo "GDB debug is not supported with JLink yet with this makefile."; \
+	elif [ "$(DEBUGGER)" = "BMP" ]; then \
+		arm-none-eabi-gdb -q -ex 'set confirm no' -ex 'target extended-remote /dev/ttyBmpGdb' -ex 'monitor swdp_scan' -ex 'attach 1' -ex 'load' -ex 'run' $(OUTPUT_DIR)/$(OUTPUT_FLASHING).elf; \
+	else\
+		echo "Use the DEBUGGER variable to specify the debugger to be used for the reset operation"; \
+	fi
+
 doc:
 	( cat $(DOC_DIR)/Appiko.doxyfile ; echo "$(DOXY_EDITS)" ) | doxygen -
 
-.PHONY: upload eraseall recover pinreset doc
+.PHONY: upload eraseall recover pinreset doc debug
 
