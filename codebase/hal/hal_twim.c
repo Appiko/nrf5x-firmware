@@ -46,7 +46,7 @@ static struct {
     uint8_t evt_mask;
 }twim_status;
 
-/** @anchor rtc_defines
+/** @anchor twim_defines
  * @name Defines for the specific RTC peripheral used for ms timer
  * @{*/
 #define TWIM_ID               CONCAT_2(NRF_TWIM,TWIM_USED)
