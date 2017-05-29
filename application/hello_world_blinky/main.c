@@ -38,8 +38,8 @@
 
 #include <stdbool.h>
 #include <stdint.h>
-#include "nrf_delay.h"
-#include "nrf_gpio.h"
+#include "hal_nop_delay.h"
+#include "hal_gpio.h"
 #include "boards.h"
 
 /**
@@ -47,12 +47,12 @@
  */
 int main(void){
   /* Configure the LED 1 as output. */
-  nrf_gpio_cfg_output(LED_1);
+  hal_gpio_cfg_output(LED_1, 1);
 
   /* Toggle LED 1 after every 500 ms */
   while (true){
-    nrf_gpio_pin_toggle(LED_1);
-    nrf_delay_ms(500);
+    hal_gpio_pin_toggle(LED_1);
+    hal_nop_delay_ms(500);
   }
 }
 

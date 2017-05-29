@@ -39,8 +39,8 @@
 
 #include <stdbool.h>
 #include <stdint.h>
-#include "nrf_delay.h"
-#include "nrf_gpio.h"
+#include "hal_nop_delay.h"
+#include "hal_gpio.h"
 #include "boards.h"
 #include "SEGGER_RTT.h"
 
@@ -49,7 +49,7 @@
  */
 int main(void){
   /* Configure a LED as output. */
-  nrf_gpio_cfg_output(LED_1);
+  hal_gpio_cfg_output(LED_1, 0);
   /* Initial printf */
   SEGGER_RTT_printf(0, "Hello World over RTT!\n");
 
@@ -59,8 +59,8 @@ int main(void){
    * incremented integer */
   while (true){
     SEGGER_RTT_printf(0, "Hello %d\n", count);
-    nrf_gpio_pin_toggle(LED_1);
-    nrf_delay_ms(1500);
+    hal_gpio_pin_toggle(LED_1);
+    hal_nop_delay_ms(1500);
     count++;
   }
 }
