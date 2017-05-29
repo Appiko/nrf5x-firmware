@@ -33,33 +33,41 @@
  */
 
 #include "hal_clocks.h"
-#include "nrf.h"
 
-void lfclk_init(nrf_clock_lfclk_t lfclk_src)
+void lfclk_init(lfclk_src_t lfclk_src)
 {
-    if (nrf_clock_lf_is_running() == false)
+    if((NRF_CLOCK->LFCLKSTAT |  //Clock is running
+       (CLOCK_LFCLKSTAT_STATE_Running << CLOCK_LFCLKSTAT_STATE_Pos)) &&
+       //Correct source is already set
+      ((NRF_CLOCK->LFCLKSTAT & CLOCK_LFCLKSTAT_SRC_Msk) == lfclk_src))
     {
-        nrf_clock_lf_src_set(lfclk_src);
-        nrf_clock_int_enable(NRF_CLOCK_INT_LF_STARTED_MASK);
-        NVIC_ClearPendingIRQ(POWER_CLOCK_IRQn);
+        //Already in the required configuration
+        return;
+    }
 
-        // Enable wake-up on any event or interrupt (even disabled)
-        SCB->SCR |= SCB_SCR_SEVONPEND_Msk;
+    NRF_CLOCK->LFCLKSRC = (lfclk_src << CLOCK_LFCLKSRC_SRC_Msk);
+    NRF_CLOCK->INTENSET = CLOCK_INTENSET_LFCLKSTARTED_Msk;
+    NVIC_ClearPendingIRQ(POWER_CLOCK_IRQn);
 
-        nrf_clock_event_clear(NRF_CLOCK_EVENT_LFCLKSTARTED);
-        nrf_clock_task_trigger(NRF_CLOCK_TASK_LFCLKSTART);
-        /* Wait for the external oscillator to start up. */
-        while (nrf_clock_event_check(NRF_CLOCK_EVENT_LFCLKSTARTED) == 0)
-        {
-            __WFE();
-        }
-        /* Clear the event and the pending interrupt */
-        nrf_clock_event_clear(NRF_CLOCK_EVENT_LFCLKSTARTED);
-        NVIC_ClearPendingIRQ(POWER_CLOCK_IRQn);
-        nrf_clock_int_disable(NRF_CLOCK_INT_LF_STARTED_MASK);
+    // Enable wake-up on any event or interrupt (even disabled)
+    SCB->SCR |= SCB_SCR_SEVONPEND_Msk;
 
-        // Enable wake-up on only enabled interrupts
-        SCB->SCR &= (~(SCB_SCR_SEVONPEND_Msk));
+    NRF_CLOCK->EVENTS_LFCLKSTARTED = 0;
+    (void)NRF_CLOCK->EVENTS_LFCLKSTARTED;
+    NRF_CLOCK->TASKS_LFCLKSTART = 1;
+    /* Wait for the external oscillator to start up. */
+    while (NRF_CLOCK->EVENTS_LFCLKSTARTED == 0)
+    {
+        __WFE();
+    }
+    /* Clear the event and the pending interrupt */
+    NRF_CLOCK->EVENTS_LFCLKSTARTED = 0;
+    (void)NRF_CLOCK->EVENTS_LFCLKSTARTED;
+    NVIC_ClearPendingIRQ(POWER_CLOCK_IRQn);
+    NRF_CLOCK->INTENCLR = CLOCK_INTENCLR_LFCLKSTARTED_Msk;
+
+    // Enable wake-up on only enabled interrupts
+    SCB->SCR &= (~(SCB_SCR_SEVONPEND_Msk));
 
 #ifdef NRF52832
         //Due to errata 20 in Eng rev 1
@@ -67,7 +75,6 @@ void lfclk_init(nrf_clock_lfclk_t lfclk_src)
         NRF_RTC1->TASKS_STOP = 0;
         NRF_RTC2->TASKS_STOP = 0;
 #endif
-    }
 }
 
 void lfclk_deinit(void)
@@ -78,23 +85,27 @@ void lfclk_deinit(void)
 void hfclk_xtal_init_blocking(void)
 {
     /* Check if 16 MHz crystal oscillator is already running. */
-    if (nrf_clock_hf_is_running(NRF_CLOCK_HFCLK_HIGH_ACCURACY) == false)
+    if(NRF_CLOCK->HFCLKSTAT !=
+      ((CLOCK_HFCLKSTAT_STATE_Running << CLOCK_HFCLKSTAT_STATE_Pos) |
+      (CLOCK_HFCLKSTAT_SRC_Xtal << CLOCK_HFCLKSTAT_SRC_Pos)))
     {
-        nrf_clock_int_enable(NRF_CLOCK_INT_HF_STARTED_MASK);
+        NRF_CLOCK->INTENSET = CLOCK_INTENSET_HFCLKSTARTED_Msk;
         // Enable wake-up on event
         SCB->SCR |= SCB_SCR_SEVONPEND_Msk;
 
-        nrf_clock_event_clear(NRF_CLOCK_EVENT_HFCLKSTARTED);
-        nrf_clock_task_trigger(NRF_CLOCK_TASK_HFCLKSTART);
+        NRF_CLOCK->EVENTS_HFCLKSTARTED = 0;
+        (void) NRF_CLOCK->EVENTS_HFCLKSTARTED;
+        NRF_CLOCK->TASKS_HFCLKSTART = 1;
         /* Wait for the external oscillator to start up. */
-        while (nrf_clock_event_check(NRF_CLOCK_EVENT_HFCLKSTARTED) == 0)
+        while (NRF_CLOCK->EVENTS_HFCLKSTARTED == 0)
         {
             __WFE();
         }
         /* Clear the event and the pending interrupt */
-        nrf_clock_event_clear(NRF_CLOCK_EVENT_HFCLKSTARTED);
+        NRF_CLOCK->EVENTS_HFCLKSTARTED = 0;
+        (void) NRF_CLOCK->EVENTS_HFCLKSTARTED;
         NVIC_ClearPendingIRQ(POWER_CLOCK_IRQn);
-        nrf_clock_int_disable(NRF_CLOCK_INT_HF_STARTED_MASK);
+        NRF_CLOCK->INTENCLR = CLOCK_INTENCLR_HFCLKSTARTED_Msk;
 
         // Enable wake-up on only enabled interrupts
         SCB->SCR &= (~(SCB_SCR_SEVONPEND_Msk));
@@ -104,34 +115,31 @@ void hfclk_xtal_init_blocking(void)
 void hfclk_xtal_init_nonblocking(void)
 {
     /* Check if 16 MHz crystal oscillator is already running. */
-    if (nrf_clock_hf_is_running(NRF_CLOCK_HFCLK_HIGH_ACCURACY) == false)
+    if(NRF_CLOCK->HFCLKSTAT !=
+      ((CLOCK_HFCLKSTAT_STATE_Running << CLOCK_HFCLKSTAT_STATE_Pos) |
+      (CLOCK_HFCLKSTAT_SRC_Xtal << CLOCK_HFCLKSTAT_SRC_Pos)))
     {
-        nrf_clock_task_trigger(NRF_CLOCK_TASK_HFCLKSTART);
+        NRF_CLOCK->TASKS_HFCLKSTART = 1;
     }
 }
 
 void hfclk_block_till_xtal(void)
 {
     /* Check if 16 MHz crystal oscillator is already running. */
-    if (nrf_clock_hf_is_running(NRF_CLOCK_HFCLK_HIGH_ACCURACY) == false)
+    if(NRF_CLOCK->HFCLKSTAT !=
+      ((CLOCK_HFCLKSTAT_STATE_Running << CLOCK_HFCLKSTAT_STATE_Pos) |
+      (CLOCK_HFCLKSTAT_SRC_Xtal << CLOCK_HFCLKSTAT_SRC_Pos)))
     {
-        nrf_clock_int_enable(NRF_CLOCK_INT_HF_STARTED_MASK);
-        // Enable wake-up on event
-        SCB->SCR |= SCB_SCR_SEVONPEND_Msk;
-
-        nrf_clock_event_clear(NRF_CLOCK_EVENT_HFCLKSTARTED);
         /* Wait for the external oscillator to start up. */
-        while (nrf_clock_hf_is_running(NRF_CLOCK_HFCLK_HIGH_ACCURACY) == false)
+        while (NRF_CLOCK->HFCLKSTAT !=
+            ((CLOCK_HFCLKSTAT_STATE_Running << CLOCK_HFCLKSTAT_STATE_Pos) |
+            (CLOCK_HFCLKSTAT_SRC_Xtal << CLOCK_HFCLKSTAT_SRC_Pos)))
         {
-            __WFE();
+
         }
         /* Clear the event and the pending interrupt */
-        nrf_clock_event_clear(NRF_CLOCK_EVENT_HFCLKSTARTED);
-        NVIC_ClearPendingIRQ(POWER_CLOCK_IRQn);
-        nrf_clock_int_disable(NRF_CLOCK_INT_HF_STARTED_MASK);
-
-        // Enable wake-up on only enabled interrupts
-        SCB->SCR &= (~(SCB_SCR_SEVONPEND_Msk));
+        NRF_CLOCK->EVENTS_HFCLKSTARTED = 0;
+        (void) NRF_CLOCK->EVENTS_HFCLKSTARTED;
     }
 }
 

@@ -48,16 +48,21 @@
 
 #include <stdint.h>
 #include <stdbool.h>
+#include "common_util.h"
+#include "nrf_peripherals.h"
 #include "nrf.h"
-#include "nrf_rtc.h"
+#include "hal_clocks.h"
 
 /** Specify which RTC peripheral would be used for the ms timer module */
 #define MS_TIMER_RTC_USED           1
 
+///The number of CC registers in the RTC peripheral used for MS timer
+#define MS_TIMER_CC_COUNT           CONCAT_3(RTC, MS_TIMER_RTC_USED, _CC_NUM)
+
 /** The frequency used by the RTC running the ms timer. Must be a power of 2 and at max 32768 Hz */
 #define MS_TIMER_FREQ				32768
 /* Check if MS_TIMER_FREQ is power of 2 and less than or equal to 32.768 kHz */
-#if (((IS_POWER_OF_TWO(MS_TIMER_FREQ)) && (MS_TIMER_FREQ<=RTC_INPUT_FREQ))==false)
+#if (((IS_POWER_OF_TWO(MS_TIMER_FREQ)) && (MS_TIMER_FREQ<=LFCLK_FREQ))==false)
 #error MS_TIMER_FREQ must be a power of 2 with a maximum frequency of 32768 Hz
 #endif
 /** Macro to find out the number of RTC ticks for the passed time in milli-seconds */
@@ -73,7 +78,7 @@ typedef enum {
 	MS_TIMER0,  //!< Millisecond Timer 0
 	MS_TIMER1,  //!< Millisecond Timer 1
 	MS_TIMER2,  //!< Millisecond Timer 2
-#if (NRF_RTC_CC_CHANNEL_COUNT(MS_TIMER_RTC_USED) == 4)
+#if (MS_TIMER_CC_COUNT == 4)
 	MS_TIMER3,  //!< Millisecond Timer 3
 #endif
 	MS_TIMER_MAX//!< Not a timer, just used to find the number of timers

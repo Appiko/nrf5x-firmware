@@ -28,6 +28,7 @@
  */
 
 #include "ms_timer.h"
+#include "stddef.h"
 
 /** @anchor rtc_defines
  * @name Defines for the specific RTC peripheral used for ms timer
@@ -60,7 +61,7 @@ void ms_timer_init(uint32_t irq_priority)
     }
 
     ms_timers_status = 0;
-    RTC_ID->PRESCALER = RTC_FREQ_TO_PRESCALER(MS_TIMER_FREQ);
+    RTC_ID->PRESCALER = (LFCLK_FREQ/MS_TIMER_FREQ) - 1;
 
     NVIC_SetPriority(RTC_IRQN, irq_priority);
     NVIC_EnableIRQ(RTC_IRQN);
@@ -75,7 +76,7 @@ void ms_timer_start(ms_timer_num id, ms_timer_mode mode, uint32_t ticks, void (*
 {
 
     /* make sure the number of ticks to interrupt is less than 2^24 */
-    ticks = RTC_WRAP(ticks);
+    ticks = (ticks & RTC_COUNTER_COUNTER_Msk);
 
     ms_timer[id].timer_handler = handler;
     if (mode == MS_SINGLE_CALL)

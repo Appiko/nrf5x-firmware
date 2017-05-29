@@ -34,7 +34,7 @@
 
 #include "nrf.h"
 #include "uart_printf.h"
-#include "nrf_gpio.h"
+#include "hal_gpio.h"
 #include "boards.h"
 #include "nrf_util.h"
 #include "tinyprintf.h"
@@ -184,16 +184,16 @@ void printf_callback(void* str_end, char ch)
 void uart_printf_init(uint32_t baud_rate)
 {
     /* Configure TX and RX pins from board.h */
-    nrf_gpio_cfg_output(TX_PIN_NUMBER);
-    nrf_gpio_cfg_input(RX_PIN_NUMBER, GPIO_PIN_CNF_PULL_Disabled);
+    hal_gpio_cfg_output(TX_PIN_NUMBER, 0);
+    hal_gpio_cfg_input(RX_PIN_NUMBER, GPIO_PIN_CNF_PULL_Disabled);
     NRF_UARTE0->PSEL.TXD = TX_PIN_NUMBER;
     NRF_UARTE0->PSEL.RXD = RX_PIN_NUMBER;
 
     /* Configure CTS and RTS pins if HWFC is true in board.h */
     if (HWFC)
     {
-        nrf_gpio_cfg_output(RTS_PIN_NUMBER);
-        nrf_gpio_cfg_input(CTS_PIN_NUMBER, GPIO_PIN_CNF_PULL_Disabled);
+        hal_gpio_cfg_output(RTS_PIN_NUMBER, 0);
+        hal_gpio_cfg_input(CTS_PIN_NUMBER, GPIO_PIN_CNF_PULL_Disabled);
         NRF_UARTE0->PSEL.RTS = RTS_PIN_NUMBER;
         NRF_UARTE0->PSEL.CTS = CTS_PIN_NUMBER;
         NRF_UARTE0->CONFIG = (UARTE_CONFIG_HWFC_Enabled << UARTE_CONFIG_HWFC_Pos);

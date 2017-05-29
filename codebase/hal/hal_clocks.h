@@ -44,13 +44,23 @@
  * @{
  */
 
-#include "nrf_clock.h"
+#include "stdbool.h"
+#include "nrf.h"
+
+typedef enum {
+    LFCLK_SRC_RC    = CLOCK_LFCLKSRC_SRC_RC,   /**< Internal 32 kHz RC oscillator. */
+    LFCLK_SRC_Xtal  = CLOCK_LFCLKSRC_SRC_Xtal, /**< External 32 kHz crystal. */
+    LFCLK_SRC_Synth = CLOCK_LFCLKSRC_SRC_Synth /**< Internal 32 kHz synthesizer from HFCLK system clock. */
+} lfclk_src_t;
+
+///Frequency of the low frequency clock is 32.768 kHz
+#define LFCLK_FREQ 32768
 
 /** @brief Function to initialize the LF clock
  * @param lfclk_src The source for the lf clock (RC, Xtal or systhesis from HF-clk)
  * @warning If the clock source is RC oscillator, calibrate it to use (errata 77 in nRF52)
  */
-void lfclk_init(nrf_clock_lfclk_t lfclk_src);
+void lfclk_init(lfclk_src_t lfclk_src);
 
 /** @brief Function to de-initialize the LF clock.
  * Saves a bit of power as LF clock is not running, but RTC or WDT cannot run
