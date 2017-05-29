@@ -13,8 +13,7 @@ CODEBASE_DIR    = ../../codebase
 
 INCLUDEDIRS	= .
 INCLUDEDIRS	+= $(PLATFORM_DIR)
-INCLUDEDIRS += $(SDK_DIR)/drivers_nrf/delay
-INCLUDEDIRS += $(SDK_DIR)/drivers_nrf/hal
+INCLUDEDIRS += $(CODEBASE_DIR)/hal/
 
 C_SRC_DIRS	= .
 

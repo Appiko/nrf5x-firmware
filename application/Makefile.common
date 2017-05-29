@@ -4,10 +4,6 @@ ifndef BOARD
 ${error BOARD not specified}
 endif
 
-ifndef SDK_DIR
-${error SDK_DIR not specified in application Makefile. Needed to find the start-up and CMSIS code.}
-endif
-
 ifndef CPU
 ${error CPU not specified in board Makefile. Needed for CFLAGS.}
 endif
@@ -100,9 +96,8 @@ else
 endif
 
 # Include directories
-INCLUDEDIRS	+= $(SDK_DIR)/device
-INCLUDEDIRS	+= $(SDK_DIR)/toolchain
-INCLUDEDIRS	+= $(SDK_DIR)/toolchain/cmsis/include
+INCLUDEDIRS	+= $(CODEBASE_DIR)/nrf_core
+INCLUDEDIRS	+= $(CODEBASE_DIR)/cmsis/include
 INCLUDEDIRS	+= /usr/arm-none-eabi/include/
 
 ifneq ($(SD_USED_LC),blank)
@@ -157,7 +152,7 @@ CFLAGS	+= $(patsubst %,-I%, $(INCLUDEDIRS))
 ### Linker related stuff ###
 
 LDDIRS	+= linker
-LDDIRS	+= $(SDK_DIR)/toolchain/gcc/
+LDDIRS	+= $(CODEBASE_DIR)/nrf_core
 
 LDFLAGS += -Xlinker
 LDFLAGS += -Map=$(OUTPUT_DIR)/$(OUTPUT_NAME).map
@@ -180,9 +175,9 @@ LDFLAGS	+= $(patsubst %,-L%, $(LDDIRS))
 BUILD_DIRS := $(sort $(OBJ_DIR) $(OUTPUT_DIR) )
 
 # Make a list of source paths
-C_SRC_DIRS  += $(SDK_DIR)/toolchain
+C_SRC_DIRS  += $(CODEBASE_DIR)/nrf_core
 
-ASSEMBLY_SRC_DIRS	= $(SDK_DIR)/toolchain/gcc
+ASSEMBLY_SRC_DIRS	= $(CODEBASE_DIR)/nrf_core
 
 # Object files
 C_OBJ 			= $(addprefix $(OBJ_DIR)/, $(C_SRC:.c=.o))
