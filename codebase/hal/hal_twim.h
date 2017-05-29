@@ -49,6 +49,10 @@
 
 #include "nrf.h"
 
+#ifdef NRF51
+#error TWIM peripheral is not present in the nRF51 SoC
+#endif
+
 /** Specify which TWIM peripheral is used for this HAL module */
 #define TWIM_USED           0
 
