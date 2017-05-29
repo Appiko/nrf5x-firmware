@@ -53,9 +53,24 @@
 #ifndef CODEBASE_HAL_HAL_NOP_DELAY_H_
 #define CODEBASE_HAL_HAL_NOP_DELAY_H_
 
+/**
+ * @addtogroup group_hal
+ * @{
+ *
+ * @defgroup group_NOP_delay Delay with NOPs
+ * @brief Hardware abstraction layer creating us and ms delay using the processor's NOP instruction.
+ * @warning These functions are power hungry and keeps the processor busy.
+ *  Use them for initial prototypes and seldom in production code.
+ * @{
+ */
+
 #include "stdint.h"
 #include "nrf.h"
 
+/**
+ * @brief Create a delay in micro-seconds with processor NOP instruction.
+ * @param number_of_us The number of us of the delay
+ */
 static void hal_nop_delay_us(uint32_t number_of_us)
 {
 register uint32_t delay __ASM ("r0") = number_of_us;
@@ -132,9 +147,18 @@ __ASM volatile (
     : "+r" (delay));
 }
 
+/**
+ * @brief Create a delay in milli-seconds with processor NOP instruction.
+ * @param number_of_ms The number of ms of the delay
+ */
 static inline void hal_nop_delay_ms(uint32_t number_of_ms)
 {
     hal_nop_delay_us(1000*number_of_ms);
 }
 
 #endif /* CODEBASE_HAL_HAL_NOP_DELAY_H_ */
+
+/**
+ * @}
+ * @}
+ */
