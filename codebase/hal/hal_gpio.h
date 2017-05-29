@@ -35,6 +35,15 @@
 #ifndef CODEBASE_HAL_HAL_GPIO_H_
 #define CODEBASE_HAL_HAL_GPIO_H_
 
+/**
+ * @addtogroup group_hal
+ * @{
+ *
+ * @defgroup group_gpio GPIO HAL
+ * @brief Hardware abstraction layer of the General Purpose Input Output peripheral.
+ * @{
+ */
+
 #include "nrf.h"
 
 /**
@@ -184,3 +193,8 @@ static inline uint32_t hal_gpio_pin_read(uint32_t pin_num)
 }
 
 #endif /* CODEBASE_HAL_HAL_GPIO_H_ */
+
+/**
+ * @}
+ * @}
+ */
