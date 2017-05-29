@@ -103,8 +103,17 @@
 #define NARROW_OFFSET_PIN  29
 /** @} */
 
-/** Bool to say if the inductor circuitry is present for the DC-DC regulator */
-#define DC_DC_BUCK_PRESENT  true
+///Bool define if the circuitry is present for the internal DC-DC of nRF52
+#define DC_DC_CIRCUITRY     true
+
+///Bool define if a NFC Antenna circuitry is present
+#define NFC_CIRCUITRY       true
+
+///Bool define if the 32 kHz crystal is present for the LFCLK
+#define LFCLK_XTAL_PRESENT  true
+
+///Bool define if a crystal is present for the HFCLK
+#define HFCLK_XTAL_PRESENT  true
 
 /** Low frequency clock source used when initializing the SoftDevice */
 #define BOARD_LFCLKSRC_STRUCT  {.source        = NRF_CLOCK_LF_SRC_XTAL,            \
