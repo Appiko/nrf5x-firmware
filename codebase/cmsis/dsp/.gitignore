@@ -1,0 +1,2 @@
+# special .gitignore just to re-include the soft device hex files
+!*.a
