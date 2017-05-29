@@ -47,10 +47,12 @@
 #include "stdbool.h"
 #include "nrf.h"
 
+/** The possible sources for Low frequency clock's 32 kHz input
+ */
 typedef enum {
-    LFCLK_SRC_RC    = CLOCK_LFCLKSRC_SRC_RC,   /**< Internal 32 kHz RC oscillator. */
-    LFCLK_SRC_Xtal  = CLOCK_LFCLKSRC_SRC_Xtal, /**< External 32 kHz crystal. */
-    LFCLK_SRC_Synth = CLOCK_LFCLKSRC_SRC_Synth /**< Internal 32 kHz synthesizer from HFCLK system clock. */
+    LFCLK_SRC_RC    = CLOCK_LFCLKSRC_SRC_RC,   ///< Internal RC oscillator.
+    LFCLK_SRC_Xtal  = CLOCK_LFCLKSRC_SRC_Xtal, ///< External crystal.
+    LFCLK_SRC_Synth = CLOCK_LFCLKSRC_SRC_Synth ///< Synthesizer from HFCLK clock.
 } lfclk_src_t;
 
 ///Frequency of the low frequency clock is 32.768 kHz
