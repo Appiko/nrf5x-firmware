@@ -77,6 +77,8 @@
  * @{*/
 #define RX_PIN_NUMBER  19
 #define TX_PIN_NUMBER  22
+#define CTS_PIN_NUMBER 7
+#define RTS_PIN_NUMBER 5
 /** Bool to say if the hardware flow control is required */
 #define HWFC           false
 /** @} */
