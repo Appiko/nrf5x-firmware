@@ -10,4 +10,3 @@ The [To Do List](@ref todo) provides the list of improvements and short-comings 
 
 One can get started with development with this repository with help from the following pages:
 - \subpage install_instruction
-- \subpage sdk_changelog
