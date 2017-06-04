@@ -95,6 +95,7 @@ typedef enum {
 /**
  * Initialize the RTC peripheral of ID @ref MS_TIMER_RTC_USED to use
  *  as a milli-second timer.
+ * @param irq_priority The priority of the interrupt level at which the callback function is called
  */
 void ms_timer_init(uint32_t irq_priority);
 
