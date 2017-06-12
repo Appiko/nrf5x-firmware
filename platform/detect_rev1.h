@@ -52,11 +52,11 @@
  * @{*/
 #define LED_GREEN_ANODE   12
 #define LED_GREEN_CATHODE 14
-#define LED_GREEN_SENSE   2
+#define LED_GREEN_SENSE   3
 
 #define LED_ORANGE_ANODE   11
 #define LED_ORANGE_CATHODE 13
-#define LED_ORANGE_SENSE   3
+#define LED_ORANGE_SENSE   2
 /** @} */
 
 /** @anchor detect_rev1_buttons
