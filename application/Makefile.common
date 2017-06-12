@@ -21,7 +21,7 @@ ${error SOC_VERSION not specified in board Makefile.}
 endif
 
 ifndef SD_USED
-${error SD_USED not specified in application Makefile.}
+SD_USED    := blank
 endif
 
 #Lower and upper case versions of SoC family, SoC name and SD used
