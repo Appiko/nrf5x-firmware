@@ -33,10 +33,11 @@
  */
 
 #include "hal_clocks.h"
+#include "log.h"
 
 void lfclk_init(lfclk_src_t lfclk_src)
 {
-    if((NRF_CLOCK->LFCLKSTAT |  //Clock is running
+    if((NRF_CLOCK->LFCLKSTAT &  //Clock is running
        (CLOCK_LFCLKSTAT_STATE_Running << CLOCK_LFCLKSTAT_STATE_Pos)) &&
        //Correct source is already set
       ((NRF_CLOCK->LFCLKSTAT & CLOCK_LFCLKSTAT_SRC_Msk) == lfclk_src))
@@ -68,7 +69,6 @@ void lfclk_init(lfclk_src_t lfclk_src)
 
     // Enable wake-up on only enabled interrupts
     SCB->SCR &= (~(SCB_SCR_SEVONPEND_Msk));
-
 #ifdef NRF52832
         //Due to errata 20 in Eng rev 1
         NRF_RTC0->TASKS_STOP = 0;
