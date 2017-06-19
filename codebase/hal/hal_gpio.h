@@ -47,6 +47,15 @@
 #include "nrf.h"
 
 /**
+ * Defines for the types of pull configurations are possible for a GPIO pin
+ */
+typedef enum {
+  HAL_GPIO_PULL_DISABLED =  GPIO_PIN_CNF_PULL_Disabled,//!< HAL_GPIO_PULL_DISABLED
+  HAL_GPIO_PULL_DOWN     =  GPIO_PIN_CNF_PULL_Pulldown,//!< HAL_GPIO_PULL_DOWN
+  HAL_GPIO_PULL_UP       =  GPIO_PIN_CNF_PULL_Pullup   //!< HAL_GPIO_PULL_UP
+} hal_gpio_pull_t;
+
+/**
  * @brief Pin configuration function for nrf51 and nrf52 SoCs
  *
  * This function allows to set any aspect in PIN_CNF register.
@@ -79,7 +88,7 @@ static inline void hal_gpio_cfg_output(uint32_t pin_num, uint32_t init_val);
  * @param pull_config State of the pin's pull resistor (no pull, pulled down or pulled high).
  * @note  Sense capability on the pin is disabled, and input is connected to buffer so that the GPIO->IN register is readable
  */
-static inline void hal_gpio_cfg_input(uint32_t pin_num, uint32_t pull_config);
+static inline void hal_gpio_cfg_input(uint32_t pin_num, hal_gpio_pull_t pull_config);
 
 /**
  * @brief Function for write a value a GPIO pin configured as output.
@@ -139,7 +148,7 @@ static inline void hal_gpio_cfg_output(uint32_t pin_num, uint32_t init_val)
         GPIO_PIN_CNF_SENSE_Disabled);
 }
 
-static inline void hal_gpio_cfg_input(uint32_t pin_num, uint32_t pull_config)
+static inline void hal_gpio_cfg_input(uint32_t pin_num, hal_gpio_pull_t pull_config)
 {
     hal_gpio_cfg(pin_num,
         GPIO_PIN_CNF_DIR_Input,
