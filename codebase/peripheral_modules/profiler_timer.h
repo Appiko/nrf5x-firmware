@@ -39,6 +39,8 @@
  * @defgroup group_profiler_timer Profiler timer
  * @brief Driver to use timer for code profiling and time-stamping
  *
+ * @warning Verify in the nrf5xxxx_peripheral.h file that the timer used
+ *  can work up to 32 bit resolution
  * @{
  */
 
