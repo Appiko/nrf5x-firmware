@@ -181,7 +181,7 @@ void printf_callback(void* str_end, char ch)
     }
 }
 
-void uart_printf_init(uint32_t baud_rate)
+void uart_printf_init(uart_printf_baud_t baud_rate)
 {
     /* Configure TX and RX pins from board.h */
     hal_gpio_cfg_output(TX_PIN_NUMBER, 0);
