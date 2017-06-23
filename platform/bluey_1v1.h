@@ -69,8 +69,8 @@
  * @name Serial port definitions for Bluey 1.1
  * @{*/
 #define RX_PIN_NUMBER  8
-#define TX_PIN_NUMBER  6
-#define CTS_PIN_NUMBER 7
+#define TX_PIN_NUMBER  29
+#define CTS_PIN_NUMBER 30
 #define RTS_PIN_NUMBER 5
 /** Bool to say if the hardware flow control is required */
 #define HWFC           false
