@@ -43,13 +43,8 @@
 
 #include "boards.h"
 #include "hal_clocks.h"
-#include "nrf_delay.h"
-#include "nrf_gpio.h"
-#include "SEGGER_RTT.h"
-#include "nrf_assert.h"
-#include "ms_timer.h"
-#include "nrf_util.h"
-#include "nrf_delay.h"
+#include "hal_nop_delay.h"
+#include "hal_gpio.h"
 #include "common_util.h"
 #include "tinyprintf.h"
 #include "uart_printf.h"
@@ -57,33 +52,29 @@
 /** @brief Configure the RGB LED pins as output and turn off LED */
 static void rgb_led_init(void)
 {
-    nrf_gpio_cfg_output(LED_RED);
-    nrf_gpio_cfg_output(LED_GREEN);
-    nrf_gpio_cfg_output(LED_BLUE);
-
-    nrf_gpio_pin_write(LED_RED, !(LEDS_ACTIVE_STATE));
-    nrf_gpio_pin_write(LED_GREEN, !(LEDS_ACTIVE_STATE));
-    nrf_gpio_pin_write(LED_BLUE, !(LEDS_ACTIVE_STATE));
+    hal_gpio_cfg_output(LED_RED, !(LEDS_ACTIVE_STATE));
+    hal_gpio_cfg_output(LED_GREEN, !(LEDS_ACTIVE_STATE));
+    hal_gpio_cfg_output(LED_BLUE, !(LEDS_ACTIVE_STATE));
 }
 
 /** @brief Configure the RGB LED pins as output and turn off LED */
 static void rgb_led_cycle(void)
 {
-    nrf_gpio_pin_write(LED_RED, (LEDS_ACTIVE_STATE));
-    nrf_gpio_pin_write(LED_GREEN, !(LEDS_ACTIVE_STATE));
-    nrf_gpio_pin_write(LED_BLUE, !(LEDS_ACTIVE_STATE));
-    nrf_delay_ms(250);
-    nrf_gpio_pin_write(LED_RED, !(LEDS_ACTIVE_STATE));
-    nrf_gpio_pin_write(LED_GREEN, (LEDS_ACTIVE_STATE));
-    nrf_gpio_pin_write(LED_BLUE, !(LEDS_ACTIVE_STATE));
-    nrf_delay_ms(250);
-    nrf_gpio_pin_write(LED_RED, !(LEDS_ACTIVE_STATE));
-    nrf_gpio_pin_write(LED_GREEN, !(LEDS_ACTIVE_STATE));
-    nrf_gpio_pin_write(LED_BLUE, (LEDS_ACTIVE_STATE));
-    nrf_delay_ms(250);
-    nrf_gpio_pin_write(LED_RED, !(LEDS_ACTIVE_STATE));
-    nrf_gpio_pin_write(LED_GREEN, !(LEDS_ACTIVE_STATE));
-    nrf_gpio_pin_write(LED_BLUE, !(LEDS_ACTIVE_STATE));
+    hal_gpio_pin_write(LED_RED, (LEDS_ACTIVE_STATE));
+    hal_gpio_pin_write(LED_GREEN, !(LEDS_ACTIVE_STATE));
+    hal_gpio_pin_write(LED_BLUE, !(LEDS_ACTIVE_STATE));
+    hal_nop_delay_ms(250);
+    hal_gpio_pin_write(LED_RED, !(LEDS_ACTIVE_STATE));
+    hal_gpio_pin_write(LED_GREEN, (LEDS_ACTIVE_STATE));
+    hal_gpio_pin_write(LED_BLUE, !(LEDS_ACTIVE_STATE));
+    hal_nop_delay_ms(250);
+    hal_gpio_pin_write(LED_RED, !(LEDS_ACTIVE_STATE));
+    hal_gpio_pin_write(LED_GREEN, !(LEDS_ACTIVE_STATE));
+    hal_gpio_pin_write(LED_BLUE, (LEDS_ACTIVE_STATE));
+    hal_nop_delay_ms(250);
+    hal_gpio_pin_write(LED_RED, !(LEDS_ACTIVE_STATE));
+    hal_gpio_pin_write(LED_GREEN, !(LEDS_ACTIVE_STATE));
+    hal_gpio_pin_write(LED_BLUE, !(LEDS_ACTIVE_STATE));
 }
 
 void repeated_handler(void){
@@ -101,7 +92,7 @@ int main(void)
     tfp_printf("Hello World %d!\n", 1);
 
     hfclk_xtal_init_blocking();
-    lfclk_init(BOARD_LFCLKSRC);
+    lfclk_init(LFCLK_SRC_Xtal);
 
     while (true)
     {
