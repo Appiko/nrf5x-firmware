@@ -35,6 +35,16 @@
 #ifndef CODEBASE_HAL_HAL_UART_H_
 #define CODEBASE_HAL_HAL_UART_H_
 
+/**
+ * @addtogroup group_hal
+ * @{
+ *
+ * @defgroup group_uart_hal UART HAL
+ * @brief Hardware abstraction layer of the UART peripheral. This is compatible with both
+ *  nrf51 and nRF52 SoCs.
+ * @{
+ */
+
 #include "stdint.h"
 #include "stddef.h"
 
@@ -81,3 +91,8 @@ void hal_uart_init(hal_uart_baud_t baud, void (*handler) (uint8_t * ptr));
 void hal_uart_putchar(uint8_t cr);
 
 #endif /* CODEBASE_HAL_HAL_UART_H_ */
+
+/**
+ * @}
+ * @}
+ */
