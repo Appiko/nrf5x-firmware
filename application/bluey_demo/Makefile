@@ -12,24 +12,16 @@ CODEBASE_DIR    = ../../codebase
 
 INCLUDEDIRS	= .
 INCLUDEDIRS	+= $(PLATFORM_DIR)
-INCLUDEDIRS += $(SDK_DIR)/drivers_nrf/delay
-INCLUDEDIRS += $(SDK_DIR)/drivers_nrf/hal
-INCLUDEDIRS += $(CODEBASE_DIR)/segger_rtt
 INCLUDEDIRS += $(CODEBASE_DIR)/hal
 INCLUDEDIRS += $(CODEBASE_DIR)/segger_rtt
-INCLUDEDIRS += $(CODEBASE_DIR)/assert_error
 INCLUDEDIRS += $(CODEBASE_DIR)/peripheral_modules
 INCLUDEDIRS += $(CODEBASE_DIR)/util
 
 C_SRC_DIRS = .
-C_SRC_DIRS += $(CODEBASE_DIR)/segger_rtt
 C_SRC_DIRS += $(CODEBASE_DIR)/hal
-C_SRC_DIRS += $(CODEBASE_DIR)/assert_error
 C_SRC_DIRS += $(CODEBASE_DIR)/peripheral_modules
 
 C_SRC = main.c
-C_SRC += SEGGER_RTT.c SEGGER_RTT_printf.c
-C_SRC += nrf_assert.c app_error.c
 C_SRC += hal_clocks.c ms_timer.c
 C_SRC += uart_printf.c tinyprintf.c
 
