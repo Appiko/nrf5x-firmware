@@ -77,28 +77,18 @@ __For nRF52__
 #if __CORTEX_M == (0x00U)
 typedef enum
 {
-#ifndef SOFTDEVICE_PRESENT
     APP_IRQ_PRIORITY_HIGHEST = 0,
-#endif
     APP_IRQ_PRIORITY_HIGH    = 1,
-#ifndef SOFTDEVICE_PRESENT
     APP_IRQ_PRIORITY_MID     = 2,
-#endif
     APP_IRQ_PRIORITY_LOW     = 3,
     APP_IRQ_PRIORITY_THREAD  = 4
 } app_irq_priority_t;
 #elif __CORTEX_M == (0x04U)
 typedef enum
 {
-#ifndef SOFTDEVICE_PRESENT
     APP_IRQ_PRIORITY_HIGHEST = 0,
-#endif
     APP_IRQ_PRIORITY_HIGH    = 2,
-#ifndef SOFTDEVICE_PRESENT
     APP_IRQ_PRIORITY_MID     = 4,
-#else
-    APP_IRQ_PRIORITY_MID     = 3,
-#endif
     APP_IRQ_PRIORITY_LOW     = 6,
     APP_IRQ_PRIORITY_LOWEST  = 7,
     APP_IRQ_PRIORITY_THREAD  = 15
