@@ -72,7 +72,7 @@
 #define PROFILE_STOP    do{ PROFILER_TIMER->TASKS_CAPTURE[3] = 1; \
                         printfcomma((PROFILER_TIMER->CC[3] - PROFILER_TIMER->CC[2])/16);      \
                         log_printf(".%03d",(int)((((PROFILER_TIMER->CC[3] - PROFILER_TIMER->CC[2]) & 0x0F)*125)/2)); \
-                        log_printf("ns\n"); }while(0)
+                        log_printf("us\n"); }while(0)
 /** @} */
 
 /** Initialize the timer to run at 16 MHz and with full 32 bit width */
