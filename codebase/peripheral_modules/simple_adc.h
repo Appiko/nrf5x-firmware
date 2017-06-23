@@ -39,10 +39,10 @@
  * @addtogroup group_peripheral_modules
  * @{
  *
- * @defgroup group_simple_adc Simple ADC
+ * @defgroup group_simple_adc Simple ADC driver
  * @brief A simple driver for the SAADC unit to get ADC values. The spec of this module are:
  *  12 bit resolution, internal reference of 0.4 V, single ended conversion, input impedance
- *  of upto 100k Ohm.
+ *  of upto 100k Ohm and a blocking class for the conversion period of 12 us.
  *
  * @{
  */
