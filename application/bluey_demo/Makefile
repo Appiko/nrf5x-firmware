@@ -2,8 +2,9 @@
 BOARD           := BOARD_BLUEY_1V1
 SLNO            := 682073614
 BLE_REQD        := BLE_STACK_SUPPORT_REQD
+DEBUGGER        := BMP
 
-SD_USED         := s132
+SD_USED         := blank
 
 SDK_DIR         = ../../SDK_components
 DOC_DIR         = ../../doc
