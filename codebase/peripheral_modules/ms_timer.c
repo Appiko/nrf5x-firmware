@@ -132,9 +132,10 @@ void RTC_IRQ_Handler()
             RTC_ID->EVENTS_COMPARE[id] = 0;
             (void)RTC_ID->EVENTS_COMPARE[id];
 
+            void (*cb_handler)(void) = NULL;
             if (ms_timer[id].timer_handler != NULL)
             {
-                ms_timer[id].timer_handler();
+                cb_handler = ms_timer[id].timer_handler;
             }
 
             if (ms_timer[id].timer_mode == MS_SINGLE_CALL)
@@ -144,6 +145,11 @@ void RTC_IRQ_Handler()
             else
             {
                 RTC_ID->CC[id] += ms_timer[id].timer_mode;
+            }
+
+            if(cb_handler != NULL)
+            {
+                cb_handler();
             }
         }
     }
