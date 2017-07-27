@@ -3,6 +3,7 @@ BOARD           := BOARD_BLUEY_1V1
 SLNO            := 682073614
 BLE_REQD        := BLE_STACK_SUPPORT_REQD
 DEBUGGER        := BMP
+LOGGER			:= LOG_UART_PRINTF
 
 SD_USED         := blank
 
@@ -32,6 +33,7 @@ APPLN = $(shell basename $(PWD))
 
 CFLAGS_APP = -DDEBUG
 CFLAGS_APP += -D$(BLE_REQD)
+CFLAGS_APP += -D$(LOGGER)
 
 #Lower case of BOARD
 BOARD_HEADER  = $(shell echo $(BOARD) | tr A-Z a-z)
