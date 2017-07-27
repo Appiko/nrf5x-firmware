@@ -52,6 +52,7 @@
 #include "nrf_util.h"
 #include "ble_adv.h"
 #include "ms_timer.h"
+#include "profiler_timer.h"
 
 /** @brief Configure the RGB LED pins as output and turn off LED */
 static void rgb_led_init(void)
@@ -107,6 +108,7 @@ int main(void)
 
     ms_timer_init(APP_IRQ_PRIORITY_LOWEST);
     us_timer_init(APP_IRQ_PRIORITY_LOWEST);
+    profiler_timer_init();
 
     hfclk_xtal_init_blocking();
     lfclk_init(LFCLK_SRC_Xtal);
@@ -123,7 +125,8 @@ int main(void)
             0x02, GAP_ADV_TRANSMIT_PWR, 0
     };
 
-    ble_adv_param_t param = {RTC_TICKS_625(500), ADV_SCAN_IND_PARAM, RANDOM_ADRS_PARAM, CH_ALL_PARAM};
+PROFILE_START;
+    ble_adv_param_t param = {ADV_INTERVAL_MS(500), ADV_SCAN_IND_PARAM, RANDOM_ADRS_PARAM, CH_ALL_PARAM};
 
     ble_adv_set_random_adrs(adrs);
     ble_adv_set_tx_power(0);
@@ -134,8 +137,7 @@ int main(void)
     ble_adv_start();
 
     ms_timer_start(MS_TIMER0, MS_REPEATED_CALL, RTC_TICKS_MS(1027), log_dump_handler);
-
-    tfp_printf("While %d!\n", 1);
+PROFILE_STOP;
 
     while (true)
     {
