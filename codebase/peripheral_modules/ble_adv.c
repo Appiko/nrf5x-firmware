@@ -177,7 +177,7 @@ static struct radio_context {
     uint16_t adv_intvl;                 //2 byte
 } radio_ctx;
 
-#ifndef DEBUG
+#ifdef DEBUG
 void add_log(const char* func_name);
 volatile uint32_t log_cnt = LOG_BUFFER_SIZE-1;
 volatile log_t log_buf[LOG_BUFFER_SIZE];
@@ -551,13 +551,13 @@ void RADIO_IRQHandler(void){
 void adv_intvl_handler(void){
     radio_prepare_adv();
     radio_send_adv();
+//    add_log(__func__);
 }
 
 void ble_adv_start(void){
     radio_init();
     ms_timer_start(MS_TIMER2, MS_REPEATED_CALL, RTC_TICKS_625(radio_ctx.adv_intvl), adv_intvl_handler);
     adv_intvl_handler();
-//    add_log(__func__);
 }
 
 void ble_adv_stop(void){
