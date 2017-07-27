@@ -25,6 +25,7 @@ C_SRC_DIRS += $(CODEBASE_DIR)/peripheral_modules
 C_SRC = main.c
 C_SRC += hal_clocks.c ms_timer.c
 C_SRC += uart_printf.c tinyprintf.c
+C_SRC += ble_adv.c profiler_timer.c us_timer.c
 
 #Gets the name of the application folder
 APPLN = $(shell basename $(PWD))
