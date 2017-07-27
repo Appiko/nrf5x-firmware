@@ -74,6 +74,9 @@ void dump_log(void);
 
 /**************** Link Layer ****************/
 
+/** Conversion from millisecond to multiples of 0.625 ms */
+#define ADV_INTERVAL_MS(x)  ((x*16)/10)
+
 /** @brief length of MAC address in BLE */
 #define ADRS_LEN            6
 /** @brief length of header in BLE */
