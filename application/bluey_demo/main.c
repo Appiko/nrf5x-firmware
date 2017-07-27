@@ -31,7 +31,7 @@
  * @addtogroup group_appln
  * @{
  *
- * @defgroup bluey_demo A application to demo the Bluey's capabilities
+ * @defgroup bluey_demo An application to demo the Bluey's capabilities
  * @brief A Bluey demo
  * @{
  */
@@ -48,6 +48,10 @@
 #include "common_util.h"
 #include "tinyprintf.h"
 #include "uart_printf.h"
+#include "us_timer.h"
+#include "nrf_util.h"
+#include "ble_adv.h"
+#include "ms_timer.h"
 
 /** @brief Configure the RGB LED pins as output and turn off LED */
 static void rgb_led_init(void)
@@ -77,7 +81,17 @@ static void rgb_led_cycle(void)
     hal_gpio_pin_write(LED_BLUE, !(LEDS_ACTIVE_STATE));
 }
 
-void repeated_handler(void){
+static void log_dump_handler(void){
+    dump_log();
+    static uint8_t count = 0;
+    count++;
+    uint8_t adv_data[] = {
+            /* Len, type, data */
+            0x02, GAP_ADV_FLAGS, 0x04,
+            0x04, GAP_ADV_NAME_FULL,'E','f','H',
+            0x02, 0xFF, count
+    };
+    ble_adv_set_adv_data(sizeof(adv_data), adv_data);
 }
 
 /**
@@ -88,11 +102,40 @@ int main(void)
     rgb_led_init();
     rgb_led_cycle();
     /* Initial printf */
-    uart_printf_init(UARTE_BAUDRATE_BAUDRATE_Baud1M);
-    tfp_printf("Hello World %d!\n", 1);
+    uart_printf_init(UART_PRINTF_BAUD_1M);
+    tfp_printf("Hello World %d!\n", 42);
+
+    ms_timer_init(APP_IRQ_PRIORITY_LOWEST);
+    us_timer_init(APP_IRQ_PRIORITY_LOWEST);
 
     hfclk_xtal_init_blocking();
     lfclk_init(LFCLK_SRC_Xtal);
+
+    uint8_t adrs[] = {0x0B, 0x0E, 0x0A, 0x0C, 0x00, 0x01};
+    uint8_t adv_data[] = {
+            /* Len, type, data */
+            0x02, GAP_ADV_FLAGS, 0x04,
+            0x04, GAP_ADV_NAME_FULL,'E','f','H',
+            0x02, GAP_ADV_MANUF_DATA, 0
+    };
+
+    uint8_t scan_rsp[] = {
+            0x02, GAP_ADV_TRANSMIT_PWR, 0
+    };
+
+    ble_adv_param_t param = {RTC_TICKS_625(500), ADV_SCAN_IND_PARAM, RANDOM_ADRS_PARAM, CH_ALL_PARAM};
+
+    ble_adv_set_random_adrs(adrs);
+    ble_adv_set_tx_power(0);
+    ble_adv_set_adv_data(sizeof(adv_data), adv_data);
+    ble_adv_set_adv_param(&param);
+    ble_adv_set_scan_rsp_data(sizeof(scan_rsp), scan_rsp);
+
+    ble_adv_start();
+
+    ms_timer_start(MS_TIMER0, MS_REPEATED_CALL, RTC_TICKS_MS(1027), log_dump_handler);
+
+    tfp_printf("While %d!\n", 1);
 
     while (true)
     {
