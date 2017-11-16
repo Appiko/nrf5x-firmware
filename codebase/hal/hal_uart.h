@@ -48,7 +48,7 @@
 #include "stdint.h"
 #include "stddef.h"
 
-/** The character that is checked by @ref rx_collect to determine if a line of characters is received */
+/** The character that is checked by rx_collect to determine if a line of characters is received */
 #define LINE_END                '\n'
 
 /**
@@ -75,7 +75,7 @@ typedef enum {
 } hal_uart_baud_t;
 
 /**
- * Function to initialize the parameters of UART based on the configurations in @ref board.h
+ * Function to initialize the parameters of UART based on the configurations in @ref boards.h
  *
  * @param baud The baud rate of operation for the UART module
  * @param handler The handler which is called with a pointer to the data
@@ -85,7 +85,7 @@ void hal_uart_init(hal_uart_baud_t baud, void (*handler) (uint8_t * ptr));
 
 /**
  * @brief Send a single character through UART
- * This function is used by @ref printf_callback so that printf can be used
+ * This function is used by printf_callback so that printf can be used
  * @param cr The character to be sent
  */
 void hal_uart_putchar(uint8_t cr);

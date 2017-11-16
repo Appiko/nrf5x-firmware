@@ -59,7 +59,6 @@
 #define US_TIMER_CC_COUNT       CONCAT_3(TIMER, US_TIMER_USED, _CC_NUM)
 
 /**
- * @enum timer_num
  * @brief Enumeration used for specifying the timers that can be used with this TIMER peripheral
  */
 typedef enum {
@@ -75,7 +74,6 @@ typedef enum {
 }us_timer_num;
 
 /**
- * @enum timer_mode
  * @brief Enumeration to specify the mode of operation of the timer
  */
 typedef enum {

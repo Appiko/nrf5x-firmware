@@ -49,6 +49,11 @@ uint8_t rx_buffer[BUFFER_SIZE];
 /** Handler to be called when a line of characters is received from UART */
 void (*rx_handler)(uint8_t * ptr);
 
+/**
+ * @brief Stores the received data in a buffer until @ref LINE_END is received
+ *  On receiving @ref LINE_END the configured function pointer is called
+ * @param rx_data
+ */
 static void rx_collect(uint8_t rx_data)
 {
     static uint32_t count = 0;

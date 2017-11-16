@@ -114,7 +114,7 @@ typedef enum {
 #define GAP_ADV_MANUF_DATA      0xFF
 /** @} */
 
-/***** Defines for advertising parameters (BLE Spec 4.2 Vol 2, Part E, 7.8.5 Page No:1277)  *****/
+/** @brief Defines for advertising parameters (BLE Spec 4.2 Vol 2, Part E, 7.8.5 Page No:1277) */
 typedef enum {
      ADV_IND_PARAM,             // Connectable undirected advertising
      ADV_DIRECT_IND_PARAM,      // Connectable high duty cycle directed advertising (high duty cycle)
@@ -123,7 +123,7 @@ typedef enum {
      //ADV_DIRECT_IND           // Connectable low duty cycle directed advertising(low duty cycle)
 }ble_adv_type_t;
 
-/** @brief The various advertisement channels commbinations that can be used for advertising */
+/** @brief The various advertisement channels combinations that can be used for advertising */
 typedef enum {
     CH_37_PARAM = 1,//!< CH_37_PARAM
     CH_38_PARAM,    //!< CH_38_PARAM
@@ -140,13 +140,13 @@ typedef enum {
 typedef struct {
     /** Range: 0x0020 to 0x4000; Time = N * 0.625 msec; Time Range: 20 ms to 10.24 sec */
     uint16_t adv_intvl;
-    /** @ref adv_type_param */
+    /** @ref ble_adv_type_t */
     ble_adv_type_t adv_type;
-    /** @ref adrs_type_param*/
+    /** @ref adrs_type_t*/
     adrs_type_t own_adrs_type;
 //  Peer_Address_Type,
 //  Peer_Address,
-    /** @ref ch_map_param.  */
+    /** @ref ble_adv_ch_map_t.  */
     ble_adv_ch_map_t adv_ch_map;
 //  Advertising_Filter_Policy;
 } ble_adv_param_t;

@@ -111,3 +111,7 @@ void simple_pwm_init(simple_pwm_config * config);
 void simple_pwm_set_value(simple_pwm_channels channel, uint32_t value);
 
 #endif /* CODEBASE_PERIPHERAL_MODULES_SIMPLE_PWM_H_ */
+/**
+ * @}
+ * @}
+ */
