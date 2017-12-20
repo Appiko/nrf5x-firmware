@@ -39,12 +39,16 @@
 #define log_printf(...)
 #elif defined LOG_SEGGER_RTT
 #include "SEGGER_RTT.h"
+#define log_init()
 #define log_printf(...)  SEGGER_RTT_printf(0, __VA_ARGS__)
 #elif defined LOG_UART_PRINTF//UART printf
+#include "nrf.h"
 #include "tinyprintf.h"
 #include "uart_printf.h"
+#define log_init()       uart_printf_init(UART_PRINTF_BAUD_1M)
 #define log_printf(...)  tfp_printf(__VA_ARGS__)
 #else
+#define log_init()
 #define log_printf(...)
 #endif
 
