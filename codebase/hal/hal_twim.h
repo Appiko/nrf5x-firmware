@@ -40,7 +40,6 @@
  * @brief Hardware abstraction layer of the Two Wire Interface in Master mode. This driver
  *  is completely event driven and non-blocking, suitable for low power applications.
  *
- * @warning This module needs the LFCLK to be on and running to be able to work
  * @{
  */
 
@@ -89,9 +88,14 @@ typedef enum {
     TWIM_UNINIT     ///< The TWIM peripheral is not initialized
 } twim_ret_status;
 
-#define TWIM_TX_DONE_MSK            (1<<TWIM_TX)
-#define TWIM_RX_DONE_MSK            (1<<TWIM_RX)
-#define TWIM_TX_RX_DONE_MSK         (1<<TWIM_TX_RX)
+/** @anchor twim_evt_mask
+ * @name Masks for specifying which events calls the handler. These need to be
+ *  ORed to enable multiple events' handlers to be called.
+ * @{*/
+#define TWIM_TX_DONE_MSK      (1<<TWIM_TX)
+#define TWIM_RX_DONE_MSK      (1<<TWIM_RX)
+#define TWIM_TX_RX_DONE_MSK   (1<<TWIM_TX_RX)
+/** @} */
 
 /** @brief Structure for the TWI master driver initialization
  */
@@ -102,18 +106,19 @@ typedef struct
     hal_twim_freq_t     frequency;           ///< TWI frequency
     uint32_t            irq_priority;        ///< Interrupt priority
     uint32_t            address;             ///< I2C device address
-    /// This event handler is called whenever an unmasked transaction has successfully
+    /// This event handler is called whenever an masked transaction has successfully
     /// completed or whenever an error occurs.
     /// @note Errors cannot be masked, while the types of transfer completes can be masked
     void (*evt_handler)(twim_err_t evt, twim_transfer_t transfer);
     /// Event Mask for specifying which successful transfer type calls the handler
     uint32_t            evt_mask;
-
 } hal_twim_init_config_t;
 
 /**
  * @brief Function for initializing and enabling one of the TWIM peripheral
  * @param config Pointer to the initialization configuration parameters
+ * @warning The evt_handler in hal_twim_init_config_t should be initialized to
+ *  a function pointer and must not be NULL.
  */
 void hal_twim_init(hal_twim_init_config_t * config);
 
