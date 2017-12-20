@@ -36,12 +36,12 @@
 
 #ifdef DEBUG
 
-#include "SEGGER_RTT.h"
+#include "log.h"
 #include <stdnoreturn.h>
 
 noreturn void assert_nrf_callback(uint16_t line_num, const uint8_t * file_name)
 {
-    SEGGER_RTT_printf(0, "Assertion at line %d in file %s.\n", line_num,
+    log_printf("Assertion at line %d in file %s.\n", line_num,
             file_name);
     while (1)
     {
