@@ -1,10 +1,12 @@
 
-BOARD           := BOARD_DETECT_REV1
+BOARD           := BOARD_SENSE_REV2
 SLNO            := 682073614
 BLE_REQD        := BLE_STACK_SUPPORT_REQD
 PINRESET_REQD   := CONFIG_GPIO_AS_PINRESET
+DEBUGGER        := JLINK
+LOGGER			:= LOG_UART_PRINTF
 
-SD_USED         := s132
+SD_USED         := blank
 
 SDK_DIR         = ../../SDK_components
 DOC_DIR         = ../../doc
@@ -29,10 +31,11 @@ C_SRC_DIRS += $(CODEBASE_DIR)/assert_error
 C_SRC_DIRS += $(CODEBASE_DIR)/peripheral_modules
 
 C_SRC = main.c
-C_SRC += SEGGER_RTT.c SEGGER_RTT_printf.c 
 C_SRC += nrf_assert.c app_error.c
-C_SRC += hal_saadc.c
+C_SRC += hal_saadc.c simple_adc.c
 C_SRC += hal_clocks.c ms_timer.c
+C_SRC += uart_printf.c tinyprintf.c
+#C_SRC += SEGGER_RTT.c SEGGER_RTT_printf.c
 
 #Gets the name of the application folder
 APPLN = $(shell basename $(PWD))
@@ -40,6 +43,7 @@ APPLN = $(shell basename $(PWD))
 CFLAGS_APP = -DDEBUG
 CFLAGS_APP += -D$(BLE_REQD)
 CFLAGS_APP += -D$(PINRESET_REQD)
+CFLAGS_APP += -D$(LOGGER)
 
 #Lower case of BOARD
 BOARD_HEADER  = $(shell echo $(BOARD) | tr A-Z a-z)
