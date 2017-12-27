@@ -46,7 +46,7 @@ void lfclk_init(lfclk_src_t lfclk_src)
         return;
     }
 
-    NRF_CLOCK->LFCLKSRC = (lfclk_src << CLOCK_LFCLKSRC_SRC_Msk);
+    NRF_CLOCK->LFCLKSRC = (lfclk_src << CLOCK_LFCLKSRC_SRC_Pos);
     NRF_CLOCK->INTENSET = CLOCK_INTENSET_LFCLKSTARTED_Msk;
     NVIC_ClearPendingIRQ(POWER_CLOCK_IRQn);
 
