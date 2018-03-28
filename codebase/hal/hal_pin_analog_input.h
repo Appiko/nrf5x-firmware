@@ -59,7 +59,7 @@
 #define __ANALOG_PIN_OF_6                 7
 #endif
 
-#ifdef NRF52
+#if defined NRF52832 || defined NRF52810
 #define __ANALOG_PIN_OF_2                 SAADC_CH_PSELP_PSELP_AnalogInput0
 #define __ANALOG_PIN_OF_3                 SAADC_CH_PSELP_PSELP_AnalogInput1
 #define __ANALOG_PIN_OF_4                 SAADC_CH_PSELP_PSELP_AnalogInput2
