@@ -48,6 +48,8 @@
   #include "bluey_1v1.h"
 #elif defined(BOARD_SENSE_REV2)
   #include "sense_rev2.h"
+#elif defined(BOARD_SENSE_REV3)
+  #include "sense_rev3.h"
 #elif defined(BOARD_CUSTOM)
   #include "custom_board.h"
 #else
