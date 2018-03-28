@@ -30,15 +30,38 @@ POSSIBILITY OF SUCH DAMAGE.
 
 */
 
-#ifndef NRF52_NAME_CHANGE_H
-#define NRF52_NAME_CHANGE_H
+#ifndef NRF52_TO_NRF52810_H
+#define NRF52_TO_NRF52810_H
 
 /*lint ++flb "Enter library region */
 
-/* This file is given to prevent your SW from not compiling with the updates made to nrf52.h and 
- * nrf52_bitfields.h. The macros defined in this file were available previously. Do not use these
- * macros on purpose. Use the ones defined in nrf52.h and nrf52_bitfields.h instead.
- */
+/* This file is given to prevent your SW from not compiling with the name changes between nRF51 or nRF52832 and nRF52840 devices.
+ * It redefines the old nRF51 or nRF52832 names into the new ones as long as the functionality is still supported. If the
+ * functionality is gone, there old names are not defined, so compilation will fail. Note that also includes macros
+ * from the nrf52_namechange.h file. */
+ 
+/* Differences between latest nRF52 headers and nRF52810 headers. */
+
+/* Interrupt service routines handlers. Note that handlers SPIM0_SPIS0_TWIM0_TWIS0_SPI0_TWI0_IRQHandler and 
+   SPIM1_SPIS1_TWIM1_TWIS1_SPI1_TWI1_IRQHandler are not redefined since functionality is not equivalent. */
+#define     UARTE0_UART0_IRQHandler     UARTE0_IRQHandler
+#define     COMP_LPCOMP_IRQHandler      COMP_IRQHandler
+#define     SWI2_EGU2_IRQHandler        SWI2_IRQHandler
+#define     SWI3_EGU3_IRQHandler        SWI3_IRQHandler
+#define     SWI4_EGU4_IRQHandler        SWI4_IRQHandler
+#define     SWI5_EGU5_IRQHandler        SWI5_IRQHandler
+
+/* Interrupt service routines index. Note that indexes SPIM0_SPIS0_TWIM0_TWIS0_SPI0_TWI0_IRQn and 
+   SPIM1_SPIS1_TWIM1_TWIS1_SPI1_TWI1_IRQn are not redefined since functionality is not equivalent. */
+#define     UARTE0_UART0_IRQn           UARTE0_IRQn
+#define     COMP_LPCOMP_IRQn            COMP_IRQn
+#define     SWI2_EGU2_IRQn              SWI2_IRQn
+#define     SWI3_EGU3_IRQn              SWI3_IRQn
+#define     SWI4_EGU4_IRQn              SWI4_IRQn
+#define     SWI5_EGU5_IRQn              SWI5_IRQn
+
+
+/* From nrf52_name_change.h. Several macros changed in different versions of nRF52 headers. By defining the following, any code written for any version of nRF52 headers will still compile. */
 
 /* I2S */
 /* Several enumerations changed case. Adding old macros to keep compilation compatibility. */
@@ -66,7 +89,8 @@ POSSIBILITY OF SUCH DAMAGE.
 /* Corrected typo in RESULT register. */
 #define LPCOMP_RESULT_RESULT_Bellow         LPCOMP_RESULT_RESULT_Below
 
+
 /*lint --flb "Leave library region" */
 
-#endif /* NRF52_NAME_CHANGE_H */
+#endif /* NRF51_TO_NRF52810_H */
 

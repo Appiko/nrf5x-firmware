@@ -1,44 +1,44 @@
-/* Copyright (c) 2013 ARM LIMITED
+/*
+ 
+Copyright (c) 2009-2017 ARM Limited. All rights reserved.
 
-   All rights reserved.
-   Redistribution and use in source and binary forms, with or without
-   modification, are permitted provided that the following conditions are met:
-   - Redistributions of source code must retain the above copyright
-     notice, this list of conditions and the following disclaimer.
-   - Redistributions in binary form must reproduce the above copyright
-     notice, this list of conditions and the following disclaimer in the
-     documentation and/or other materials provided with the distribution.
-   - Neither the name of ARM nor the names of its contributors may be used
-     to endorse or promote products derived from this software without
-     specific prior written permission.
+    SPDX-License-Identifier: Apache-2.0
 
-   THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
-   AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
-   IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
-   ARE DISCLAIMED. IN NO EVENT SHALL COPYRIGHT HOLDERS AND CONTRIBUTORS BE
-   LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
-   CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
-   SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
-   INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN
-   CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
-   ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
-   POSSIBILITY OF SUCH DAMAGE.
-   ---------------------------------------------------------------------------*/
+Licensed under the Apache License, Version 2.0 (the License); you may
+not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an AS IS BASIS, WITHOUT
+WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+
+NOTICE: This file has been modified by Nordic Semiconductor ASA.
+
+*/
 
     .syntax unified
     .arch armv6-m
 
 #ifdef __STARTUP_CONFIG
 #include "startup_config.h"
+#ifndef __STARTUP_CONFIG_STACK_ALIGNEMENT
+#define __STARTUP_CONFIG_STACK_ALIGNEMENT 3
+#endif
 #endif
 
     .section .stack
-    .align 3
 #if defined(__STARTUP_CONFIG)
+    .align __STARTUP_CONFIG_STACK_ALIGNEMENT
     .equ    Stack_Size, __STARTUP_CONFIG_STACK_SIZE
 #elif defined(__STACK_SIZE)
+    .align 3
     .equ    Stack_Size, __STACK_SIZE
 #else
+    .align 3
     .equ    Stack_Size, 2048
 #endif
     .globl __StackTop
