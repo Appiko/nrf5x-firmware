@@ -37,6 +37,7 @@
  * @{
  *
  * @defgroup group_ms_timer Millisecond timer
+ * @file ms_timer.h
  * @brief Driver to use milli-second timers using the RTC peripheral
  *
  * @warning This module needs the LFCLK to be on and running to be able to work
@@ -65,12 +66,6 @@
 #if (((IS_POWER_OF_TWO(MS_TIMER_FREQ)) && (MS_TIMER_FREQ<=LFCLK_FREQ))==false)
 #error MS_TIMER_FREQ must be a power of 2 with a maximum frequency of 32768 Hz
 #endif
-/** Macro to find out the number of RTC ticks for the passed time in milli-seconds */
-#define RTC_TICKS_MS(ms)				((uint32_t) ROUNDED_DIV( (MS_TIMER_FREQ*ms) , 1000) )
-/** Macro to find out the number of RTC ticks for the passed time in multiples of 0.625 ms */
-#define RTC_TICKS_625(ms)				((uint32_t) ROUNDED_DIV( (MS_TIMER_FREQ*ms) , 1600) )
-/** Macro to find out the number of RTC ticks for the passed time in multiples of 1.25 ms */
-#define RTC_TICKS_1250(ms)				((uint32_t) ROUNDED_DIV( (MS_TIMER_FREQ*ms) , 800) )
 
 /** @brief Enumeration used for specifying the timers that can be used with a RTC peripheral
  */

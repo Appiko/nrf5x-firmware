@@ -556,7 +556,7 @@ void adv_intvl_handler(void){
 
 void ble_adv_start(void){
     radio_init();
-    ms_timer_start(MS_TIMER2, MS_REPEATED_CALL, RTC_TICKS_625(radio_ctx.adv_intvl), adv_intvl_handler);
+    ms_timer_start(MS_TIMER2, MS_REPEATED_CALL, LFCLK_TICKS_625(radio_ctx.adv_intvl), adv_intvl_handler);
     adv_intvl_handler();
 }
 
