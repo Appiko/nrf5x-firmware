@@ -44,7 +44,8 @@
 #ifndef CODEBASE_NRF_UTIL_H_
 #define CODEBASE_NRF_UTIL_H_
 
-
+#include "stdint.h"
+#include "common_util.h"
 
 /**@brief Priority levels that the application can use based on whether the
  * SoftDevice (SD) is used.
@@ -94,6 +95,40 @@ typedef enum
     APP_IRQ_PRIORITY_THREAD  = 15
 } app_irq_priority_t;
 #endif
+
+/** Marco that defines the LFCLK frequency */
+#define LFCLK_FREQ      32768
+
+/** Macro to find out the number of LFCLK ticks for the passed time in milli-seconds */
+#define LFCLK_TICKS_MS(ms)                ((uint32_t) ROUNDED_DIV( (LFCLK_FREQ*ms) , 1000) )
+/** Macro to find out the number of LFCLK ticks for the passed time in multiples of 0.625 ms */
+#define LFCLK_TICKS_625(ms)               ((uint32_t) ROUNDED_DIV( (LFCLK_FREQ*ms) , 1600) )
+/** Macro to find out the number of LFCLK ticks for the passed time in multiples of 0.977 ms */
+#define LFCLK_TICKS_977(ms)               ((uint32_t) (32*ms) )
+/** Macro to find out the number of LFCLK ticks for the passed time in multiples of 1.25 ms */
+#define LFCLK_TICKS_1250(ms)              ((uint32_t) ROUNDED_DIV( (LFCLK_FREQ*ms) , 800) )
+
+void nrf_util_critical_region_enter(uint8_t * is_critical_entered);
+void nrf_util_critical_region_exit(uint8_t critical_entered);
+
+/**@brief Macro for entering a critical region.
+ *
+ * @note CRITICAL_REGION_EXIT() and CRITICAL_REGION_ENTER() must exist in pairs
+ *  with enter before the exit and they must be located in the same scope.
+ */
+#define CRITICAL_REGION_ENTER()                                                  \
+    {                                                                            \
+        uint8_t __CR_ENTERED = 0;                                                \
+        nrf_util_critical_region_enter(&__CR_ENTERED);
+
+/**@brief Macro for leaving a critical region.
+ *
+ * @note CRITICAL_REGION_EXIT() and CRITICAL_REGION_ENTER() must exist in pairs
+ *  with enter before the exit and they must be located in the same scope.
+ */
+#define CRITICAL_REGION_EXIT()                                                  \
+        nrf_util_critical_region_exit(__CR_ENTERED);                            \
+    }
 
 #endif /* CODEBASE_NRF_UTIL_H_ */
 
