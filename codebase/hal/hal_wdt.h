@@ -39,7 +39,6 @@
  * @{
  *
  * @defgroup group_wdt_driver Watchdog timer HAL
- * @file hal_wdt.h
  * @brief Hardware abstraction layer the watchdog timer peripheral in nRF5x SoCs
  *
  * @{

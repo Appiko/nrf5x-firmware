@@ -38,7 +38,6 @@
  *
  * @defgroup group_pir_sense PIR Sense
  *
- * @file pir_sense.h
  * @brief Driver use detect motion based on threshold from a PIR sensor based
  *  on PPI based automated ADC sampling of the PIR signal from the triggering
  *  of a RTC timer.
