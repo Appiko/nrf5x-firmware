@@ -33,8 +33,11 @@
  */
 
 #include "nrf_util.h"
+#include "nrf.h"
 #if defined(SOFTDEVICE_PRESENT)
 #include "nrf_nvic.h"
+/** The variable referenced by nrf_nvic.h header file */
+nrf_nvic_state_t nrf_nvic_state = {0};
 #endif
 
 void nrf_util_critical_region_enter(uint8_t * is_critical_entered)
