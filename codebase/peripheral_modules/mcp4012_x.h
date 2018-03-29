@@ -31,15 +31,13 @@
  */
 
 /**
- * @file mcp4012_x.h
  * @addtogroup group_peripheral_modules
+ *
  * @{
-
- * @brief This file contains the declarations required to drive MCP4012 pot. These 
- * simple funtion helps user to set wiper value for MCP4012 easily. Datasheet for 
+ * @defgroup group_mcp4012_x MCP4012 Driver *
+ * @brief This file contains the declarations required to drive MCP4012 pot. These *
+ * simple funtion helps user to set wiper value for MCP4012 easily. Datasheet for  *
  * this can be found on the
-
- * @defgroup group_mcp4012_x MCP4012 Driver
  * @{
  */
 
@@ -65,8 +63,8 @@ void mcp4012_init(uint32_t CS_bar_pin_no, uint32_t UD_bar_pin_no, uint32_t SCK_p
  */
 void mcp4012_set_value(uint32_t value_sent_by_user);
 /**
- * @}
- * @}
+ * @} *
+ * @} *
  */
 
 #endif /*MCP4012_X_H*/
