@@ -38,7 +38,7 @@
  * @{
  *
  * @defgroup board_sense_rev4 Appiko Sense Revision 4
- * @brief The third revision of the animal detector unit by Appiko
+ * @brief The fourth revision of the animal detector unit by Appiko
  * @{
  */
 
