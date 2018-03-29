@@ -48,6 +48,10 @@
 #include "stdint.h"
 #include "stddef.h"
 
+#ifndef UART_BAUDRATE_BAUDRATE_Pos
+#error "UART peripheral isn't available in this SoC. Use the UARTE peripheral."
+#endif
+
 /** The character that is checked by rx_collect to determine if a line of characters is received */
 #define LINE_END                '\n'
 
