@@ -31,11 +31,14 @@ SOC_FAMILY_UC  = $(shell echo $(SOC_FAMILY) | tr a-z A-Z)
 SOC_NAME_LC  = $(shell echo $(SOC_NAME) | tr A-Z a-z)
 SOC_NAME_UC  = $(shell echo $(SOC_NAME) | tr a-z A-Z)
 
+SOC_VERSION_LC  = $(shell echo $(SOC_VERSION) | tr A-Z a-z)
+SOC_VERSION_UC  = $(shell echo $(SOC_VERSION) | tr a-z A-Z)
+
 SD_USED_LC  = $(shell echo $(SD_USED) | tr A-Z a-z)
 SD_USED_UC  = $(shell echo $(SD_USED) | tr a-z A-Z)
 
-GCC_INCLUDE_DIR		:= /usr/arm-none-eabi/include/
-GCC_PREFIX          := arm-none-eabi
+GCC_INCLUDE_DIR		:= /usr/local/gcc-arm-none-eabi-6-2017-q2-update/arm-none-eabi/include
+GCC_PREFIX          := /usr/local/gcc-arm-none-eabi-6-2017-q2-update/bin/arm-none-eabi
 
 CC      := $(GCC_PREFIX)-gcc
 AS      := $(GCC_PREFIX)-as
@@ -61,7 +64,7 @@ else
 JLINK 				= $(JLINK_EXE)
 endif
 JLINKGDBSERVER		= $(JLINK_DIR)/JLinkGDBServer
-JLINKDEVICE			= $(SOC_FAMILY_LC)
+JLINKDEVICE			= $(SOC_NAME_UC)_$(SOC_VERSION_UC)
 
 ### nrfjprog related stuff ###
 NRFJPROG_DIR    = ../../utils/nrfjprog
@@ -108,12 +111,16 @@ endif
 
 LD_SCRIPT 	= $(SD_USED_LC)_$(SOC_NAME_LC)_$(SOC_VERSION).ld
 
-### Source files ###
-# Project Source
-C_SRC  += system_$(SOC_FAMILY_LC).c
 
-### Assembly source files
+### Source files ###
+# Project and assembly source files
+ifeq ($(SOC_NAME_UC), NRF52810)
+C_SRC  += system_$(SOC_NAME_LC).c
+ASSEMBLY_SRC = gcc_startup_$(SOC_NAME_LC).S
+else
+C_SRC  += system_$(SOC_FAMILY_LC).c
 ASSEMBLY_SRC = gcc_startup_$(SOC_FAMILY_LC).S
+endif
 
 ### Compiler related stuff ###
 #Small size, good for cache
@@ -138,8 +145,9 @@ CFLAGS += -fno-builtin --short-enums -flto
 CFLAGS  += $(CFLAGS_APP)
 #CFLAGS from the board Makefile
 CFLAGS  += $(CFLAGS_BOARD)
-CFLAGS	+= -D$(SOC_FAMILY_UC)
+#CFLAGS	+= -D$(SOC_FAMILY_UC)
 CFLAGS  += -D$(SOC_NAME_UC)
+CFLAGS  += -D$(SOC_NAME_UC)_$(SOC_VERSION_UC)
 CFLAGS	+= -D$(BOARD)
 ifneq ($(SD_USED_LC),blank)
 CFLAGS  += -D$(SD_PRESENT)
