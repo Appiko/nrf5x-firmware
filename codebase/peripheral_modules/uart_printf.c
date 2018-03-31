@@ -190,7 +190,8 @@ void uart_printf_init(uart_printf_baud_t baud_rate)
     NRF_UARTE0->PSEL.RXD = RX_PIN_NUMBER;
 
     /* Configure CTS and RTS pins if HWFC is true in board.h */
-    if (HWFC)
+
+#if HWFC
     {
         hal_gpio_cfg_output(RTS_PIN_NUMBER, 0);
         hal_gpio_cfg_input(CTS_PIN_NUMBER, GPIO_PIN_CNF_PULL_Disabled);
@@ -198,6 +199,7 @@ void uart_printf_init(uart_printf_baud_t baud_rate)
         NRF_UARTE0->PSEL.CTS = CTS_PIN_NUMBER;
         NRF_UARTE0->CONFIG = (UARTE_CONFIG_HWFC_Enabled << UARTE_CONFIG_HWFC_Pos);
     }
+#endif
 
     /* Configure other UART parameters, BAUD rate is defined in nrf52-uart.h    */
     NRF_UARTE0->BAUDRATE = (baud_rate << UARTE_BAUDRATE_BAUDRATE_Pos);

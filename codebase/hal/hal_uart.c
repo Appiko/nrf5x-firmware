@@ -133,7 +133,7 @@ void hal_uart_init(hal_uart_baud_t baud, void (*handler)(uint8_t * ptr))
     NRF_UART0->CONFIG = (UART_CONFIG_HWFC_Disabled << UART_CONFIG_HWFC_Pos)
             | (UART_CONFIG_PARITY_Excluded << UART_CONFIG_PARITY_Pos);
 
-    if (HWFC == true)
+#if HWFC
     {
         /* Configure CTS and RTS pins if HWFC is true in board.h */
         hal_gpio_cfg_output(RTS_PIN_NUMBER, 1);
@@ -143,6 +143,8 @@ void hal_uart_init(hal_uart_baud_t baud, void (*handler)(uint8_t * ptr))
         NRF_UART0->CONFIG = (UART_CONFIG_HWFC_Enabled << UART_CONFIG_HWFC_Pos)
                 | (UART_CONFIG_PARITY_Excluded << UART_CONFIG_PARITY_Pos);
     }
+#endif
+
     NRF_UART0->BAUDRATE = (baud << UART_BAUDRATE_BAUDRATE_Pos);
     NRF_UART0->ENABLE = (UART_ENABLE_ENABLE_Enabled << UART_ENABLE_ENABLE_Pos);
     NRF_UART0->EVENTS_RXDRDY = 0;
