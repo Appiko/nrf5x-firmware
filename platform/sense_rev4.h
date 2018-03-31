@@ -61,6 +61,7 @@
 /** The light sensing */
 #define LED_LIGHT_SENSE		28
 /** @} */
+
 /** @anchor sense_rev4_config_enable
  * @name Definition of configuration mode enable button pin
  * @{ 
@@ -69,6 +70,7 @@
 /** The logic level at which the Button will set value */
 #define BUTTON_ACTIVE_STATE	0
 /** @} */
+
 /** @anchor sense_rev4_audio_jack
  * @name Definitions of the pin of the audio jack to trigger camera
  * @{*/
@@ -85,7 +87,6 @@
  * @{*/
 #define RX_PIN_NUMBER		17
 #define TX_PIN_NUMBER		20
-#define RESET_PIN_NUMBER	21
 #define HWFC			false
 /** @} */
 
@@ -94,9 +95,9 @@
  * @name Pins for the amplified and filtered PIR signal
  * @{*/
 /** The amplified and filtered output of the PIR sensor */
-#define AMP_SIGNAL_PIN		4
-/** The DC offset of the ampified PIR sensor output */
-#define AMP_OFFSET_PIN		5
+#define PIR_AMP_SIGNAL_PIN		4
+/** The DC offset of the amplified PIR sensor output */
+#define PIR_AMP_OFFSET_PIN		5
 /** @} */
 
 /** @anchor sense_rev4_mcp4012
@@ -105,13 +106,13 @@
 /** Chip Select Pin for MCP4012 */
 #define MCP4012T_CS_PIN		6
 /** U/D pin to set wiper value for MCP4012 */
-#define MCP4012T_U/D_PIN	7
+#define MCP4012T_UD_PIN	7
 /** SCK pin required for SPI communication */
 #define SPI_SCK_PIN		8
 /** @} */
 
 /** @anchor sense_rev4_gpio
- * @name Pins for testing and debuging
+ * @name Pins for testing and debugging
  * @{*/
 #define GPIO1_PIN		19
 #define GPIO2_PIN		18
