@@ -59,6 +59,10 @@
 #include "irq_msg_util.h"
 #include "device_tick.h"
 
+#include "ble.h"
+#include "nrf_sdm.h"
+#include "app_error.h"
+
 /*      Defines         */
 /** The WDT bites if not fed every 600 sec (10 min) */
 #define WDT_PERIOD_MS              600000
@@ -93,8 +97,8 @@ void wdt_prior_reset_callback(void){
 
 void jack_clear_handler(void)
 {
-    hal_gpio_pin_set(JACK_TRIGGER);
-    hal_gpio_pin_set(JACK_FOCUS);
+    hal_gpio_pin_set(JACK_TRIGGER_PIN);
+    hal_gpio_pin_set(JACK_FOCUS_PIN);
 }
 
 void pir_reset_handler(void)
@@ -119,8 +123,21 @@ void pir_handler(int32_t adc_val)
     ms_timer_start(MS_TIMER0, MS_SINGLE_CALL, LFCLK_TICKS_MS(1000),
             pir_reset_handler);
     pir_sense_stop();
-    hal_gpio_pin_clear(JACK_TRIGGER);
-    hal_gpio_pin_clear(JACK_FOCUS);
+    hal_gpio_pin_clear(JACK_TRIGGER_PIN);
+    hal_gpio_pin_clear(JACK_FOCUS_PIN);
+}
+
+/**
+ * @brief Function for initializing the BLE stack by enabling the
+ *  SoftDevice and the BLE event interrupt
+ * */
+static void ble_stack_init(void)
+{
+    uint32_t err_code;
+    const nrf_clock_lf_cfg_t cfg = BOARD_LFCLKSRC_STRUCT;
+
+    err_code = sd_softdevice_enable(&cfg, app_error_fault_handler);
+    APP_ERROR_CHECK(err_code);
 }
 
 void next_interval_handler(uint32_t interval)
@@ -136,22 +153,22 @@ void state_change_handler(uint32_t new_state)
 void jack_pins_init(void)
 {
     //Standard low output, float on high
-    hal_gpio_cfg(JACK_TRIGGER,
+    hal_gpio_cfg(JACK_TRIGGER_PIN,
             GPIO_PIN_CNF_DIR_Output,
             GPIO_PIN_CNF_INPUT_Disconnect,
             GPIO_PIN_CNF_PULL_Disabled,
             GPIO_PIN_CNF_DRIVE_S0D1,
             GPIO_PIN_CNF_SENSE_Disabled);
-    hal_gpio_pin_set(JACK_TRIGGER);
+    hal_gpio_pin_set(JACK_TRIGGER_PIN);
 
     //Standard low output, float on high
-    hal_gpio_cfg(JACK_FOCUS,
+    hal_gpio_cfg(JACK_FOCUS_PIN,
             GPIO_PIN_CNF_DIR_Output,
             GPIO_PIN_CNF_INPUT_Disconnect,
             GPIO_PIN_CNF_PULL_Disabled,
             GPIO_PIN_CNF_DRIVE_S0D1,
             GPIO_PIN_CNF_SENSE_Disabled);
-    hal_gpio_pin_set(JACK_FOCUS);
+    hal_gpio_pin_set(JACK_FOCUS_PIN);
 }
 
 /**
@@ -170,6 +187,8 @@ int main(void)
 #endif
     ms_timer_init(APP_IRQ_PRIORITY_LOW);
     jack_pins_init();
+
+    ble_stack_init();
 
     {
         irq_msg_callbacks cb =
@@ -195,7 +214,7 @@ int main(void)
 #endif
         device_tick_process();
         irq_msg_process();
-        __WFI();
+        sd_app_evt_wait();
     }
 }
 
