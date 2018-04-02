@@ -1,5 +1,5 @@
 /*
- *  hal_wdt.h
+ *  irq_msg_util.h
  *
  *  Created on: 30-Jan-2018
  *
@@ -32,43 +32,57 @@
  *  POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef CODEBASE_HAL_HAL_WDT_H_
-#define CODEBASE_HAL_HAL_WDT_H_
 /**
- * @addtogroup group_hal
+ * @addtogroup group_util
  * @{
  *
- * @defgroup group_wdt_driver Watchdog timer HAL
- * @brief Hardware abstraction layer the watchdog timer peripheral in nRF5x SoCs
- *
+ * @defgroup group_irq_msg IRQ to main thread message passer
+ * @brief This module is used to pass messages from any higher priority
+ *  interrupts to lower priority ones or the main thread so that the higher
+ *  priority interrupt can finish soon and off-load non-real time tasks.
  * @{
  */
 
-#include <stdint.h>
+#ifndef CODEBASE_UTIL_IRQ_MSG_UTIL_H_
+#define CODEBASE_UTIL_IRQ_MSG_UTIL_H_
+
+#include "stdint.h"
+
+typedef enum {
+  NEXT_INTERVAL,
+  STATE_CHANGE,
+
+  MAX_SIZE = ((2^32)-1)    //To make the enum 32 bit long
+}irq_msg_types;
+
+typedef struct {
+  void (*next_interval_cb)(uint32_t duration);
+  void (*state_change_cb)(uint32_t next_state);
+}irq_msg_callbacks;
 
 /**
- * Initialize the WDT peripheral
- * @param period_ms The period in ms after which the WDT bites if not fed
- * @param wdt_timeout_handler The handler to call in case WDT bites.
- * @note The SoC will reset about 60 us after the handler is called. This 
- * handler can be used to do general house keeping before the reset.
+ * Initialize the messenger ring buffer system
+ * @param cb_ptr The array of function pointers that gets called for
+ * different message types.
  */
-void hal_wdt_init(uint32_t period_ms, void (*wdt_timeout_handler)(void));
+void irq_msg_init(irq_msg_callbacks * cb_ptr);
 
 /**
- * Starts the WDT. 
- * @warning The WDT cannot be stopped once started.
+ * This function is to be called in the higher priority interrupt and
+ *  is used to push the required message.
+ * @param pushed_msg The type of message to be pushed
+ * @param more_data The data of the message to be pushed
  */
-void hal_wdt_start(void);
+void irq_msg_push(irq_msg_types pushed_msg, void * more_data);
 
 /**
- * Feeds the WDT so that it does not bite.
- * @note The WDT feeding should preferably be done in the main thread level,
- * not in an interrupt routine. 
+ *  This function is to be called in the while(1) loop in main()
+ *  so that all the pushed messages can be processed.
  */
-void hal_wdt_feed(void);
+void irq_msg_process(void);
 
-#endif /* CODEBASE_HAL_HAL_WDT_H_ */
+#endif /* CODEBASE_UTIL_IRQ_MSG_UTIL_H_ */
+
 /**
  * @}
  * @}

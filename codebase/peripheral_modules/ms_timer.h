@@ -37,7 +37,6 @@
  * @{
  *
  * @defgroup group_ms_timer Millisecond timer
- * @file ms_timer.h
  * @brief Driver to use milli-second timers using the RTC peripheral
  *
  * @warning This module needs the LFCLK to be on and running to be able to work
@@ -122,6 +121,15 @@ void ms_timer_stop(ms_timer_num id);
  * @return			Boolean value indicating if a timer is ON
  */
 bool ms_timer_get_on_status(ms_timer_num id);
+
+/**
+ * @brief Return the current count (24 bit) of the RTC timer used
+ * @return The 24 bit count value. The most significant byte is 0.
+ * @note This operation takes 5 CPU cycles (ref: nRF5x reference manual)
+ */
+inline uint32_t ms_timer_get_current_count(void){
+  return CONCAT_2(NRF_RTC,MS_TIMER_RTC_USED)->COUNTER;
+}
 
 #endif /* CODEBASE_MS_TIMER_H_ */
 /**
