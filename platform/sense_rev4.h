@@ -85,8 +85,9 @@
  * @{*/
 #define RX_PIN_NUMBER		17
 #define TX_PIN_NUMBER		20
-#define RESET_PIN_NUMBER	21
 #define HWFC			false
+#define RTS_PIN_NUMBER		23
+#define CTS_PIN_NUMBER		24
 /** @} */
 
 
@@ -105,7 +106,7 @@
 /** Chip Select Pin for MCP4012 */
 #define MCP4012T_CS_PIN		6
 /** U/D pin to set wiper value for MCP4012 */
-#define MCP4012T_U/D_PIN	7
+#define MCP4012T_UD_PIN	7
 /** SCK pin required for SPI communication */
 #define SPI_SCK_PIN		8
 /** @} */
