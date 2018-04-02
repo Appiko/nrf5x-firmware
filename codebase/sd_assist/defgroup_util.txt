@@ -1,0 +1,9 @@
+/**
+* @addtogroup group_codebase
+* @{
+* @defgroup group_sd_assist SoftDevice Assist libraries
+* @brief Contains libraries needed for working with the Nordic Semi SoftDevices
+* @{
+*/
+/** @} */
+/** @} */
