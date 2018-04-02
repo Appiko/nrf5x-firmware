@@ -136,7 +136,7 @@ endif
 #Use the GCC extensions to C
 CFLAGS	+= --std=gnu11
 #Give a warning when using the GCC extensions to C
-CFLAGS  += -pedantic
+#CFLAGS  += -pedantic
 CFLAGS	+= -Wall -Werror
 # keep every function in separate section, this allows linker to discard unused ones
 CFLAGS += -ffunction-sections -fdata-sections -fno-strict-aliasing
