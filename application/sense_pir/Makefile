@@ -1,5 +1,5 @@
 
-BOARD           := BOARD_SENSE_REV3
+BOARD           := BOARD_SENSE_REV4
 SLNO            := 682073614
 BLE_REQD        := BLE_STACK_SUPPORT_REQD
 PINRESET_REQD   := CONFIG_GPIO_AS_PINRESET
@@ -20,14 +20,14 @@ INCLUDEDIRS += $(SDK_DIR)/softdevice/$(SD_USED)/headers
 endif
 INCLUDEDIRS += $(CODEBASE_DIR)/hal
 INCLUDEDIRS += $(CODEBASE_DIR)/segger_rtt
-INCLUDEDIRS += $(CODEBASE_DIR)/assert_error
+INCLUDEDIRS += $(CODEBASE_DIR)/sd_assist
 INCLUDEDIRS += $(CODEBASE_DIR)/peripheral_modules
 INCLUDEDIRS += $(CODEBASE_DIR)/util
 
 C_SRC_DIRS = .
 C_SRC_DIRS += $(CODEBASE_DIR)/segger_rtt
 C_SRC_DIRS += $(CODEBASE_DIR)/hal
-C_SRC_DIRS += $(CODEBASE_DIR)/assert_error
+C_SRC_DIRS += $(CODEBASE_DIR)/sd_assist
 C_SRC_DIRS += $(CODEBASE_DIR)/peripheral_modules
 C_SRC_DIRS += $(CODEBASE_DIR)/util
 
@@ -39,6 +39,7 @@ C_SRC += SEGGER_RTT.c SEGGER_RTT_printf.c
 C_SRC += hal_wdt.c
 C_SRC += nrf_util.c irq_msg_util.c
 C_SRC += pir_sense.c device_tick.c
+C_SRC += gpio_level_handler.c
 
 #Gets the name of the application folder
 APPLN = $(shell basename $(PWD))
