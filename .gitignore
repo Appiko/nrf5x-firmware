@@ -24,6 +24,8 @@
 .project
 .settings/*
 
+# System generated backup files
+*.swp
 
 #Documentation
 doc/build/*
