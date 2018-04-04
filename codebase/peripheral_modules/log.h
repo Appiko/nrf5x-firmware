@@ -46,7 +46,10 @@
 #include "tinyprintf.h"
 #include "uart_printf.h"
 #define log_init()       uart_printf_init(UART_PRINTF_BAUD_1M)
+#pragma GCC diagnostic ignored "-Wformat"
+#pragma GCC diagnostic push
 #define log_printf(...)  tfp_printf(__VA_ARGS__)
+#pragma GCC diagnostic pop
 #else
 #define log_init()
 #define log_printf(...)
