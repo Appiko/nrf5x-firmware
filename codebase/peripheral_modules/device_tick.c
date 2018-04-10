@@ -62,19 +62,19 @@ void tick_timer_handler(void)
     add_tick();
 }
 
-void device_tick_init(device_tick_cfg cfg)
+void device_tick_init(device_tick_cfg * cfg)
 {
-    ASSERT(cfg.fast_mode_ticks < cfg.slow_mode_ticks);
+    ASSERT(cfg->fast_mode_ticks < cfg->slow_mode_ticks);
 
-    device_tick_ctx.current_mode = cfg.mode;
-    device_tick_ctx.fast_tick_interval = cfg.fast_mode_ticks;
-    device_tick_ctx.slow_tick_interval = cfg.slow_mode_ticks;
+    device_tick_ctx.current_mode = cfg->mode;
+    device_tick_ctx.fast_tick_interval = cfg->fast_mode_ticks;
+    device_tick_ctx.slow_tick_interval = cfg->slow_mode_ticks;
 
-    device_tick_ctx.half_current_interval = ((cfg.mode == DEVICE_TICK_SLOW)?
-            cfg.slow_mode_ticks:cfg.fast_mode_ticks)/2;
+    device_tick_ctx.half_current_interval = ((cfg->mode == DEVICE_TICK_SLOW)?
+            cfg->slow_mode_ticks:cfg->fast_mode_ticks)/2;
 
     ms_timer_start(MS_TIMER0, MS_REPEATED_CALL,
-            device_tick_ctx.half_current_interval, tick_timer_handler);
+            2*device_tick_ctx.half_current_interval, tick_timer_handler);
     add_tick();
 }
 
