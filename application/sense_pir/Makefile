@@ -40,6 +40,7 @@ C_SRC += hal_wdt.c
 C_SRC += nrf_util.c irq_msg_util.c
 C_SRC += pir_sense.c device_tick.c
 C_SRC += gpio_level_handler.c
+C_SRC += sd_evt_handler.c
 
 #Gets the name of the application folder
 APPLN = $(shell basename $(PWD))
