@@ -114,6 +114,21 @@
  */
 #define IS_POWER_OF_TWO(A) ( ((A) != 0) && ((((A) - 1) & (A)) == 0) )
 
+enum
+{
+    UNIT_0_625_MS = 625,  /**< Number of us in 0.625 ms. */
+    UNIT_1_25_MS  = 1250, /**< Number of us in 1.25 ms. */
+    UNIT_10_MS    = 10000 /**< Number of us in 10 ms. */
+};
+
+/**@brief Macro for converting ms to ticks.
+ *
+ * @param[in] TIME          Number of ms to convert.
+ * @param[in] RESOLUTION    Unit to be converted to in [us/ticks].
+ */
+#define MSEC_TO_UNITS(TIME, RESOLUTION) (((TIME) * 1000) / (RESOLUTION))
+
+
 #endif /* CODEBASE_COMMON_UTIL_H_ */
 
 /**
