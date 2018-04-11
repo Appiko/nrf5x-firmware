@@ -82,13 +82,13 @@
 #define ENABLE_WDT                 1
 
 /**< Name of device, to be included in the advertising data. */
-#define DEVICE_NAME                "SenseMo"
-#define DEVICE_NAME_CHAR           'S','e','n','s','e','M','o'
+#define DEVICE_NAME                "SensePi"
+#define DEVICE_NAME_CHAR           'S','e','n','s','e','P','i'
 
-#define SENSEMO_SERVICE_UUID        0x3c, 0x73, 0xdc, 0x5c, 0x07, 0xf5, 0x48, 0x0d, 0xb0, 0x66, 0x83, 0x74, 0x07, 0xfb, 0xde, 0x0a
+#define SENSEMO_SERVICE_UUID        0x0a, 0xde, 0xfb, 0x07, 0x74, 0x83, 0x66, 0xb0, 0x0d, 0x48, 0xf5, 0x07, 0x5c, 0xdc, 0x73, 0x3c
 
 /**< Interval between advertisement packets (0.5 seconds). */
-#define ADVERTISING_INTERVAL          MSEC_TO_UNITS(500, UNIT_0_625_MS)
+#define ADVERTISING_INTERVAL       MSEC_TO_UNITS(500, UNIT_0_625_MS)
 /**< Minimum acceptable connection interval (0.1 seconds). */
 #define MIN_CONN_INTERVAL          MSEC_TO_UNITS(100, UNIT_1_25_MS)
 /**< Maximum acceptable connection interval (0.5 second). */
