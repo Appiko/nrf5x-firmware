@@ -39,30 +39,39 @@
 
 /**
  * @brief This function is used to check power on the board
+ * If program execution starts properly, it means power source is connected
  */
 uint32_t power_test(void);
 /**
- * @brief This fucntion is used to check DC/DC converter 
+ * @brief This fucntion is used to check DC/DC converter. If DC/DC circuit is
+ * present at input supply, funtion will return value 1 
  */
 uint32_t dc_dc_test(void);
 /**
- * @brief This fucntion is used to check on board LEDs 
+ * @brief This fucntion is used to check on board LEDs. Operator has to be there
+ * to check is LEDs are blinking properly or not. 
  */
 uint32_t led_test(void);
 /**
- * @brief This fucntion is used to check on low frequency crystal. 
+ * @brief This fucntion is used to check on low frequency crystal. Without 
+ * LF-XTAL we cannot use RTC. Therefore RTC is used to detect LF-XTAL
  */
 uint32_t crystal_test(void);
 /**
- * @brief This fucntion is used to check output RC very low frequency filter 
+ * @brief This fucntion is used to check output RC very low frequency filter.
+ * This function will actully check for any AC part present in offset voltage.
  */
 uint32_t rc_test(void);
 /**
  * @brief This fucntion is used to check output filter designed for f(max)=10Hz
+ * This test will detect if any other frequency is supplied to device other
+ * than 10 Hz
  */
 uint32_t freq_filter_test(void);
 /**
- * @brief This fucntion is used to check MCP4012 pot.
+ * @brief This fucntion is used to check MCP4012 pot. In this function we will
+ * check an ratio between two signals obtained by changing gain by changing pot
+ * values. 
  */
 uint32_t pot_test(void);
 #endif
