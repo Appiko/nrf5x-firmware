@@ -61,7 +61,7 @@
 
 #define TIMER_INIT_VALUE (read_time_us())
 #define CALC_TIMER_VAL ((uint32_t)(((uint64_t)10000000000)/32768))
-#define CALC_FREQ 10
+#define MAX_FREQ 10
 
 /// ADC value for Vdd/2
 #define CALC_OFFSET simple_adc_get_value(SIMPLE_ADC_GAIN1_5, PIN_TO_ANALOG_INPUT(BATT_VOLTAGE_SENSE))/2
@@ -234,7 +234,9 @@ uint32_t rc_test(void)
     }
     avg_offset = temp_sum / i;
     profiler_timer_deinit();
-    if(compare_percent(avg_offset, CALC_OFFSET, 10))
+    log_printf("CALC OFFSET = %lu\n", CALC_OFFSET);
+    log_printf("Avg Offset = %lu\n", avg_offset);
+    if(compare_percent(avg_offset, CALC_OFFSET, 5))
     {
         log_printf("RC test successful..!!\n");
         return 1;
@@ -251,8 +253,7 @@ uint32_t freq_filter_test(void)
 {
     log_printf("\n\n Freq test\n\n");
     uint32_t obs_freq = hw_test_obs_freq();    
-    uint32_t flag_freq = compare_percent(obs_freq, CALC_FREQ, 10);
-    if(flag_freq)
+    if(obs_freq == MAX_FREQ)
     {
         log_printf("Freq filter test successful..!!\n");
         return 1;
@@ -271,16 +272,16 @@ static uint32_t hw_test_obs_freq()
     do{
         temp_signal = simple_adc_get_value(SIMPLE_ADC_GAIN1_5, PIN_TO_ANALOG_INPUT(PIR_AMP_SIGNAL_PIN));
 
-    }while(!(compare_percent(temp_signal, temp_offset, 0.01) &&((int)(temp_signal - temp_offset) <= 0)));
+    }while(!(compare_percent(temp_signal, temp_offset, 0.1) &&((int)(temp_signal - temp_offset) <= 0)));
     profiler_timer_init();
-    while(read_time_us() < 1025000)
+    while(read_time_us() < 1010000)
     {
         temp_signal = simple_adc_get_value(SIMPLE_ADC_GAIN1_5, PIN_TO_ANALOG_INPUT(PIR_AMP_SIGNAL_PIN));
 
         if(compare_percent(temp_offset,temp_signal,0.2))
         {
             cnt_cross++;
-            hal_nop_delay_us(700);
+            hal_nop_delay_ms(5);
         }
     }
     profiler_timer_deinit();
@@ -297,18 +298,19 @@ uint32_t pot_test(void)
     uint32_t read2 = 0;
 
     log_printf("\nReadings set 1\n");
-    mcp4012_set_value(63);
+    mcp4012_set_value(45);
     hal_nop_delay_ms(10);
     read1 = hw_test_obs_sig();
     log_printf("Read1: %lu\n", read1);
 
     log_printf("\nReadings set 2\n");
-    mcp4012_set_value(1);
+    mcp4012_set_value(0);
     hal_nop_delay_ms(10);
     read2 = hw_test_obs_sig();
     log_printf("Read2: %lu\n", read2);
+    log_printf("Read1:Read2 = %lu", ((read1*1000)/read2));
 
-    if(!compare_percent(read1, read2, 0.1))
+    if(!compare_percent(read1, read2, 100))
     {
         log_printf("\nPOT test Successful..!!\n");
         return 1;
@@ -322,7 +324,8 @@ uint32_t pot_test(void)
 
 static uint32_t hw_test_obs_sig()
 {
-    uint32_t temp_signal, avg_signal, temp_sum, rms, i;
+    uint32_t temp_signal, avg_signal, rms, i;
+    uint64_t temp_sum;
     temp_signal = 0; avg_signal = 0; temp_sum = 0, i = 0;
     const uint32_t temp_offset = CALC_OFFSET;
     do{
