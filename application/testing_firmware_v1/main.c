@@ -79,6 +79,7 @@ int main()
     log_printf("\n/************************/");   
     log_printf("\n/****Hardware Testing****/");
     log_printf("\n/************************/");   
+
     flag_rev_pol_pro = power_test();
     flag_dc_dc     = dc_dc_test();
     flag_led     = led_test();
@@ -101,6 +102,7 @@ int main()
         hal_gpio_pin_clear(LED_GREEN);
         hal_gpio_pin_set(LED_RED);
         log_printf("\nOne or more tests failed..!!\n");
+        log_printf("\nIf frequency test fails along with POT test, one must check 2 stages of amplifier\n");
     }
     while(1);
 }
