@@ -263,7 +263,7 @@ upload:
 		echo "device $(JLINKDEVICE)\nw4 $(NVMC_CONFIG_ADRS) 1\nloadfile $(PWD)/$(OUTPUT_DIR)/$(OUTPUT_FLASHING).hex\nr\ng\nqc\n" > $(OUTPUT_DIR)/upload.jlink; \
 		$(JLINK) $(OUTPUT_DIR)/upload.jlink; \
 	elif [ "$(DEBUGGER)" = "BMP" ]; then \
-		$(GDB) -q -ex 'target extended-remote /dev/ttyBmpGdb' -ex 'monitor swdp_scan' -ex 'attach 1' -ex 'load' -ex 'compare-sections' -ex 'detach' -ex 'quit' $(OUTPUT_DIR)/$(OUTPUT_FLASHING).hex; \
+		$(GDB) -q -ex 'target extended-remote /dev/ttyBmpGdb' -ex 'monitor tpwr enable' -ex 'monitor swdp_scan' -ex 'attach 1' -ex 'load' -ex 'detach' -ex 'quit' $(OUTPUT_DIR)/$(OUTPUT_FLASHING).hex; \
 	else\
 		echo "Use the DEBUGGER variable to specify the debugger to be used for uploading"; \
 	fi
@@ -282,7 +282,7 @@ eraseall:
 	@if [ "$(DEBUGGER)" = "JLINK" ]; then\
 		$(NRFJPROG) --eraseall; \
 	elif [ "$(DEBUGGER)" = "BMP" ]; then \
-		$(GDB) -q -ex 'target extended-remote /dev/ttyBmpGdb' -ex 'monitor swdp_scan' -ex 'attach 1' -ex 'mon erase_mass' -ex 'detach' -ex 'quit'; \
+		$(GDB) -q -ex 'target extended-remote /dev/ttyBmpGdb' -ex 'monitor tpwr enable' -ex 'monitor swdp_scan' -ex 'attach 1' -ex 'mon erase_mass' -ex 'detach' -ex 'quit'; \
 	else\
 		echo "Use the DEBUGGER variable to specify the debugger to be used for the erase all operation"; \
 	fi
@@ -301,7 +301,7 @@ reset:
 	@if [ "$(DEBUGGER)" = "JLINK" ]; then\
 		$(NRFJPROG) --reset;\
 	elif [ "$(DEBUGGER)" = "BMP" ]; then \
-		$(GDB) --batch -q -ex 'target extended-remote /dev/ttyBmpGdb' -ex 'monitor swdp_scan' -ex 'attach 1' -ex 'kill'; \
+		$(GDB) --batch -q -ex 'target extended-remote /dev/ttyBmpGdb' -ex 'monitor tpwr enable' -ex 'monitor swdp_scan' -ex 'attach 1' -ex 'kill'; \
 	else\
 		echo "Use the DEBUGGER variable to specify the debugger to be used for the reset operation"; \
 	fi
@@ -310,7 +310,16 @@ debug:
 	@if [ "$(DEBUGGER)" = "JLINK" ]; then\
 		echo "GDB debug is not supported with JLink yet with this makefile."; \
 	elif [ "$(DEBUGGER)" = "BMP" ]; then \
-		$(GDB) -q -ex 'set confirm no' -ex 'target extended-remote /dev/ttyBmpGdb' -ex 'monitor swdp_scan' -ex 'attach 1' -ex 'load' -ex 'run' $(OUTPUT_DIR)/$(OUTPUT_FLASHING).elf; \
+		$(GDB) -q -ex 'set confirm no' -ex 'target extended-remote /dev/ttyBmpGdb' -ex 'monitor tpwr enable' -ex 'monitor swdp_scan' -ex 'attach 1' -ex 'load' -ex 'run' $(OUTPUT_DIR)/$(OUTPUT_FLASHING).elf; \
+	else\
+		echo "Use the DEBUGGER variable to specify the debugger to be used for the reset operation"; \
+	fi
+
+powercycle:
+	@if [ "$(DEBUGGER)" = "JLINK" ]; then\
+		echo "GDB debug is not supported with JLink yet with this makefile."; \
+	elif [ "$(DEBUGGER)" = "BMP" ]; then \
+		$(GDB) -q -ex 'target extended-remote /dev/ttyBmpGdb' -ex 'monitor tpwr disable' --eval-command="shell sleep 0.1" -ex 'monitor tpwr enable' -ex 'quit'; \
 	else\
 		echo "Use the DEBUGGER variable to specify the debugger to be used for the reset operation"; \
 	fi
