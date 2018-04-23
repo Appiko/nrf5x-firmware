@@ -99,11 +99,11 @@ void irq_msg_process(void)
 //    log_printf("_%x\n",msg.type);
         switch (msg.type)
         {
-        case NEXT_INTERVAL:
+        case MSG_NEXT_INTERVAL:
             cb_list.next_interval_cb(
                     (uint32_t) (msg.more_data));
             break;
-        case STATE_CHANGE:
+        case MSG_STATE_CHANGE:
             cb_list.state_change_cb(
                     (uint32_t) (msg.more_data));
             break;

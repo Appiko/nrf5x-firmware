@@ -49,10 +49,10 @@
 #include "stdint.h"
 
 typedef enum {
-  NEXT_INTERVAL,
-  STATE_CHANGE,
+  MSG_NEXT_INTERVAL,
+  MSG_STATE_CHANGE,
 
-  MAX_SIZE = ((2^32)-1)    //To make the enum 32 bit long
+  MSG_MAX_SIZE = ((2^32)-1)    //To make the enum 32 bit long
 }irq_msg_types;
 
 typedef struct {

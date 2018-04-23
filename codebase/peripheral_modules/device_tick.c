@@ -54,7 +54,7 @@ static void add_tick(void){
   current_count = ms_timer_get_current_count();
   duration = (current_count + (1<<24) - device_tick_ctx.last_tick_count) & 0xFFFFFF;
   device_tick_ctx.last_tick_count = current_count;
-  irq_msg_push(NEXT_INTERVAL,(void *) (uint32_t) LFCLK_TICKS_TO_DEV_TICKS(duration));
+  irq_msg_push(MSG_NEXT_INTERVAL,(void *) (uint32_t) LFCLK_TICKS_TO_DEV_TICKS(duration));
 }
 
 void tick_timer_handler(void)
@@ -102,7 +102,7 @@ void device_tick_process(void)
                 2*device_tick_ctx.half_current_interval, tick_timer_handler);
 
         device_tick_ctx.last_tick_count = current_count;
-        irq_msg_push(NEXT_INTERVAL,
+        irq_msg_push(MSG_NEXT_INTERVAL,
                 (void *) (uint32_t) LFCLK_TICKS_TO_DEV_TICKS(duration));
     }
 }
