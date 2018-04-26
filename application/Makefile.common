@@ -105,7 +105,7 @@ INCLUDEDIRS	+= $(CODEBASE_DIR)/cmsis/include
 INCLUDEDIRS	+= $(GCC_INCLUDE_DIR)
 
 ifneq ($(SD_USED_LC),blank)
-SOFTDEVICE  = $(SDK_DIR)/softdevice/$(SD_USED_LC)/hex/$(shell ls $(SDK_DIR)/softdevice/$(SD_USED_LC)/hex)
+SOFTDEVICE  = $(SDK_DIR)/softdevice/$(SD_USED_LC)/hex/$(shell ls $(SDK_DIR)/softdevice/$(SD_USED_LC)/hex/*.hex | xargs basename)
 SD_PRESENT  = SOFTDEVICE_PRESENT
 endif
 
