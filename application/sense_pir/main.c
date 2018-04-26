@@ -81,8 +81,11 @@
 #define SENSE_FAST_TICK_INTERVAL_MS      500
 #define SENSE_SLOW_TICK_INTERVAL_MS      300000
 
-#define ADV_FAST_TICK_INTERVAL_MS  600
+#define ADV_FAST_TICK_INTERVAL_MS  50
 #define ADV_SLOW_TICK_INTERVAL_MS  1100
+
+#define CONN_FAST_TICK_INTERVAL_MS  50
+#define CONN_SLOW_TICK_INTERVAL_MS  1100
 
 /**< Name of device, to be included in the advertising data. */
 #define DEVICE_NAME_CHAR           'S','e','n','s','e','P','i'
@@ -163,7 +166,7 @@ void wdt_prior_reset_callback(void){
 
 void SWI1_IRQHandler(void)
 {
-    log_printf("rdo\n");
+//    log_printf("rdo\n");
 }
 
 void pir_handler(int32_t adc_val)
@@ -191,7 +194,6 @@ void sensepi_service_init()
     err_code = sd_ble_gatts_service_add(BLE_GATTS_SRVC_TYPE_PRIMARY,
             &ble_uuid, &service_handle);
     APP_ERROR_CHECK(err_code);
-    log_printf("UUID %d, handle %d\n", uuid_type, service_handle);
 
     ble_gatts_char_md_t char_md;
     ble_gatts_attr_t attr_char_value;
@@ -395,6 +397,7 @@ static void advertising_init(void)
     //Set channel 37, 38 and 39 as advertising channels
     memset(adv_params.channel_mask, 0, 5);
 
+    //TODO change to timeout and also in the advertising
     //Set the advertising to timeout in 180s
     adv_params.duration = 0; //BLE_GAP_ADV_TIMEOUT_LIMITED_MAX;
 
@@ -414,15 +417,15 @@ static void advertising_init(void)
     err_code = sd_ble_gap_addr_get(&own_adrs);
     APP_ERROR_CHECK(err_code);
 
-    log_printf("%x %x |", own_adrs.addr_id_peer, own_adrs.addr_type);
-    log_printf("%x %x %x %x %x %x\n", own_adrs.addr[0], own_adrs.addr[1], own_adrs.addr[2],
-            own_adrs.addr[3], own_adrs.addr[4], own_adrs.addr[5] );
-
     adv_params.p_peer_addr = NULL;
     adv_params.scan_req_notification = 0;
 
     err_code = sd_ble_gap_adv_set_configure(&adv_handle, (ble_gap_adv_data_t const *)&adv_payload, (ble_gap_adv_params_t const *) &adv_params);
     APP_ERROR_CHECK(err_code);
+
+    log_printf("%d |", adv_handle);
+    log_printf("%x %x %x %x %x %x\n", own_adrs.addr[0], own_adrs.addr[1], own_adrs.addr[2],
+            own_adrs.addr[3], own_adrs.addr[4], own_adrs.addr[5] );
 }
 
 /**
@@ -477,31 +480,41 @@ void state_change_handler(uint32_t new_state)
         }
         break;
     case ADVERTISING:
-        pir_sense_stop();
-
-        device_tick_cfg tick_cfg =
         {
-            LFCLK_TICKS_MS(ADV_FAST_TICK_INTERVAL_MS),
-            LFCLK_TICKS_MS(ADV_SLOW_TICK_INTERVAL_MS),
-            DEVICE_TICK_SLOW
-        };
-        device_tick_init(&tick_cfg);
+            device_tick_cfg tick_cfg =
+            {
+                LFCLK_TICKS_MS(ADV_FAST_TICK_INTERVAL_MS),
+                LFCLK_TICKS_MS(ADV_SLOW_TICK_INTERVAL_MS),
+                DEVICE_TICK_SLOW
+            };
+            device_tick_init(&tick_cfg);
 
-        uint8_t is_sd_enabled;
-        sd_softdevice_is_enabled(&is_sd_enabled);
-        if(is_sd_enabled == 0)
-        {
-            ble_stack_init();
-            gap_params_init();
-            sd_evt_handler_init(ble_evt_handler, soc_evt_handler);
-            sensepi_service_init();
+            uint8_t is_sd_enabled;
+            sd_softdevice_is_enabled(&is_sd_enabled);
+            // Would be coming from the SENSEING mode
+            if(is_sd_enabled == 0)
+            {
+                pir_sense_stop();
+                ble_stack_init();
+                gap_params_init();
+                sd_evt_handler_init(ble_evt_handler, soc_evt_handler);
+                sensepi_service_init();
+                advertising_init();
+            }
+            advertising_start();
         }
-        advertising_init();
-        advertising_start();
         break;
     case CONNECTED:
-
-        break;
+        {
+            device_tick_cfg tick_cfg =
+            {
+                LFCLK_TICKS_MS(CONN_FAST_TICK_INTERVAL_MS),
+                LFCLK_TICKS_MS(CONN_SLOW_TICK_INTERVAL_MS),
+                DEVICE_TICK_SLOW
+            };
+            device_tick_init(&tick_cfg);
+            break;
+        }
     }
 }
 
