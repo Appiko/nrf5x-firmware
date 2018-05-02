@@ -62,8 +62,9 @@
  */
 typedef enum
 {
-    DEVICE_TICK_SLOW,//!< Slow mode
-    DEVICE_TICK_FAST //!< Fast mode
+    DEVICE_TICK_SLOW, //!< Slow mode
+    DEVICE_TICK_FAST, //!< Fast mode
+    DEVICE_TICK_SAME  //!< Same as previous mode
 }device_tick_mode;
 
 /**
