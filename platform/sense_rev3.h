@@ -62,6 +62,15 @@
 #define LED_LIGHT_SENSE 30
 /** @} */
 
+/** @anchor sense_rev4_config_enable
+ * @name Definition of configuration mode enable button pin
+ * @{
+*/
+#define BUTTON_PIN      26
+/** The logic level at which the Button will set value */
+#define BUTTON_ACTIVE_STATE 0
+/** @} */
+
 /** @anchor sense_rev3_audio_jack
  * @name Definitions of the pin of the audio jack to trigger camera
  * @{*/
