@@ -61,6 +61,7 @@
 #include "device_tick.h"
 #include "pir_sense.h"
 #include "hal_pin_analog_input.h"
+#include "button_ui.h"
 
 #include "nrf_nvic.h"
 #include "ble.h"
@@ -78,7 +79,7 @@
 #define PIR_SENSE_INTERVAL_MS      50
 #define PIR_SENSE_THRESHOLD        600
 
-#define SENSE_FAST_TICK_INTERVAL_MS      500
+#define SENSE_FAST_TICK_INTERVAL_MS      50
 #define SENSE_SLOW_TICK_INTERVAL_MS      300000
 
 #define ADV_FAST_TICK_INTERVAL_MS  50
@@ -112,7 +113,7 @@ const uint8_t device_name[] = { DEVICE_NAME_CHAR };
 /** The data to be sent in the advertising payload. It is of the format
  *  of a sequence of {Len, type, data} */
 #define ADV_DATA                   {                                        \
-                                       0x02, BLE_GAP_AD_TYPE_FLAGS, BLE_GAP_ADV_FLAGS_LE_ONLY_GENERAL_DISC_MODE,    \
+                                       0x02, BLE_GAP_AD_TYPE_FLAGS, BLE_GAP_ADV_FLAGS_LE_ONLY_LIMITED_DISC_MODE,    \
                                        sizeof(device_name) + 1, BLE_GAP_AD_TYPE_COMPLETE_LOCAL_NAME, DEVICE_NAME_CHAR,   \
                                        0x11, BLE_GAP_AD_TYPE_128BIT_SERVICE_UUID_COMPLETE, SENSEPI_UUID_COMPLETE     \
                                    }
@@ -146,11 +147,11 @@ typedef struct
     bool pre_focus;
     uint8_t cam_comp;
     uint8_t cam_model;
-}sensepi_config;
+}__attribute__ ((packed)) sensepi_config ;
 
 /*      Global constants in flash         */
 /** Stores the current state of the device */
-sense_states state;
+sense_states current_state;
 
 /** Handle to specify the advertising state to the soft device */
 uint8_t adv_handle = BLE_GAP_ADV_SET_HANDLE_NOT_SET;
@@ -172,6 +173,7 @@ void SWI1_IRQHandler(void)
 void pir_handler(int32_t adc_val)
 {
     log_printf("Sensed %d\n", adc_val);
+
 }
 
 void sensepi_service_init()
@@ -295,6 +297,23 @@ static void ble_evt_handler(ble_evt_t * evt)
                 (5*evt->evt.gap_evt.params.conn_param_update.conn_params.min_conn_interval)/4,
                 evt->evt.gap_evt.params.conn_param_update.conn_params.slave_latency);
         break;
+    case BLE_GAP_EVT_ADV_SET_TERMINATED:
+        irq_msg_push(MSG_STATE_CHANGE, (void *)SENSING);
+        break;
+    case BLE_GATTS_EVT_WRITE:
+        log_printf("len: %d\n", evt->evt.gatts_evt.params.write.len);
+        sensepi_config * config = (sensepi_config *) evt->evt.gatts_evt.params.write.data;
+        log_printf("dn %x, mode %x, sens %x, tt %x, focus %x, cam %x %x\n",
+                config->oper_time, config->mode, config->sensitivity,
+                config->inter_trig_time, config->pre_focus, config->cam_comp, config->cam_model);
+
+        for(uint32_t i = 0; i < evt->evt.gatts_evt.params.write.len; i++)
+        {
+            log_printf("%x ", evt->evt.gatts_evt.params.write.data[i]);
+        }
+        log_printf("\n");
+
+        break;
     }
 }
 
@@ -399,7 +418,7 @@ static void advertising_init(void)
 
     //TODO change to timeout and also in the advertising
     //Set the advertising to timeout in 180s
-    adv_params.duration = 0; //BLE_GAP_ADV_TIMEOUT_LIMITED_MAX;
+    adv_params.duration = 1000; //BLE_GAP_ADV_TIMEOUT_LIMITED_MAX;
 
     //Any device can scan request and connect
     adv_params.filter_policy = BLE_GAP_ADV_FP_ANY;
@@ -445,7 +464,8 @@ static void advertising_start(void)
  */
 void next_interval_handler(uint32_t interval)
 {
-    log_printf("interval %d\n", interval);
+    log_printf("in %d\n", interval);
+    button_ui_add_tick(interval);
 }
 
 /**
@@ -456,7 +476,15 @@ void next_interval_handler(uint32_t interval)
 void state_change_handler(uint32_t new_state)
 {
     log_printf("State change %d\n", new_state);
-    switch((sense_states) new_state)
+    if(new_state == current_state)
+    {
+        log_printf("new state same as current state\n");
+        return;
+
+    }
+    current_state = (sense_states) new_state;
+
+    switch(current_state)
     {
     case SENSING:
         sd_softdevice_disable();
@@ -470,13 +498,13 @@ void state_change_handler(uint32_t new_state)
             };
             device_tick_init(&tick_cfg);
 
-            pir_sense_cfg pir_cfg =
-            {
-                PIR_SENSE_INTERVAL_MS, PIN_TO_ANALOG_INPUT(PIR_AMP_SIGNAL_PIN),
-                PIN_TO_ANALOG_INPUT(PIR_AMP_OFFSET_PIN),
-                PIR_SENSE_THRESHOLD, APP_IRQ_PRIORITY_HIGH, pir_handler
-            };
-            pir_sense_start(&pir_cfg);
+//            pir_sense_cfg pir_cfg =
+//            {
+//                PIR_SENSE_INTERVAL_MS, PIN_TO_ANALOG_INPUT(PIR_AMP_SIGNAL_PIN),
+//                PIN_TO_ANALOG_INPUT(PIR_AMP_OFFSET_PIN),
+//                PIR_SENSE_THRESHOLD, APP_IRQ_PRIORITY_HIGH, pir_handler
+//            };
+//            pir_sense_start(&pir_cfg);
         }
         break;
     case ADVERTISING:
@@ -485,7 +513,7 @@ void state_change_handler(uint32_t new_state)
             {
                 LFCLK_TICKS_MS(ADV_FAST_TICK_INTERVAL_MS),
                 LFCLK_TICKS_MS(ADV_SLOW_TICK_INTERVAL_MS),
-                DEVICE_TICK_SLOW
+                DEVICE_TICK_SAME
             };
             device_tick_init(&tick_cfg);
 
@@ -510,9 +538,56 @@ void state_change_handler(uint32_t new_state)
             {
                 LFCLK_TICKS_MS(CONN_FAST_TICK_INTERVAL_MS),
                 LFCLK_TICKS_MS(CONN_SLOW_TICK_INTERVAL_MS),
-                DEVICE_TICK_SLOW
+                DEVICE_TICK_SAME
             };
             device_tick_init(&tick_cfg);
+            break;
+        }
+    }
+}
+
+/**
+ * @brief Handler for all button related activities. H
+ * @param step
+ * @param act
+ */
+void button_handler(button_ui_steps step, button_ui_action act)
+{
+    log_printf("step %d, act %d\n", step, act);
+
+
+    if(act == BUTTON_UI_ACT_CROSS)
+    {
+
+        switch(step)
+        {
+        case BUTTON_UI_STEP_WAKE:
+            log_printf("fast\n");
+            device_tick_switch_mode(DEVICE_TICK_FAST);
+            button_ui_config_wake(false);
+            break;
+        case BUTTON_UI_STEP_PRESS:
+            if(current_state == SENSING)
+            {
+                irq_msg_push(MSG_STATE_CHANGE, (void *) ADVERTISING);
+            }
+            break;
+        case BUTTON_UI_STEP_LONG:
+            break;
+        }
+    }
+    else    //BUTTON_UI_ACT_RELEASE
+    {
+        device_tick_switch_mode(DEVICE_TICK_SLOW);
+        log_printf("slow\n");
+        button_ui_config_wake(true);
+        switch(step)
+        {
+        case BUTTON_UI_STEP_WAKE:
+            break;
+        case BUTTON_UI_STEP_PRESS:
+            break;
+        case BUTTON_UI_STEP_LONG:
             break;
         }
     }
@@ -583,6 +658,24 @@ void boot_pwr_config(void)
 }
 
 /**
+ * Different calls to sleep depending on the status of Softdevice
+ */
+void sleep(void)
+{
+    uint8_t is_sd_enabled;
+    sd_softdevice_is_enabled(&is_sd_enabled);
+    // Would in the SENSING mode
+    if(is_sd_enabled == 0)
+    {
+        __WFI();
+    }
+    else
+    {
+        sd_app_evt_wait();
+    }
+}
+
+/**
  * @brief Function for application main entry.
  */
 int main(void)
@@ -601,14 +694,8 @@ int main(void)
     hal_wdt_start();
 #endif
 
-#if 0
-    ble_stack_init();
-    gap_params_init();
-    sd_evt_handler_init(ble_evt_handler, soc_evt_handler);
-    advertising_init();
-    sensepi_service_init();
-    advertising_start();
-#endif
+    button_ui_init(BUTTON_PIN, APP_IRQ_PRIORITY_LOW,
+            button_handler);
 
     {
         irq_msg_callbacks cb =
@@ -616,7 +703,8 @@ int main(void)
         irq_msg_init(&cb);
     }
 
-    irq_msg_push(MSG_STATE_CHANGE, (void *)ADVERTISING);
+    current_state = ADVERTISING; //So that a state change happens
+    irq_msg_push(MSG_STATE_CHANGE, (void *)SENSING);
 
     while (true)
     {
@@ -626,7 +714,7 @@ int main(void)
 #endif
         device_tick_process();
         irq_msg_process();
-        sd_app_evt_wait();
+        sleep();
     }
 }
 
