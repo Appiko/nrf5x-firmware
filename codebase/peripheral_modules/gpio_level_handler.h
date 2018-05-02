@@ -71,6 +71,7 @@ typedef struct
  * @param cfg A pointer to an array of GPIO configurations which need to be
  *  configured to generate port events and call the appropriate handler
  * @param cfg_num The size of the array
+ * @param irq_priority The priority of the GPIOTE port event IRQ handler
  */
 void gpio_level_init(gpio_level_cfg * cfg, uint32_t cfg_num, uint32_t irq_priority);
 
