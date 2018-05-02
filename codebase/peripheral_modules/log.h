@@ -41,11 +41,20 @@
 #include "SEGGER_RTT.h"
 #define log_init()
 #define log_printf(...)  SEGGER_RTT_printf(0, __VA_ARGS__)
-#elif defined LOG_UART_PRINTF//UART printf
+#elif defined LOG_UART_DMA_PRINTF//UARTE printf
 #include "nrf.h"
 #include "tinyprintf.h"
 #include "uart_printf.h"
 #define log_init()       uart_printf_init(UART_PRINTF_BAUD_1M)
+#pragma GCC diagnostic ignored "-Wformat"
+#pragma GCC diagnostic push
+#define log_printf(...)  tfp_printf(__VA_ARGS__)
+#pragma GCC diagnostic pop
+#elif defined LOG_UART_PRINTF//UARTE printf
+#include "nrf.h"
+#include "tinyprintf.h"
+#include "hal_uart.h"
+#define log_init()       hal_uart_init(HAL_UART_BAUD_1M, NULL)
 #pragma GCC diagnostic ignored "-Wformat"
 #pragma GCC diagnostic push
 #define log_printf(...)  tfp_printf(__VA_ARGS__)
