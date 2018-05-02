@@ -60,7 +60,7 @@
 
 
 #define TIMER_INIT_VALUE (read_time_us())
-#define CALC_TIMER_VAL ((uint32_t)(((uint64_t)10000000000)/32768))
+#define CALC_TIMER_VAL 1000000
 #define MAX_FREQ 10
 
 /// ADC value for Vdd/2
@@ -97,6 +97,20 @@ static uint32_t hw_test_obs_sig();
  * frequency >= 1Hz
  */
 static uint32_t hw_test_obs_freq();
+
+/** The possible sources for Low frequency clock's 32 kHz input
+ */
+typedef enum {
+    MY_LFCLK_SRC_RC    = CLOCK_LFCLKSRC_SRC_RC,   ///< Internal RC oscillator.
+    MY_LFCLK_SRC_Xtal  = CLOCK_LFCLKSRC_SRC_Xtal, ///< External crystal.
+    MY_LFCLK_SRC_Synth = CLOCK_LFCLKSRC_SRC_Synth ///< Synthesizer from HFCLK clock.
+} my_lfclk_src_t;
+
+/** @brief Function to initialize the LF clock
+ * @param lfclk_src The source for the lf clock (RC, Xtal or systhesis from HF-clk)
+ * @warning If the clock source is RC oscillator, calibrate it to use (errata 77 in nRF52)
+ */
+static uint32_t my_lfclk_init(my_lfclk_src_t my_lfclk_src);
 
 /**
  * @brief This function is an interrupt handler for MS_TIMER0
@@ -143,41 +157,41 @@ static uint32_t my_sqrt(uint32_t num)
 }
 
 
-
-
+//Funtions for actual tests.
+// Power Test
 uint32_t power_test(void)
 {
-    log_printf("\n\nPower test\n\n");
-    log_printf("Power test successful..!!\n");
+    hal_gpio_pin_set(LED_RED);
+    log_printf("Power_test : 1\n");
+    hal_nop_delay_ms(100);
+    hal_gpio_pin_clear(LED_RED);
     return 1;
 }
-// dc_dc_test 
+// DC/DC Test 
 uint32_t dc_dc_test(void)
 {
-    log_printf("\n\nDC/DC test\n\n");
     NRF_POWER->DCDCEN = POWER_DCDCEN_DCDCEN_Enabled << POWER_DCDCEN_DCDCEN_Pos;
     if(NRF_POWER->DCDCEN == (POWER_DCDCEN_DCDCEN_Enabled << POWER_DCDCEN_DCDCEN_Pos))
     {
-        log_printf("DC/DC test successful..!!\n");
+        log_printf("DC_DC_test : 1\n");
         return 1;    
     }
     else
     {
-        log_printf("DC/DC test failed..!!\n");
+        log_printf("DC_DC_test : 0\n");
         return 0;    
     }
 }
 // LED test 
 uint32_t led_test(void)
 {
-    log_printf("\n\nLED test\n\n");
     hal_gpio_pin_set(LED_GREEN);
     hal_nop_delay_ms(1000);
     hal_gpio_pin_clear(LED_GREEN);
     hal_gpio_pin_set(LED_RED);
     hal_nop_delay_ms(1000);    
     hal_gpio_pin_clear(LED_RED);
-    log_printf("LED test successful..!!\n");
+    log_printf("LED_test : 1\n");
     return 1;
 }
 
@@ -186,25 +200,72 @@ uint32_t led_test(void)
  * @note 1 tick for MS_TIMER0 is 31 us long. And all the initialization takes 247 us.
  */
 
+static uint32_t my_lfclk_init(my_lfclk_src_t my_lfclk_src)
+{
+    uint32_t my_xtal_flag = 0;
+    if((NRF_CLOCK->LFCLKSTAT &  //Clock is running
+       (CLOCK_LFCLKSTAT_STATE_Running << CLOCK_LFCLKSTAT_STATE_Pos)) &&
+       //Correct source is already set
+      ((NRF_CLOCK->LFCLKSTAT & CLOCK_LFCLKSTAT_SRC_Msk) == my_lfclk_src))
+    {
+        //Already in the required configuration
+        my_xtal_flag = 1;
+        return my_xtal_flag;
+    }
+
+    NRF_CLOCK->LFCLKSRC = (my_lfclk_src << CLOCK_LFCLKSRC_SRC_Pos);
+    NRF_CLOCK->INTENSET = CLOCK_INTENSET_LFCLKSTARTED_Msk;
+    NVIC_ClearPendingIRQ(POWER_CLOCK_IRQn);
+
+    // Enable wake-up on any event or interrupt (even disabled)
+    SCB->SCR |= SCB_SCR_SEVONPEND_Msk;
+
+    NRF_CLOCK->EVENTS_LFCLKSTARTED = 0;
+    (void)NRF_CLOCK->EVENTS_LFCLKSTARTED;
+    NRF_CLOCK->TASKS_LFCLKSTART = 1;
+    hal_nop_delay_ms(500);
+    /* Wait for the external oscillator to start up. */
+    if (NRF_CLOCK->EVENTS_LFCLKSTARTED == 1)
+    {
+        my_xtal_flag = 1;
+    }
+    /* Clear the event and the pending interrupt */
+    NRF_CLOCK->EVENTS_LFCLKSTARTED = 0;
+    (void)NRF_CLOCK->EVENTS_LFCLKSTARTED;
+    NVIC_ClearPendingIRQ(POWER_CLOCK_IRQn);
+    NRF_CLOCK->INTENCLR = CLOCK_INTENCLR_LFCLKSTARTED_Msk;
+
+    return my_xtal_flag;
+ 
+}
+
 uint32_t crystal_test()
 {
-    log_printf("\n\nCrystal Test\n\n");
-    uint32_t flag;
-    lfclk_init(LFCLK_SRC_Xtal);
+    uint32_t flag = 0;
+    uint32_t check_status_xtal = 0;
     ms_timer_init(1);
+    check_status_xtal = my_lfclk_init(MY_LFCLK_SRC_Xtal);
+    ms_timer_start(MS_TIMER0,MS_SINGLE_CALL,32768,capture_lfclk_test);
     profiler_timer_init();
-    ms_timer_start(MS_TIMER0,MS_SINGLE_CALL,10000,capture_lfclk_test);
-    hal_nop_delay_ms(1500);
+    hal_nop_delay_ms(1020);
     flag = compare_percent(timer_val_us, CALC_TIMER_VAL, 1);
     ms_timer_stop(1);   
-    if(flag)
+    if (check_status_xtal)
     {
-        log_printf("\nCrystal test Successful..!!\n");
+        log_printf("Crystal : 1\n");
+    }
+    else
+    {
+        log_printf("Crystal : 0\n");
+    }
+    if (flag && check_status_xtal)
+    {
+        log_printf("Crystal_test : 1\n");
         return 1;
     }
     else
     {
-        log_printf("\nCrystal test Failed..!!\n");
+        log_printf("Crystal_test : 0\n");
         return 0;
     }
 
@@ -213,8 +274,8 @@ uint32_t crystal_test()
 void capture_lfclk_test (void)
 {
     timer_val_us = read_time_us();
-    log_printf("Timer read: %lu in capture_lfclk_test\n", timer_val_us);
-    log_printf("Timer read: %lu CALC_TIMER_VAL\n", CALC_TIMER_VAL);
+    log_printf("Timer_XTAL : %d\n", timer_val_us);
+    log_printf("Timer_TIMER : %d\n", CALC_TIMER_VAL);
     profiler_timer_deinit();
 }
 
@@ -222,7 +283,6 @@ void capture_lfclk_test (void)
 // RC test 
 uint32_t rc_test(void)
 {
-    log_printf("\n\n RC tests\n\n");
     uint32_t obs_offset = 0, avg_offset = 0, i = 0, temp_sum = 0;
     mcp4012_set_value(1);
     profiler_timer_init();
@@ -234,16 +294,16 @@ uint32_t rc_test(void)
     }
     avg_offset = temp_sum / i;
     profiler_timer_deinit();
-    log_printf("CALC OFFSET = %lu\n", CALC_OFFSET);
-    log_printf("Avg Offset = %lu\n", avg_offset);
+    log_printf("CALC_OFFSET : %lu\n", CALC_OFFSET);
+    log_printf("Avg_Offset : %lu\n", avg_offset);
     if(compare_percent(avg_offset, CALC_OFFSET, 5))
     {
-        log_printf("RC test successful..!!\n");
+        log_printf("RC_test : 1\n");
         return 1;
     }
     else
     {
-        log_printf("RC test failed..!!\n");
+        log_printf("RC_test : 0\n");
         return 0;    
     }
 }
@@ -251,16 +311,15 @@ uint32_t rc_test(void)
 // Freq filter test 
 uint32_t freq_filter_test(void)
 {
-    log_printf("\n\n Freq test\n\n");
     uint32_t obs_freq = hw_test_obs_freq();    
     if(obs_freq == MAX_FREQ)
     {
-        log_printf("Freq filter test successful..!!\n");
+        log_printf("Freq_filter_test : 1\n");
         return 1;
     }
     else    
     {
-        log_printf("Freq filter test failed..!!\n");
+        log_printf("Freq_filter_test : 0\n");
         return 0;
     }
 }
@@ -286,38 +345,35 @@ static uint32_t hw_test_obs_freq()
     }
     profiler_timer_deinit();
     freq = cnt_cross/2;
-    log_printf("Freq: %lu\n", freq);
+    log_printf("Frequency : %d\n", freq);
     return freq;
 }
 
 // POT test
 uint32_t pot_test(void)
 {
-    log_printf("\n\nPot Test\n");
     uint32_t read1 = 0;
     uint32_t read2 = 0;
 
-    log_printf("\nReadings set 1\n");
     mcp4012_set_value(45);
     hal_nop_delay_ms(10);
     read1 = hw_test_obs_sig();
-    log_printf("Read1: %lu\n", read1);
+    log_printf("POT_test_Read1 : %d\n", read1);
 
-    log_printf("\nReadings set 2\n");
     mcp4012_set_value(0);
     hal_nop_delay_ms(10);
     read2 = hw_test_obs_sig();
-    log_printf("Read2: %lu\n", read2);
-    log_printf("Read1:Read2 = %lu", ((read1*1000)/read2));
+    log_printf("POT_test_Read2 : %d\n", read2);
+    log_printf("ratio_Read1_Read2 : %d\n", ((read1*1000)/read2));
 
     if(!compare_percent(read1, read2, 100))
     {
-        log_printf("\nPOT test Successful..!!\n");
+        log_printf("POT_test : 1\n");
         return 1;
     }
     else
     {
-        log_printf("\nPOT test Failed..!!\n");
+        log_printf("POT test : 0\n");
         return 0;    
     }
 }
@@ -332,7 +388,7 @@ static uint32_t hw_test_obs_sig()
         temp_signal = simple_adc_get_value(SIMPLE_ADC_GAIN1_5, PIN_TO_ANALOG_INPUT(PIR_AMP_SIGNAL_PIN));
     }while((!compare_percent(temp_signal, temp_offset, 0.1)) && (((int)(temp_signal - temp_offset)) > 0));
     profiler_timer_init();
-    while(read_time_us() < 2000000)
+    while(read_time_us() < 1000000)
     {
         temp_signal = simple_adc_get_value(SIMPLE_ADC_GAIN1_5, PIN_TO_ANALOG_INPUT(PIR_AMP_SIGNAL_PIN));
         temp_sum = (temp_sum + (((int)(temp_signal-temp_offset))*((int)(temp_signal-temp_offset))));

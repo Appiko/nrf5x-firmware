@@ -3,7 +3,7 @@ BOARD           := BOARD_SENSE_REV4
 SLNO            := 681592281
 NO_NFC_REQD     := CONFIG_NFCT_PINS_AS_GPIOS
 PINRESET_REQD   := CONFIG_GPIO_AS_PINRESET
-DEBUGGER		:= JLINK
+DEBUGGER		:= BMP
 LOGGER			:= LOG_UART_PRINTF
 
 SD_USED         := blank
@@ -37,6 +37,7 @@ C_SRC += nrf_assert.c
 C_SRC += uart_printf.c
 C_SRC += tinyprintf.c
 C_SRC += hw_testing_app.c
+C_SRC += product_id.c
 
 #Gets the name of the application folder
 APPLN = $(shell basename $(PWD))

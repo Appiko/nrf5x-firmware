@@ -38,7 +38,7 @@
  * @addtogroup group_appln
  * @{
  *
- * @defgroup testing_appln The code for testing of Sense Rev4 board
+ * @defgroup testing_appln Hardware testing application for Sense Rev4 board
  * @brief The main file for hardware testing application which is used to test 
  * functioning of board.
  * @{
@@ -57,7 +57,7 @@
 #include "log.h"
 
 #include "hw_testing_app.h"
-
+#include "product_id.h"
 
 #define NO_OF_TESTS 7
 
@@ -68,24 +68,27 @@ static uint32_t flag_pot = 0;
 static uint32_t flag_rc_output = 0;
 static uint32_t flag_crystal = 0;
 static uint32_t flag_freq_filter = 0;
-int main()
+/**
+ * @brief This is Entry point for this application and this function will
+ * call for every test funtion.
+ */
+
+int main(void)
 {
     hal_gpio_cfg_output(LED_GREEN, !(LEDS_ACTIVE_STATE));
     hal_gpio_cfg_output(LED_RED, !(LEDS_ACTIVE_STATE));
     hfclk_xtal_init_blocking();
     log_init();
+    log_printf("\nHARDWARE TEST\n");
+    log_printf("START\n");
     mcp4012_init(MCP4012T_CS_PIN,MCP4012T_UD_PIN,SPI_SCK_PIN);
     hal_nop_delay_ms(250);
-    log_printf("\n/************************/");   
-    log_printf("\n/****Hardware Testing****/");
-    log_printf("\n/************************/");   
-
     flag_rev_pol_pro = power_test();
     flag_dc_dc     = dc_dc_test();
     flag_led     = led_test();
     flag_crystal     = crystal_test(); 
 
-    hal_nop_delay_ms(18000);
+    hal_nop_delay_ms(10000);
 
     flag_rc_output     = rc_test();
     flag_freq_filter = freq_filter_test();
@@ -95,15 +98,21 @@ int main()
     {
         hal_gpio_pin_clear(LED_RED);
         hal_gpio_pin_set(LED_GREEN);
-        log_printf("\nAll tests successful..!!\n");
+        log_printf("Status : 1\n");
+        log_printf("END\n");
     }
     else
     {
         hal_gpio_pin_clear(LED_GREEN);
         hal_gpio_pin_set(LED_RED);
-        log_printf("\nOne or more tests failed..!!\n");
-        log_printf("\nIf frequency test fails along with POT test, one must check 2 stages of amplifier\n");
+        log_printf("Status : 0\n");
+        log_printf("END\n");
     }
-    while(1);
+    while(1)
+    {
+    }
 }
-
+/**
+ * @}
+ * @}
+ */
