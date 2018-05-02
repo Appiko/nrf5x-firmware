@@ -32,8 +32,10 @@
  *  POSSIBILITY OF SUCH DAMAGE.
  */
 
+#include "nrf.h"
 #include "button_ui.h"
 #include "hal_gpio.h"
+#include "boards.h"
 
 #ifndef BUTTON_ACTIVE_STATE
 #error "The board definition file must specify the GPIO state on button press"
@@ -53,17 +55,24 @@
 
 uint32_t btn_pin;
 void (*handler)(button_ui_steps step, button_ui_action act);
+//This bool is used generate an event of release action for the
+//wake step, when the step count is still at 0, i.e. before press
+bool wake_evt = false, btn_press_start = false;
 
 void GPIOTE_IRQHandler(void)
 {
+    wake_evt = true;
+    handler(BUTTON_UI_STEP_WAKE, BUTTON_UI_ACT_CROSS);
+
     NRF_GPIOTE->EVENTS_PORT = 0;
     (void) NRF_GPIOTE->EVENTS_PORT;
 
-    handler(BUTTON_UI_WAKE);
+    btn_press_start = true;
 }
 
-void button_ui_init(uint32_t button_pin, uint32_t irq_priority,
-        void (*button_ui_handler)(button_ui_steps step))
+void button_ui_init(uint32_t button_pin,
+     uint32_t irq_priority, void (*button_ui_handler)
+     (button_ui_steps step, button_ui_action act))
 {
     hal_gpio_cfg(button_pin, GPIO_PIN_CNF_DIR_Input,
         GPIO_PIN_CNF_INPUT_Connect, GPIO_PULL_RESISTOR,
@@ -81,17 +90,26 @@ void button_ui_init(uint32_t button_pin, uint32_t irq_priority,
     NVIC_EnableIRQ(GPIOTE_IRQn);
 }
 
-bool button_ui_add_tick(uint32_t ui_ticks)
+void button_ui_add_tick(uint32_t ui_ticks)
 {
     static uint32_t ticks = 0, step = 0;
 
-    volatile bool button_state = button_check();
+    if(btn_press_start == true)
+    {
+        ui_ticks = 1;
+        btn_press_start = false;
+    }
 
     if((hal_gpio_pin_read(btn_pin) == BUTTON_RELEASED)
             && (0 == step))
     {
         ticks = 0;
-        return false;
+        if(wake_evt == true)
+        {
+            wake_evt = false;
+            handler(BUTTON_UI_STEP_WAKE, BUTTON_UI_ACT_RELEASE);
+        }
+        return ;
     }
 
     if((hal_gpio_pin_read(btn_pin) == BUTTON_PRESSED)){
@@ -100,19 +118,18 @@ bool button_ui_add_tick(uint32_t ui_ticks)
 
     if(ticks > press_duration[step])
     {
-        rgb_sequence_loop_start(led_seq_to_set[step], RGB_SEQ_HIGHEST_PRIORITY);
+        handler((button_ui_steps) step, BUTTON_UI_ACT_CROSS);
         step++;
     }
 
-    if(button_all_released())
+    if(hal_gpio_pin_read(btn_pin) == BUTTON_RELEASED)
     {
         uint32_t temp_step = step;
+        wake_evt = false;
         step = ticks = 0;
-        rgb_sequence_stop_everything();
-        handler(temp_step);
+        handler((button_ui_steps) (temp_step - 1),
+                BUTTON_UI_ACT_RELEASE);
     }
-
-    return true;
 }
 
 void button_ui_config_wake(bool set_wake_on)
