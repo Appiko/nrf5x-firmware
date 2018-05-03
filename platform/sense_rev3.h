@@ -85,8 +85,8 @@
 /** @anchor sense_rev3_serial
  * @name Serial port definitions for Sense rev3
  * @{*/
-#define RX_PIN_NUMBER  17
-#define TX_PIN_NUMBER  19
+#define RX_PIN_NUMBER  19
+#define TX_PIN_NUMBER  17
 #define CTS_PIN_NUMBER 18
 #define RTS_PIN_NUMBER 20
 #define HWFC false
