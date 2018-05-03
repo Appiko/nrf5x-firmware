@@ -48,10 +48,6 @@
 #include "stdint.h"
 #include "stddef.h"
 
-#ifndef UART_BAUDRATE_BAUDRATE_Pos
-#error "UART peripheral isn't available in this SoC. Use the UARTE peripheral."
-#endif
-
 /** The character that is checked by rx_collect to determine if a line of characters is received */
 #define LINE_END                '\n'
 
@@ -59,23 +55,23 @@
  * Defines to specify the baudrate options for the uart data transfer
  */
 typedef enum {
-    HAL_UART_BAUD_1200 = UART_BAUDRATE_BAUDRATE_Baud1200,    //!< Uart baud rate of 1200
-    HAL_UART_BAUD_2400 = UART_BAUDRATE_BAUDRATE_Baud2400,    //!< Uart baud rate of 2400
-    HAL_UART_BAUD_4800 = UART_BAUDRATE_BAUDRATE_Baud4800,    //!< Uart baud rate of 4800
-    HAL_UART_BAUD_9600 = UART_BAUDRATE_BAUDRATE_Baud9600,    //!< Uart baud rate of 9600
-    HAL_UART_BAUD_14400 = UART_BAUDRATE_BAUDRATE_Baud14400,  //!< Uart baud rate of 14400
-    HAL_UART_BAUD_19200 = UART_BAUDRATE_BAUDRATE_Baud19200,  //!< Uart baud rate of 19200
-    HAL_UART_BAUD_28800 = UART_BAUDRATE_BAUDRATE_Baud28800,  //!< Uart baud rate of 28800
-    HAL_UART_BAUD_38400 = UART_BAUDRATE_BAUDRATE_Baud38400,  //!< Uart baud rate of 38400
-    HAL_UART_BAUD_56000 = UART_BAUDRATE_BAUDRATE_Baud56000,  //!< Uart baud rate of 56000
-    HAL_UART_BAUD_57600 = UART_BAUDRATE_BAUDRATE_Baud57600,  //!< Uart baud rate of 57600
-    HAL_UART_BAUD_76800 = UART_BAUDRATE_BAUDRATE_Baud76800,  //!< Uart baud rate of 76800
-    HAL_UART_BAUD_115200 = UART_BAUDRATE_BAUDRATE_Baud115200,//!< Uart baud rate of 115200
-    HAL_UART_BAUD_230400 = UART_BAUDRATE_BAUDRATE_Baud230400,//!< Uart baud rate of 230400
-    HAL_UART_BAUD_250000 = UART_BAUDRATE_BAUDRATE_Baud250000,//!< Uart baud rate of 250000
-    HAL_UART_BAUD_460800 = UART_BAUDRATE_BAUDRATE_Baud460800,//!< Uart baud rate of 460800
-    HAL_UART_BAUD_921600 = UART_BAUDRATE_BAUDRATE_Baud921600,//!< Uart baud rate of 921600
-    HAL_UART_BAUD_1M = UART_BAUDRATE_BAUDRATE_Baud1M,        //!< Uart baud rate of 1M
+    HAL_UART_BAUD_1200 = UARTE_BAUDRATE_BAUDRATE_Baud1200,    //!< Uart baud rate of 1200
+    HAL_UART_BAUD_2400 = UARTE_BAUDRATE_BAUDRATE_Baud2400,    //!< Uart baud rate of 2400
+    HAL_UART_BAUD_4800 = UARTE_BAUDRATE_BAUDRATE_Baud4800,    //!< Uart baud rate of 4800
+    HAL_UART_BAUD_9600 = UARTE_BAUDRATE_BAUDRATE_Baud9600,    //!< Uart baud rate of 9600
+    HAL_UART_BAUD_14400 = UARTE_BAUDRATE_BAUDRATE_Baud14400,  //!< Uart baud rate of 14400
+    HAL_UART_BAUD_19200 = UARTE_BAUDRATE_BAUDRATE_Baud19200,  //!< Uart baud rate of 19200
+    HAL_UART_BAUD_28800 = UARTE_BAUDRATE_BAUDRATE_Baud28800,  //!< Uart baud rate of 28800
+    HAL_UART_BAUD_38400 = UARTE_BAUDRATE_BAUDRATE_Baud38400,  //!< Uart baud rate of 38400
+    HAL_UART_BAUD_56000 = UARTE_BAUDRATE_BAUDRATE_Baud56000,  //!< Uart baud rate of 56000
+    HAL_UART_BAUD_57600 = UARTE_BAUDRATE_BAUDRATE_Baud57600,  //!< Uart baud rate of 57600
+    HAL_UART_BAUD_76800 = UARTE_BAUDRATE_BAUDRATE_Baud76800,  //!< Uart baud rate of 76800
+    HAL_UART_BAUD_115200 = UARTE_BAUDRATE_BAUDRATE_Baud115200,//!< Uart baud rate of 115200
+    HAL_UART_BAUD_230400 = UARTE_BAUDRATE_BAUDRATE_Baud230400,//!< Uart baud rate of 230400
+    HAL_UART_BAUD_250000 = UARTE_BAUDRATE_BAUDRATE_Baud250000,//!< Uart baud rate of 250000
+    HAL_UART_BAUD_460800 = UARTE_BAUDRATE_BAUDRATE_Baud460800,//!< Uart baud rate of 460800
+    HAL_UART_BAUD_921600 = UARTE_BAUDRATE_BAUDRATE_Baud921600,//!< Uart baud rate of 921600
+    HAL_UART_BAUD_1M = UARTE_BAUDRATE_BAUDRATE_Baud1M,        //!< Uart baud rate of 1M
 } hal_uart_baud_t;
 
 /**
@@ -83,7 +79,7 @@ typedef enum {
  *
  * @param baud The baud rate of operation for the UART module
  * @param handler The handler which is called with a pointer to the data
- *  received on UART reception
+ *  received on UART reception. If NULL, the UART reception is disabled
  */
 void hal_uart_init(hal_uart_baud_t baud, void (*handler) (uint8_t * ptr));
 
