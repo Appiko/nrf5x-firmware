@@ -32,24 +32,28 @@
  *  POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include "sd_evt_handler.h"
 #include "stddef.h"
 #include "stdbool.h"
 #include "nrf_sdm.h"
 #include "app_error.h"
 #include "common_util.h"
 #include "stdint.h"
+
+#include "evt_sd_handler.h"
 #include "nrf_assert.h"
 #include "nrf_nvic.h"
 
-uint32_t ble_evt_buffer[CEIL_DIV(BLE_EVT_LEN_MAX(BLE_GATT_ATT_MTU_DEFAULT)
-                ,sizeof(uint32_t))];
+///The buffer where the ble event data is stored by sd_evt_get
+uint32_t ble_evt_buffer[
+          CEIL_DIV(BLE_EVT_LEN_MAX(BLE_GATT_ATT_MTU_DEFAULT)
+          ,sizeof(uint32_t))];
 
 void (*ble_handler)(ble_evt_t * evt);
 void (*soc_handler)(uint32_t evt);
 
-void sd_evt_handler_init(void (* ble_evt_handler)(ble_evt_t * ble_evt),
-                         void (* soc_evt_handler)(uint32_t soc_evt_id))
+void evt_sd_handler_init
+            (void (* ble_evt_handler)(ble_evt_t * ble_evt),
+            void (* soc_evt_handler)(uint32_t soc_evt_id))
 {
     ASSERT(ble_evt_handler != NULL);
     ASSERT(soc_evt_handler != NULL);
