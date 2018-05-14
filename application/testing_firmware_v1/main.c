@@ -87,9 +87,6 @@ int main(void)
     flag_dc_dc     = dc_dc_test();
     flag_led     = led_test();
     flag_crystal     = crystal_test(); 
-
-    hal_nop_delay_ms(10000);
-
     flag_rc_output     = rc_test();
     flag_freq_filter = freq_filter_test();
     flag_pot     = pot_test();

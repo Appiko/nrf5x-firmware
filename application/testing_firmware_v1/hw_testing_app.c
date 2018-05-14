@@ -185,13 +185,16 @@ uint32_t dc_dc_test(void)
 // LED test 
 uint32_t led_test(void)
 {
-    hal_gpio_pin_set(LED_GREEN);
-    hal_nop_delay_ms(1000);
-    hal_gpio_pin_clear(LED_GREEN);
-    hal_gpio_pin_set(LED_RED);
-    hal_nop_delay_ms(1000);    
-    hal_gpio_pin_clear(LED_RED);
-    log_printf("LED_test : 1\n");
+    for(uint32_t led_cnt; led_cnt < 15; led_cnt ++)
+    {
+        hal_gpio_pin_set(LED_GREEN);
+        hal_nop_delay_ms(500);
+        hal_gpio_pin_clear(LED_GREEN);
+        hal_gpio_pin_set(LED_RED);
+        hal_nop_delay_ms(500);    
+        hal_gpio_pin_clear(LED_RED);
+        log_printf("LED_test : 1\n");
+    }
     return 1;
 }
 
@@ -373,7 +376,7 @@ uint32_t pot_test(void)
     }
     else
     {
-        log_printf("POT test : 0\n");
+        log_printf("POT_test : 0\n");
         return 0;    
     }
 }
