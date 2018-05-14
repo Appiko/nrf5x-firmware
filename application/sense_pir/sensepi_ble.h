@@ -88,6 +88,11 @@ void sensepi_ble_init(void (*ble_sd_evt)(ble_evt_t * evt),
 void sensepi_ble_update_sysinfo(sensepi_sysinfo * sysinfo);
 
 /**
+ * @brief Disconnect the current active connection, if already connected
+ */
+void sensepi_ble_disconn(void);
+
+/**
  * @brief Function for initializing the BLE stack by enabling the
  *  SoftDevice and the BLE event interrupt
  * */
