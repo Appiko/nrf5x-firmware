@@ -144,6 +144,7 @@ static void ble_evt_handler(ble_evt_t * evt)
     }
         break;
     }
+    sensepi_ble_sd_evt(evt);
 }
 
 /**
@@ -161,6 +162,17 @@ void sensepi_ble_init(void (*ble_sd_evt)(ble_evt_t * evt),
 {
     sensepi_ble_sd_evt = ble_sd_evt;
     sensepi_config_update = config_update;
+}
+
+void sensepi_ble_disconn(void)
+{
+    if(h_conn != BLE_CONN_HANDLE_INVALID)
+    {
+        uint32_t err_code;
+        err_code = sd_ble_gap_disconnect(h_conn,
+                BLE_HCI_REMOTE_USER_TERMINATED_CONNECTION);
+        APP_ERROR_CHECK(err_code);
+    }
 }
 
 void sensepi_ble_update_sysinfo(sensepi_sysinfo * sysinfo)
@@ -352,9 +364,8 @@ void sensepi_ble_adv_init(void)
     //Set channel 37, 38 and 39 as advertising channels
     memset(adv_params.channel_mask, 0, 5);
 
-    //TODO change to timeout and also in the advertising
     //Set the advertising to timeout in 180s
-    adv_params.duration = 10000; //BLE_GAP_ADV_TIMEOUT_LIMITED_MAX;
+    adv_params.duration = BLE_GAP_ADV_TIMEOUT_LIMITED_MAX;
 
     //Any device can scan request and connect
     adv_params.filter_policy = BLE_GAP_ADV_FP_ANY;
