@@ -40,6 +40,16 @@
 #include "tinyprintf.h"
 #include "stdbool.h"
 
+#define UART_IRQn       2
+
+#if defined NRF51
+#define UART_PERI   NRF_UART0
+#endif
+#if defined NRF52832 || defined NRF52810
+#define UART_PERI   NRF_UARTE0
+#endif
+
+
 /** Size of the buffer to hold the received characters before @ref LINE_END is received */
 #define BUFFER_SIZE     128
 
@@ -83,36 +93,34 @@ static void rx_collect(uint8_t rx_data)
 #ifdef NRF51
 void UART0_IRQHandler(void)
 #endif
-#if defined NRF52832 || defined NRF52810
+#if defined NRF52832
 void UARTE0_UART0_IRQHandler(void)
+#endif
+#if defined NRF52810
+void UARTE0_IRQHandler(void)
 #endif
 {
     /* Waits for RX data to be received, but
      * no waiting actually since RX causes interrupt. */
-    while (NRF_UARTE0->EVENTS_RXDRDY != 1)
+    while (UART_PERI->EVENTS_RXDRDY != 1)
     {
     }
-    NRF_UARTE0->EVENTS_RXDRDY = 0;
-#if defined NRF52810
+    UART_PERI->EVENTS_RXDRDY = 0;
     rx_collect((uint8_t) (*((uint32_t *)(0x40002518))));
-#else
-    rx_collect((uint8_t) NRF_UARTE0->RXD);
-#endif
 }
 
 void hal_uart_putchar(uint8_t cr)
 {
-    NRF_UARTE0->TASKS_STARTTX = 1;
-#if defined NRF52810
     (*((uint32_t *)(0x4000251C))) = (uint8_t) cr;
-#else
-    NRF_UARTE0->TXD = (uint8_t) cr;
-#endif
-    while (NRF_UARTE0->EVENTS_TXDRDY != 1)
+    UART_PERI->EVENTS_TXDRDY = 0;
+    UART_PERI->TASKS_STARTTX = 1;
+
+    while (UART_PERI->EVENTS_TXDRDY != 1)
     {
     }
-    NRF_UARTE0->EVENTS_TXDRDY = 0;
-    NRF_UARTE0->TASKS_STOPTX = 1;
+
+    UART_PERI->EVENTS_TXDRDY = 0;
+    UART_PERI->TASKS_STOPTX = 1;
 }
 
 /**
@@ -130,40 +138,45 @@ void hal_uart_init(hal_uart_baud_t baud, void (*handler)(uint8_t * ptr))
     /* Configure TX and RX pins from board.h */
     hal_gpio_cfg_output(TX_PIN_NUMBER, 1);
     hal_gpio_cfg_input(RX_PIN_NUMBER, HAL_GPIO_PULL_DISABLED);
-    NRF_UARTE0->PSEL.TXD = TX_PIN_NUMBER;
-    NRF_UARTE0->PSEL.RXD = RX_PIN_NUMBER;
+    (*((uint32_t *)(0x4000250C))) = TX_PIN_NUMBER;
+    (*((uint32_t *)(0x40002514))) = RX_PIN_NUMBER;
 
-    NRF_UARTE0->CONFIG = (UARTE_CONFIG_HWFC_Disabled << UARTE_CONFIG_HWFC_Pos)
-            | (UARTE_CONFIG_PARITY_Excluded << UARTE_CONFIG_PARITY_Pos);
+    ///(UARTE_CONFIG_HWFC_Disabled << UARTE_CONFIG_HWFC_Pos)
+    ///     | (UARTE_CONFIG_PARITY_Excluded << UARTE_CONFIG_PARITY_Pos)
+    UART_PERI->CONFIG = 0;
 
 #if HWFC
     {
         /* Configure CTS and RTS pins if HWFC is true in board.h */
         hal_gpio_cfg_output(RTS_PIN_NUMBER, 1);
         hal_gpio_cfg_input(CTS_PIN_NUMBER, HAL_GPIO_PULL_DISABLED);
-        NRF_UARTE0->PSEL.RTS = RTS_PIN_NUMBER;
-        NRF_UARTE0->PSEL.CTS = CTS_PIN_NUMBER;
-        NRF_UARTE0->CONFIG = (UARTE_CONFIG_HWFC_Enabled << UARTE_CONFIG_HWFC_Pos)
-                | (UARTE_CONFIG_PARITY_Excluded << UARTE_CONFIG_PARITY_Pos);
+        (*((uint32_t *)(0x40002508))) = RTS_PIN_NUMBER;
+        (*((uint32_t *)(0x40002510))) = CTS_PIN_NUMBER;
+        ///(UARTE_CONFIG_HWFC_Enabled << UARTE_CONFIG_HWFC_Pos)
+        ///    | (UARTE_CONFIG_PARITY_Excluded << UARTE_CONFIG_PARITY_Pos)
+        UART_PERI->CONFIG = 1;
     }
 #endif
 
-    NRF_UARTE0->BAUDRATE = (baud << UARTE_BAUDRATE_BAUDRATE_Pos);
-    NRF_UARTE0->ENABLE = (UARTE_ENABLE_ENABLE_Enabled << UARTE_ENABLE_ENABLE_Pos);
+    UART_PERI->BAUDRATE = (baud);
+
+    //Enable UART
+    UART_PERI->ENABLE = (0x04);
+
     init_printf((void *) !(START_TX), printf_callback);
 
     if(handler != NULL)
     {
-        NRF_UARTE0->EVENTS_RXDRDY = 0;
+        UART_PERI->EVENTS_RXDRDY = 0;
 
         rx_handler = handler;
 
         // Enable UART RX interrupt only
-        NRF_UARTE0->INTENSET = (UARTE_INTENSET_RXDRDY_Set << UARTE_INTENSET_RXDRDY_Pos);
+        UART_PERI->INTENSET = (1 << 2);
 
-        NVIC_SetPriority(UARTE0_IRQn, APP_IRQ_PRIORITY_LOW);
-        NVIC_EnableIRQ(UARTE0_IRQn);
+        NVIC_SetPriority(UART_IRQn, APP_IRQ_PRIORITY_LOW);
+        NVIC_EnableIRQ(UART_IRQn);
 
-        NRF_UARTE0->TASKS_STARTRX = 1;
+        UART_PERI->TASKS_STARTRX = 1;
     }
 }
