@@ -55,23 +55,22 @@
  * Defines to specify the baudrate options for the uart data transfer
  */
 typedef enum {
-    HAL_UART_BAUD_1200 = UARTE_BAUDRATE_BAUDRATE_Baud1200,    //!< Uart baud rate of 1200
-    HAL_UART_BAUD_2400 = UARTE_BAUDRATE_BAUDRATE_Baud2400,    //!< Uart baud rate of 2400
-    HAL_UART_BAUD_4800 = UARTE_BAUDRATE_BAUDRATE_Baud4800,    //!< Uart baud rate of 4800
-    HAL_UART_BAUD_9600 = UARTE_BAUDRATE_BAUDRATE_Baud9600,    //!< Uart baud rate of 9600
-    HAL_UART_BAUD_14400 = UARTE_BAUDRATE_BAUDRATE_Baud14400,  //!< Uart baud rate of 14400
-    HAL_UART_BAUD_19200 = UARTE_BAUDRATE_BAUDRATE_Baud19200,  //!< Uart baud rate of 19200
-    HAL_UART_BAUD_28800 = UARTE_BAUDRATE_BAUDRATE_Baud28800,  //!< Uart baud rate of 28800
-    HAL_UART_BAUD_38400 = UARTE_BAUDRATE_BAUDRATE_Baud38400,  //!< Uart baud rate of 38400
-    HAL_UART_BAUD_56000 = UARTE_BAUDRATE_BAUDRATE_Baud56000,  //!< Uart baud rate of 56000
-    HAL_UART_BAUD_57600 = UARTE_BAUDRATE_BAUDRATE_Baud57600,  //!< Uart baud rate of 57600
-    HAL_UART_BAUD_76800 = UARTE_BAUDRATE_BAUDRATE_Baud76800,  //!< Uart baud rate of 76800
-    HAL_UART_BAUD_115200 = UARTE_BAUDRATE_BAUDRATE_Baud115200,//!< Uart baud rate of 115200
-    HAL_UART_BAUD_230400 = UARTE_BAUDRATE_BAUDRATE_Baud230400,//!< Uart baud rate of 230400
-    HAL_UART_BAUD_250000 = UARTE_BAUDRATE_BAUDRATE_Baud250000,//!< Uart baud rate of 250000
-    HAL_UART_BAUD_460800 = UARTE_BAUDRATE_BAUDRATE_Baud460800,//!< Uart baud rate of 460800
-    HAL_UART_BAUD_921600 = UARTE_BAUDRATE_BAUDRATE_Baud921600,//!< Uart baud rate of 921600
-    HAL_UART_BAUD_1M = UARTE_BAUDRATE_BAUDRATE_Baud1M,        //!< Uart baud rate of 1M
+    HAL_UART_BAUD_1200   = (0x0004F000UL), //!< Uart baud rate of 1200
+    HAL_UART_BAUD_2400   = (0x0009D000UL), //!< Uart baud rate of 2400
+    HAL_UART_BAUD_4800   = (0x0013B000UL), //!< Uart baud rate of 4800
+    HAL_UART_BAUD_9600   = (0x00275000UL), //!< Uart baud rate of 9600
+    HAL_UART_BAUD_14400  = (0x003AF000UL), //!< Uart baud rate of 14400
+    HAL_UART_BAUD_19200  = (0x004EA000UL), //!< Uart baud rate of 19200
+    HAL_UART_BAUD_28800  = (0x0075C000UL), //!< Uart baud rate of 28800
+    HAL_UART_BAUD_38400  = (0x009D0000UL), //!< Uart baud rate of 38400
+    HAL_UART_BAUD_57600  = (0x00EB0000UL), //!< Uart baud rate of 57600
+    HAL_UART_BAUD_76800  = (0x013A9000UL), //!< Uart baud rate of 76800
+    HAL_UART_BAUD_115200 = (0x01D60000UL), //!< Uart baud rate of 115200
+    HAL_UART_BAUD_230400 = (0x03B00000UL), //!< Uart baud rate of 230400
+    HAL_UART_BAUD_250000 = (0x04000000UL), //!< Uart baud rate of 250000
+    HAL_UART_BAUD_460800 = (0x07400000UL), //!< Uart baud rate of 460800
+    HAL_UART_BAUD_921600 = (0x0F000000UL), //!< Uart baud rate of 921600
+    HAL_UART_BAUD_1M     = (0x10000000UL), //!< Uart baud rate of 1M
 } hal_uart_baud_t;
 
 /**
