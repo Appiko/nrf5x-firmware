@@ -130,7 +130,10 @@ void hal_uart_putchar(uint8_t cr)
  */
 void printf_callback(void* str_end, char ch)
 {
-    hal_uart_putchar(ch);
+    if((uint32_t) str_end != START_TX)
+    {
+        hal_uart_putchar(ch);
+    }
 }
 
 void hal_uart_init(hal_uart_baud_t baud, void (*handler)(uint8_t * ptr))
