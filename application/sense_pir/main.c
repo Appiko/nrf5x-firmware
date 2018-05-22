@@ -90,6 +90,9 @@
 #define CONN_FAST_TICK_INTERVAL_MS  50
 #define CONN_SLOW_TICK_INTERVAL_MS  1100
 
+#define CONN_TIMEOUT_MS             (10*60*1000)
+#define SENSE_FEEDBACK_TIMEOUT_MS   (15*60*1000)
+
 typedef enum
 {
     SENSING,
@@ -100,6 +103,18 @@ typedef enum
 /*      Global constants in flash         */
 /** Stores the current state of the device */
 sense_states current_state;
+
+/** The latest value from the LED light sensor */
+static uint32_t light_val;
+
+/** To keep track of the amount of time in the connected state */
+static uint32_t conn_count;
+
+/** The amount of time since starting the SENSING state */
+static uint32_t sense_count;
+
+/** Boolen to indicate if PIR sensing feedback is required for user  */
+static bool sense_feedback = false;
 
 /*      Function declarations        */
 
@@ -117,6 +132,15 @@ void pir_handler(int32_t adc_val)
 bool get_batt_low_state(void)
 {
     return false;
+}
+
+void led_set_state(bool red, bool green)
+{
+    hal_gpio_pin_write(LED_RED,
+            (red?LEDS_ACTIVE_STATE:!LEDS_ACTIVE_STATE));
+    led_sense_cfg_input(!green);
+    hal_gpio_pin_write(LED_GREEN,
+                (green?LEDS_ACTIVE_STATE:!LEDS_ACTIVE_STATE));
 }
 
 device_id_t get_device_id(void)
@@ -142,14 +166,14 @@ static void ble_evt_handler(ble_evt_t * evt)
         irq_msg_push(MSG_STATE_CHANGE, (void *) CONNECTED);
         break;
     case BLE_GAP_EVT_DISCONNECTED:
-        irq_msg_push(MSG_STATE_CHANGE, (void *) ADVERTISING);
+        irq_msg_push(MSG_STATE_CHANGE, (void *) SENSING);
         break;
     case BLE_GAP_EVT_ADV_SET_TERMINATED:
         irq_msg_push(MSG_STATE_CHANGE, (void *) SENSING);
         break;
     case BLE_GAP_EVT_CONN_PARAM_UPDATE:
-        log_printf("sup time %d ms, max intvl %d ms, min intvl %d ms, slave lat %d\n",
-            10*evt->evt.gap_evt.params.conn_param_update.conn_params.conn_sup_timeout,
+        log_printf("sup time %d s, max intvl %d ms, min intvl %d ms, slave lat %d\n",
+            evt->evt.gap_evt.params.conn_param_update.conn_params.conn_sup_timeout/100,
             (5*evt->evt.gap_evt.params.conn_param_update.conn_params.max_conn_interval)/4,
             (5*evt->evt.gap_evt.params.conn_param_update.conn_params.min_conn_interval)/4,
             evt->evt.gap_evt.params.conn_param_update.conn_params.slave_latency);
@@ -174,6 +198,29 @@ void next_interval_handler(uint32_t interval)
 {
     log_printf("in %d\n", interval);
     button_ui_add_tick(interval);
+    switch(current_state)
+    {
+    case SENSING:
+    {
+        sense_count += interval;
+        if(sense_count > SENSE_FEEDBACK_TIMEOUT_MS)
+        {
+            sense_feedback = false;
+        }
+    }
+        break;
+    case ADVERTISING:
+        break;
+    case CONNECTED:
+    {
+        conn_count += interval;
+        if(conn_count > CONN_TIMEOUT_MS)
+        {
+            sensepi_ble_disconn();
+        }
+    }
+        break;
+    }
 }
 
 /**
@@ -188,7 +235,6 @@ void state_change_handler(uint32_t new_state)
     {
         log_printf("new state same as current state\n");
         return;
-
     }
     current_state = (sense_states) new_state;
 
@@ -198,11 +244,14 @@ void state_change_handler(uint32_t new_state)
         sd_softdevice_disable();
 
         {
+            sense_count = 0;
+            sense_feedback = true;
+            led_set_state(false, false);
             device_tick_cfg tick_cfg =
             {
                 LFCLK_TICKS_MS(SENSE_FAST_TICK_INTERVAL_MS),
                 LFCLK_TICKS_MS(SENSE_SLOW_TICK_INTERVAL_MS),
-                DEVICE_TICK_SLOW
+                DEVICE_TICK_SAME
             };
             device_tick_init(&tick_cfg);
 
@@ -217,6 +266,10 @@ void state_change_handler(uint32_t new_state)
         break;
     case ADVERTISING:
         {
+            conn_count = 0;
+            light_val = led_sense_get();
+            led_set_state(true, true);
+
             device_tick_cfg tick_cfg =
             {
                 LFCLK_TICKS_MS(ADV_FAST_TICK_INTERVAL_MS),
@@ -249,6 +302,7 @@ void state_change_handler(uint32_t new_state)
         break;
     case CONNECTED:
         {
+            led_set_state(true, false);
             device_tick_cfg tick_cfg =
             {
                 LFCLK_TICKS_MS(CONN_FAST_TICK_INTERVAL_MS),
@@ -262,18 +316,15 @@ void state_change_handler(uint32_t new_state)
 }
 
 /**
- * @brief Handler for all button related activities. H
- * @param step
- * @param act
+ * @brief Handler for all button related events.
+ * @param step The step reached by the button press
+ * @param act The action of the button press i.e. if a step
+ *  is crossed or the button is released
  */
 void button_handler(button_ui_steps step, button_ui_action act)
 {
-    log_printf("step %d, act %d\n", step, act);
-
-
     if(act == BUTTON_UI_ACT_CROSS)
     {
-
         switch(step)
         {
         case BUTTON_UI_STEP_WAKE:
@@ -412,7 +463,8 @@ int main(void)
     button_ui_init(BUTTON_PIN, APP_IRQ_PRIORITY_LOW,
             button_handler);
     led_sense_init(LED_GREEN,
-            PIN_TO_ANALOG_INPUT(LED_LIGHT_SENSE), LEDS_ACTIVE_STATE);
+            PIN_TO_ANALOG_INPUT(LED_LIGHT_SENSE), !LEDS_ACTIVE_STATE);
+    led_sense_cfg_input(true);
 
     {
         irq_msg_callbacks cb =
