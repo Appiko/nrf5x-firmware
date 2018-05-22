@@ -62,7 +62,7 @@
 #define LED_LIGHT_SENSE 30
 /** @} */
 
-/** @anchor sense_rev4_config_enable
+/** @anchor sense_rev3_config_enable
  * @name Definition of configuration mode enable button pin
  * @{
 */
