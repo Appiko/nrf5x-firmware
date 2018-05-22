@@ -38,8 +38,8 @@
  * @{
  *
  * @defgroup board_hackable hackaBLE
- * @brief The hackaBLE board for testing purpose.
- * @link https://github.com/electronut/ElectronutLabs-hackaBLE.git
+ * @brief The hackaBLE board for development and testing.
+ * https://github.com/electronut/ElectronutLabs-hackaBLE
  * @{
  */
 
