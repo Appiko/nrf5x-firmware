@@ -54,7 +54,7 @@
  * @brief Initialize the LED light sensing module
  * @param led_out_pin The pin driving the LED
  * @param led_sense_analog_pin The pin at LED's anode to sense light
- * @param led_off_val The digital value at @ref led_out_pin to
+ * @param led_off_val The digital value at led_out_pin to
  *  switch off the LED.
  */
 void led_sense_init(uint32_t led_out_pin,
