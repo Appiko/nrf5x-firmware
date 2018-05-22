@@ -128,6 +128,7 @@ void SWI1_IRQHandler(void)
  */
 static void ble_evt_handler(ble_evt_t * evt)
 {
+    uint32_t err_code;
     switch(evt->header.evt_id)
     {
     case BLE_GAP_EVT_CONNECTED:
@@ -141,9 +142,17 @@ static void ble_evt_handler(ble_evt_t * evt)
         sensepi_config * config =
                 (sensepi_config *) evt->evt.gatts_evt.params.write.data;
         sensepi_config_update(config);
-    }
         break;
     }
+    case BLE_GATTS_EVT_EXCHANGE_MTU_REQUEST:
+    {
+        uint16_t mtu_val = BLE_GATT_ATT_MTU_DEFAULT;
+        err_code = sd_ble_gatts_exchange_mtu_reply(h_conn, mtu_val);
+        APP_ERROR_CHECK(err_code);
+        break;
+    }
+    }
+
     sensepi_ble_sd_evt(evt);
 }
 
