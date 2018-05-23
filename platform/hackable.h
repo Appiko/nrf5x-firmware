@@ -1,9 +1,10 @@
 /*
- *  sense_rev3.h
+ *  sense_rev4.h
  *
- *  Created on: 29-Jan-2018
+ *  Created on: 20-Apr-2018
  *
  *  Copyright (c) 2018, Appiko
+ *  Author : Tejas Vasekar (https://github.com/tejas-tj)
  *  All rights reserved.
  *
  *  Redistribution and use in source and binary forms, with or without modification,
@@ -36,91 +37,59 @@
  * @addtogroup group_platform
  * @{
  *
- * @defgroup board_sense_rev3 Appiko Sense Revision 3
- * @brief The third revision of the animal detector unit by Appiko
+ * @defgroup board_hackable hackaBLE
+ * @brief The hackaBLE board for development and testing.
+ * https://github.com/electronut/ElectronutLabs-hackaBLE
  * @{
  */
 
-#ifndef PLATFORM_SENSE_REV3_H_
-#define PLATFORM_SENSE_REV3_H_
+#ifndef PLATFORM_HACKABLE_H_
+#define PLATFORM_HACKABLE_H_
 
-/** @anchor sense_rev3_leds
- * @name RGB LED definitions for Sense rev3
- * @note LED_1, LED_2 and LED_3 are defines of the RGB LED
+/** @anchor hackable_leds
+ * @name LED definitions for hackable
+ * @note LED_1, LED_2 and LED_3 are defines of the LED
  *  for compatibility with existing examples
  * @{*/
-#define LED_RED        28
-#define LED_GREEN      29
-#define LED_BLUE       27
+#define LED_RED			19
+#define LED_GREEN		20
+#define LED_BLUE        17
 
-#define LED_1          28
-#define LED_2          29
-#define LED_3          27
+#define LED_1			19
+#define LED_2			20
+#define LED_3           17
 /** The output level at which the LEDs shine */
-#define LEDS_ACTIVE_STATE 1
-/** The light sensing pin with the Green LED */
-#define LED_LIGHT_SENSE 30
+#define LEDS_ACTIVE_STATE	0
 /** @} */
 
-/** @anchor sense_rev3_config_enable
- * @name Definition of configuration mode enable button pin
- * @{
-*/
-#define BUTTON_PIN      26
-/** The logic level at which the Button will set value */
-#define BUTTON_ACTIVE_STATE 0
-/** @} */
-
-/** @anchor sense_rev3_audio_jack
- * @name Definitions of the pin of the audio jack to trigger camera
+/** @anchor hackable_serial
+ * @name Serial port definitions for Hackable
  * @{*/
-#define JACK_DETECT        13
-#define JACK_FOCUS         12
-#define JACK_TRIGGER      11
+#define RX_PIN_NUMBER		25
+#define TX_PIN_NUMBER		26
+#define HWFC			false
+#define RTS_PIN_NUMBER		23
+#define CTS_PIN_NUMBER		24
 /** @} */
 
-/// Battery voltage level sensing pin
-#define BATT_VOLTAGE_SENSE  31
-
-/** @anchor sense_rev3_serial
- * @name Serial port definitions for Sense rev3
- * @{*/
-#define RX_PIN_NUMBER  19
-#define TX_PIN_NUMBER  17
-#define CTS_PIN_NUMBER 18
-#define RTS_PIN_NUMBER 20
-#define HWFC false
-/** @} */
-
-/** @anchor sense_rev3_rc_pir
- * @name Pins for the signal directly from the PIR through a RC filter
- * @{*/
-/** The RC filtered output of the PIR sensor */
-#define PIR_RC_SIGNAL_PIN  4
-/** The DC offset of the PIR sensor output */
-#define PIR_RC_OFFSET_PIN  5
-/** @} */
-
-/** @anchor sense_rev3_amp_pir
- * @name Pins for the amplified and filtered PIR signal
- * @{*/
-/** The amplified and filtered output of the PIR sensor */
-#define PIR_AMP_SIGNAL_PIN  5
-/** The DC offset of the ampified PIR sensor output */
-#define PIR_AMP_OFFSET_PIN  4
+/** @anchor nfc_antenna_connector
+  * @name Pin definations for NFC antenna connectors
+  * @{*/
+#define NFC_1_ANTENNA_CONNECTOR_PIN_NO  9
+#define NFC_2_ANTENNA_CONNECTOR_PIN_NO  10
 /** @} */
 
 ///Bool define if the circuitry is present for the internal DC-DC of nRF52
-#define DC_DC_CIRCUITRY     true
+#define DC_DC_CIRCUITRY		true
 
 ///Bool define if a NFC Antenna circuitry is present
-#define NFC_CIRCUITRY       false
+#define NFC_CIRCUITRY		true
 
 ///Bool define if the 32 kHz crystal is present for the LFCLK
-#define LFCLK_XTAL_PRESENT  true
+#define LFCLK_XTAL_PRESENT	true
 
 ///Bool define if a crystal is present for the HFCLK
-#define HFCLK_XTAL_PRESENT  true
+#define HFCLK_XTAL_PRESENT	true
 
 /** Low frequency clock source used when initializing the SoftDevice */
 #define BOARD_LFCLKSRC_STRUCT  {.source        = NRF_CLOCK_LF_SRC_XTAL,            \
@@ -129,8 +98,7 @@
                                     .accuracy = NRF_CLOCK_LF_ACCURACY_20_PPM}
 
 #define BOARD_LFCLKSRC         NRF_CLOCK_LFCLK_Xtal
-
-#endif /* PLATFORM_SENSE_REV3_H_ */
+#endif /* PLATFORM_HACKABLE_H_ */
 /**
  * @}
  * @}

@@ -1,7 +1,9 @@
+
+
 /*
- *  irq_msg_util.h
+ *  led_sense.c
  *
- *  Created on: 30-Jan-2018
+ *  Created on: 04-May-2018
  *
  *  Copyright (c) 2018, Appiko
  *  All rights reserved.
@@ -32,58 +34,43 @@
  *  POSSIBILITY OF SUCH DAMAGE.
  */
 
-/**
- * @addtogroup group_util
- * @{
- *
- * @defgroup group_irq_msg IRQ to main thread message passer
- * @brief This module is used to pass messages from any higher priority
- *  interrupts to lower priority ones or the main thread so that the higher
- *  priority interrupt can finish soon and off-load non-real time tasks.
- * @{
- */
+#include "led_sense.h"
+#include "nrf.h"
+#include "nrf_assert.h"
+#include "simple_adc.h"
+#include "hal_gpio.h"
 
-#ifndef CODEBASE_UTIL_IRQ_MSG_UTIL_H_
-#define CODEBASE_UTIL_IRQ_MSG_UTIL_H_
+static uint32_t led_pin, sense_pin, off_val;
 
-#include "stdint.h"
+void led_sense_init(uint32_t led_out_pin, uint32_t led_sense_analog_pin,
+        uint32_t led_off_val)
+{
+    ASSERT(led_pin < 32);
+    ASSERT(led_sense_analog_pin < SAADC_CH_PSELP_PSELP_VDD);
 
-typedef enum {
-  MSG_NEXT_INTERVAL,
-  MSG_STATE_CHANGE,
+    led_pin = led_out_pin;
+    off_val = led_off_val;
+    sense_pin = led_sense_analog_pin;
+}
 
-  MSG_MAX_SIZE = ((2^32)-1)    //To make the enum 32 bit long
-}irq_msg_types;
+void led_sense_cfg_input(bool is_input_on)
+{
+    if(is_input_on)
+    {
+        hal_gpio_cfg(led_pin,
+            GPIO_PIN_CNF_DIR_Input,
+            GPIO_PIN_CNF_INPUT_Disconnect,
+            GPIO_PIN_CNF_PULL_Disabled,
+            GPIO_PIN_CNF_DRIVE_S0S1,
+            GPIO_PIN_CNF_SENSE_Disabled);
+    }
+    else
+    {
+        hal_gpio_cfg_output(led_pin, off_val);
+    }
+}
 
-typedef struct {
-  void (*next_interval_cb)(uint32_t duration);
-  void (*state_change_cb)(uint32_t next_state);
-}irq_msg_callbacks;
-
-/**
- * Initialize the messenger ring buffer system
- * @param cb_ptr The array of function pointers that gets called for
- * different message types.
- */
-void irq_msg_init(irq_msg_callbacks * cb_ptr);
-
-/**
- * This function is to be called in the higher priority interrupt and
- *  is used to push the required message.
- * @param pushed_msg The type of message to be pushed
- * @param more_data The data of the message to be pushed
- */
-void irq_msg_push(irq_msg_types pushed_msg, void * more_data);
-
-/**
- *  This function is to be called in the while(1) loop in main()
- *  so that all the pushed messages can be processed.
- */
-void irq_msg_process(void);
-
-#endif /* CODEBASE_UTIL_IRQ_MSG_UTIL_H_ */
-
-/**
- * @}
- * @}
- */
+uint32_t led_sense_get(void)
+{
+    return simple_adc_get_value(SIMPLE_ADC_GAIN1_6, sense_pin);
+}

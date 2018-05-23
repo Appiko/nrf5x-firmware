@@ -1,7 +1,7 @@
 /*
- *  gpio_level_handler.h
+ *  led_sense.h
  *
- *  Created on: 30-Mar-2018
+ *  Created on: 04-May-2018
  *
  *  Copyright (c) 2018, Appiko
  *  All rights reserved.
@@ -36,46 +36,45 @@
  * @addtogroup group_peripheral_modules
  * @{
  *
- * @defgroup group_gpio_level GPIO level handler
- * @brief Driver to use GPIOTE port event to detect whenever any of multiple GPIO pins
- *  are at a specified polarity. This module can be used to wake the nRF SoC from the
- *  SYSTEM OFF mode and consumes about 1 uA of current.
+ * @defgroup group_led_light_sense Light sensing with a LED
+ *
+ * @brief Light sensing based on sensing the charge accumulated
+ *  due to the incident light on a reverse biased LED.
  *
  * @{
  */
 
-#ifndef CODEBASE_PERIPHERAL_MODULES_GPIO_LEVEL_HANDLER_H_
-#define CODEBASE_PERIPHERAL_MODULES_GPIO_LEVEL_HANDLER_H_
+#ifndef CODEBASE_PERIPHERAL_MODULES_LED_SENSE_H_
+#define CODEBASE_PERIPHERAL_MODULES_LED_SENSE_H_
 
 #include "stdint.h"
 #include "stdbool.h"
 
 /**
- * @brief The configuration parameter for each of the GPIO pin
- *  that is being configured in the GPIO level handler module
+ * @brief Initialize the LED light sensing module
+ * @param led_out_pin The pin driving the LED
+ * @param led_sense_analog_pin The pin at LED's anode to sense light
+ * @param led_off_val The digital value at led_out_pin to
+ *  switch off the LED.
  */
-typedef struct
-{
-    void (*handler)(bool is_still_on);  ///The handler that's called when
-                             ///this pin is at the specified level
-    uint32_t pin_num;       ///The pin number
-    uint32_t pull_cfg;      ///The pull up/down or disabled config as per
-                             ///the nrf bitfields header file
-    bool trigger_on_high;   ///A boolean to indicate if the module should
-                             ///trigger on high or low level for this pin
-}gpio_level_cfg;
+void led_sense_init(uint32_t led_out_pin,
+        uint32_t led_sense_analog_pin, uint32_t led_off_val);
 
 /**
- * @brief Initializes the GPIO level handler module by taking in the the
- *  configurations of all the GPIOs that need to be monitored
- * @param cfg A pointer to an array of GPIO configurations which need to be
- *  configured to generate port events and call the appropriate handler
- * @param cfg_num The size of the array
- * @param irq_priority The priority of the GPIOTE port event IRQ handler
+ * @brief Get the light value by measuring the voltage a LED's anode
+ * @return The ADC output of the light sensing by the LED. The value
+ *  x 3.6/4096 is the actual voltage.
  */
-void gpio_level_init(gpio_level_cfg * cfg, uint32_t cfg_num, uint32_t irq_priority);
+uint32_t led_sense_get(void);
 
-#endif /* CODEBASE_PERIPHERAL_MODULES_GPIO_LEVEL_HANDLER_H_ */
+/**
+ * @brief Configure the LED as either an light sensing input device
+ *  or as an light emitting actuation device
+ * @param is_input_on Is input if true and output if false
+ */
+void led_sense_cfg_input(bool is_input_on);
+
+#endif /* CODEBASE_PERIPHERAL_MODULES_LED_SENSE_H_ */
 
 /**
  * @}

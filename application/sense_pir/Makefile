@@ -4,7 +4,7 @@ SLNO            := 682073614
 BLE_REQD        := BLE_STACK_SUPPORT_REQD
 PINRESET_REQD   := CONFIG_GPIO_AS_PINRESET
 DEBUGGER        := JLINK
-LOGGER			:= LOG_SEGGER_RTT
+LOGGER			:= LOG_UART_PRINTF
 
 SD_USED         := s112
 
@@ -34,12 +34,22 @@ C_SRC_DIRS += $(CODEBASE_DIR)/util
 C_SRC = main.c
 C_SRC += nrf_assert.c app_error.c
 C_SRC += hal_clocks.c ms_timer.c
-#C_SRC += uart_printf.c tinyprintf.c
+ifeq ($(LOGGER), LOG_SEGGER_RTT)
 C_SRC += SEGGER_RTT.c SEGGER_RTT_printf.c
+else ifeq ($(LOGGER), LOG_UART_DMA_PRINTF)
+C_SRC += uart_printf.c tinyprintf.c
+else ifeq ($(LOGGER), LOG_UART_PRINTF)
+C_SRC += hal_uart.c tinyprintf.c
+else
+endif
 C_SRC += hal_wdt.c
 C_SRC += nrf_util.c irq_msg_util.c
 C_SRC += pir_sense.c device_tick.c
-C_SRC += gpio_level_handler.c
+C_SRC += evt_sd_handler.c
+C_SRC += button_ui.c
+C_SRC += led_sense.c
+C_SRC += simple_adc.c
+C_SRC += sensepi_ble.c
 
 #Gets the name of the application folder
 APPLN = $(shell basename $(PWD))

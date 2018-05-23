@@ -52,6 +52,8 @@
   #include "sense_rev3.h"
 #elif defined(BOARD_SENSE_REV4)
   #include "sense_rev4.h"
+#elif defined(BOARD_HACKABLE)
+  #include "hackable.h"
 #elif defined(BOARD_CUSTOM)
   #include "custom_board.h"
 #else

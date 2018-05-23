@@ -91,11 +91,11 @@ void GPIOTE_IRQHandler(void)
         uint32_t pin_num = cfg_buffer[i].pin_num;
         if(NRF_GPIO->LATCH & (1 << pin_num))
         {
-            uint32_t pin_val = NRF_GPIO->IN & (1 << pin_num);
-            uint32_t level_checked = cfg_buffer[i].trigger_on_high << pin_num;
+            uint32_t pin_val = hal_gpio_pin_read(pin_num);
+            uint32_t level_checked = cfg_buffer[i].trigger_on_high;
 
-            cfg_buffer[i].handler((pin_val == level_checked));
             NRF_GPIO->LATCH = (1 << pin_num);
+            cfg_buffer[i].handler((pin_val == level_checked));
         }
     }
 }

@@ -62,8 +62,9 @@
  */
 typedef enum
 {
-    DEVICE_TICK_SLOW,//!< Slow mode
-    DEVICE_TICK_FAST //!< Fast mode
+    DEVICE_TICK_SLOW, //!< Slow mode
+    DEVICE_TICK_FAST, //!< Fast mode
+    DEVICE_TICK_SAME  //!< Same as previous mode
 }device_tick_mode;
 
 /**
@@ -71,8 +72,8 @@ typedef enum
  *  Device Tick module.
  */
 typedef struct {
-  uint32_t fast_mode_ticks;   /// The number of ticks for the fast mode
-  uint32_t slow_mode_ticks;   /// The number of ticks for the slow mode
+  uint32_t fast_mode_ticks;   /// The number of LFCLK ticks for the fast mode
+  uint32_t slow_mode_ticks;   /// The number of LFCLK ticks for the slow mode
   device_tick_mode mode;      /// The initial mode in which the module is in
 }device_tick_cfg;
 
@@ -83,7 +84,7 @@ typedef struct {
  * @param cfg The initial mode as well as the fast and slow interval
  *  in number of LFCLK ticks.
  */
-void device_tick_init(device_tick_cfg cfg);
+void device_tick_init(device_tick_cfg *cfg);
 
 /**
  * @brief Switches from the fast to slow mode or vice versa.
