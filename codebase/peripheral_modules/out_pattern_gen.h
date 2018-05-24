@@ -36,10 +36,10 @@
  * @addtogroup group_peripheral_modules
  * @{
  *
- * @defgroup group_button_ui Button UI event generator
+ * @defgroup group_out_pattern_gen Output pattern generator
  *
- * @brief Driver for the generating all the button related UI events
- *  for the application.
+ * @brief Output pattern generator module is used for generating a one time digital
+ *  signal pattern on a number of pins.
  *
  * @{
  */
@@ -50,20 +50,46 @@
 #include "stdint.h"
 #include "stdbool.h"
 
+/** The maximum number of transitions that can occur in the generated pattern */
 #define OUT_GEN_MAX_TRANSITIONS 32
 
+/** The maximum number of output pins for which pattern can be generated */
 #define OUT_GEN_MAX_NUM_OUT     4
 
+/**
+ * @brief Initialize the output pattern generator module with the information of
+ *  the pins on which the pattern is generated
+ * @param num_out The number of pins with pattern generation
+ * @param out_pins Pointer to array with the pin numbers
+ * @note This function assumes the pins would already be initialized as output
+ */
 void out_gen_init(uint32_t num_out, uint32_t * out_pins);
 
+/**
+ * @brief Start the generation of the pattern with the information provided
+ *  in this function on the pins initialized.
+ * @param num_transitions The number of transitions in this pattern
+ * @param transitions_durations Pointer to array containing the durations in
+ *  terms of LFCLK frequency ticks for the transitions
+ * @param next_out A pointer to a two dimensional array containing the next
+ *  digital output value for the various transitions across the initialized pins.
+ */
 void out_gen_start(uint32_t num_transitions, uint32_t * transitions_durations,
         bool next_out[][OUT_GEN_MAX_TRANSITIONS]);
 
+/**
+ * @brief Stop the output pattern generation and sets the output pins
+ *  as specified in the arguments
+ * @param out_vals Pointer to an array of digital values for the pins to be
+ *  set to on stopping the pattern generation.
+ */
 void out_gen_stop(bool * out_vals);
 
+/**
+ * @brief To know if the output pattern generator module is on
+ * @return True if pattern generation is on and false if off
+ */
 bool out_gen_is_on(void);
-
-#endif /* CODEBASE_PERIPHERAL_MODULES_OUT_PATTERN_GEN_H_ */
 
 /**
  * @}
