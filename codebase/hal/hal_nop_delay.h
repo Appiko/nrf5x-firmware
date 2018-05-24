@@ -92,7 +92,7 @@ __ASM volatile (
     " NOP\n"
     " NOP\n"
     " NOP\n"
-#if defined NRF52 || defined NRF52810
+#if defined NRF52 || defined NRF52832 || defined NRF52810
     " NOP\n"
     " NOP\n"
     " NOP\n"
