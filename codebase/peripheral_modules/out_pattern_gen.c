@@ -38,6 +38,7 @@
 #include "nrf_assert.h"
 #include "ms_timer.h"
 #include "hal_gpio.h"
+#include "string.h"
 
 /** Specify the MS_TIMER used for the output pattern generator module */
 #define OUT_GEN_MS_TIMER_USED           MS_TIMER1
@@ -46,8 +47,8 @@ static struct
 {
     uint32_t num_out;
     bool is_on;
-    uint8_t out_pins[MAX_NUM_OUT];
-    bool next_out[MAX_NUM_OUT][OUT_GEN_MAX_TRANSITIONS];
+    uint8_t out_pins[OUT_GEN_MAX_NUM_OUT];
+    bool next_out[OUT_GEN_MAX_NUM_OUT][OUT_GEN_MAX_TRANSITIONS];
     uint32_t num_transitions;
     uint32_t current_transition;
     uint32_t transitions_durations[OUT_GEN_MAX_TRANSITIONS];
@@ -57,9 +58,9 @@ static void timer_handler(void)
 {
     context.current_transition++;
 
-    for(uint32_t i = 0; i< num_out; i++)
+    for(uint32_t i = 0; i< context.num_out; i++)
     {
-        hal_gpio_pin_write(out_pins[i], next_out[i][context.current_transition]);
+        hal_gpio_pin_write(context.out_pins[i], context.next_out[i][context.current_transition]);
     }
 
     if(context.current_transition == context.num_transitions)
@@ -69,13 +70,13 @@ static void timer_handler(void)
     else
     {
         ms_timer_start(OUT_GEN_MS_TIMER_USED, MS_SINGLE_CALL,
-                transitions_durations[context.current_transition],timer_handler);
+                context.transitions_durations[context.current_transition],timer_handler);
     }
 }
 
-void out_gen_init(uint32_t num_out, uint8_t * out_pins)
+void out_gen_init(uint32_t num_out, uint32_t * out_pins)
 {
-    ASSERT((num_out <= MAX_NUM_OUT) && (num_out > 0));
+    ASSERT((num_out <= OUT_GEN_MAX_NUM_OUT) && (num_out > 0));
 
     context.num_out = num_out;
     for(uint32_t i = 0; i < num_out; i++)
@@ -92,22 +93,19 @@ void out_gen_start(uint32_t num_transitions, uint32_t * transitions_durations,
     ASSERT((num_transitions < OUT_GEN_MAX_TRANSITIONS) && (num_transitions > 0));
 
     context.num_transitions = num_transitions;
-    memcpy(transitions_durations, context.transitions_durations,
+    memcpy(context.transitions_durations, transitions_durations,
             num_transitions*sizeof(uint32_t) );
 
     for(uint32_t i = 0; i < context.num_out; i++)
     {
-        memcpy((*next_out), (*context.next_out),
-                    (1+num_transitions)*sizeof(bool) );
+        memcpy( (*(context.next_out + i)), (*(next_out+i)),
+                (1+num_transitions)*sizeof(bool));
+        hal_gpio_pin_write(context.out_pins[i],
+                next_out[i][context.current_transition]);
     }
 
     context.is_on = true;
     context.current_transition = 0;
-
-    for(uint32_t i = 0; i< num_out; i++)
-    {
-        hal_gpio_pin_write(out_pins[i], next_out[i][context.current_transition]);
-    }
 
     ms_timer_start(OUT_GEN_MS_TIMER_USED, MS_SINGLE_CALL,
             transitions_durations[context.current_transition],timer_handler);
@@ -116,9 +114,9 @@ void out_gen_start(uint32_t num_transitions, uint32_t * transitions_durations,
 void out_gen_stop(bool * out_vals)
 {
     ms_timer_stop(OUT_GEN_MS_TIMER_USED);
-    for(uint32_t i = 0; i< num_out; i++)
+    for(uint32_t i = 0; i< context.num_out; i++)
     {
-        hal_gpio_pin_write(out_pins[i], out_vals[i]);
+        hal_gpio_pin_write(context.out_pins[i], out_vals[i]);
     }
     context.is_on = false;
 }
