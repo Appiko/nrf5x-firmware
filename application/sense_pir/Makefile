@@ -3,7 +3,7 @@ BOARD           := BOARD_SENSE_REV4
 SLNO            := 682073614
 BLE_REQD        := BLE_STACK_SUPPORT_REQD
 PINRESET_REQD   := CONFIG_GPIO_AS_PINRESET
-DEBUGGER        := JLINK
+DEBUGGER        := BMP
 LOGGER			:= LOG_UART_PRINTF
 
 SD_USED         := s112
@@ -50,6 +50,10 @@ C_SRC += button_ui.c
 C_SRC += led_sense.c
 C_SRC += simple_adc.c
 C_SRC += sensepi_ble.c
+C_SRC += data_process.c
+C_SRC += out_pattern_gen.c
+C_SRC += 
+
 
 #Gets the name of the application folder
 APPLN = $(shell basename $(PWD))

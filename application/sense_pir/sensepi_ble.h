@@ -36,6 +36,8 @@
 #define APPLICATION_SENSE_PIR_SENSEPI_BLE_H_
 
 #include "stdint.h"
+#include "stdbool.h"
+#include "ble.h"
 
 typedef enum
 {
@@ -78,7 +80,7 @@ typedef struct
  * @param ble_sd_evt Handler to send the BLE events to the application
  * @param config_update Handler to send SensePi config to the application
  */
-void sensepi_ble_init(void (*ble_sd_evt)(ble_evt_t * evt),
+void sensepi_ble_init(void (*ble_sd_evt)(ble_evt_t * evt), 
         void (* config_update)(sensepi_config * cfg));
 
 /**

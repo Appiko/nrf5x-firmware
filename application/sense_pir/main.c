@@ -69,7 +69,10 @@
 #include "ble.h"
 #include "nrf_sdm.h"
 #include "app_error.h"
+#include "out_pattern_gen.h"
+
 #include "sensepi_ble.h"
+#include "data_process.h"
 
 /* ----- Defines ----- */
 /** The WDT bites if not fed every 301 sec (5 min) */
@@ -132,6 +135,8 @@ static uint32_t sense_count;
 
 /** Boolen to indicate if PIR sensing feedback is required for user  */
 static bool sense_feedback = false;
+
+
 
 /* ----- Function declarations ----- */
 
@@ -214,6 +219,7 @@ static void get_sensepi_config(sensepi_config *config)
         config->oper_time, config->mode, config->sensitivity,
         config->inter_trig_time, config->pre_focus, config->cam_comp,
         config->cam_model);
+   data_process_local_config_copy(config);
 }
 
 /**
@@ -229,6 +235,7 @@ void next_interval_handler(uint32_t interval)
     {
     case SENSING:
     {
+        log_printf("Nxt Evt Hndlr : SENSING\n");
         sense_count += interval;
         if(sense_count > SENSE_FEEDBACK_TIMEOUT_MS)
         {
@@ -271,6 +278,7 @@ void state_change_handler(uint32_t new_state)
         sd_softdevice_disable();
 
         {
+            log_printf("State Change : SENSING\n");
             sense_count = 0;
             sense_feedback = true;
             led_set_state(false, false);
@@ -497,6 +505,7 @@ int main(void)
     led_sense_init(LED_GREEN,
             PIN_TO_ANALOG_INPUT(LED_LIGHT_SENSE), !LEDS_ACTIVE_STATE);
     led_sense_cfg_input(true);
+    
 
     {
         irq_msg_callbacks cb =
@@ -517,6 +526,7 @@ int main(void)
         device_tick_process();
         irq_msg_process();
         slumber();
+        data_process_pattern_gen();
     }
 }
 
