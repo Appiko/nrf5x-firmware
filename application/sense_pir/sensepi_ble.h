@@ -67,7 +67,8 @@ typedef struct
 {
     sensepi_oper_time_t oper_time;
     uint32_t mode;
-    uint8_t sensitivity;
+    uint8_t threshold;
+    uint8_t amplification;
     uint16_t inter_trig_time;
     bool pre_focus;
     uint8_t cam_comp;

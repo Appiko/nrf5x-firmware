@@ -90,6 +90,7 @@ typedef struct {
   uint32_t sense_interval_ms;   /// The sampling interval in ms
   uint32_t pir_signal_analog_in;   ///The analog input number of PIR signal
   uint32_t pir_offset_analog_in;   ///The analog input number of PIR offset
+  uint32_t amplification;       ///The amplification factor.
   uint32_t threshold;           ///The (+/-) threshold to be crossed
                                 ///for the handler to be called
   uint32_t irq_priority;        ///The interrupt priority for calling the handler

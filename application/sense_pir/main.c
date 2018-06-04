@@ -73,6 +73,7 @@
 
 #include "sensepi_ble.h"
 #include "data_process.h"
+#include "sensepi_pir.h"
 
 /* ----- Defines ----- */
 /** The WDT bites if not fed every 301 sec (5 min) */
@@ -146,11 +147,6 @@ void wdt_prior_reset_callback(void){
     log_printf("WDT reset\n");
 }
 
-void pir_handler(int32_t adc_val)
-{
-    log_printf("Sensed %d\n", adc_val);
-}
-
 bool get_batt_low_state(void)
 {
     return false;
@@ -215,11 +211,11 @@ static void ble_evt_handler(ble_evt_t * evt)
  */
 static void get_sensepi_config(sensepi_config *config)
 {
-    log_printf("dn %x, mode %x, sens %x, tt %x, focus %x, cam %x %x\n",
-        config->oper_time, config->mode, config->sensitivity,
-        config->inter_trig_time, config->pre_focus, config->cam_comp,
-        config->cam_model);
-   data_process_local_config_copy(config);
+    log_printf("dn %x, mode %x, amp %x, thr %x, tt %x, focus %x, cam %x %x\n",
+            config->oper_time, config->mode, config->amplification,
+            config->threshold, config->inter_trig_time, config->pre_focus,
+            config->cam_comp, config->cam_model);
+   sensepi_pir_update(config);
 }
 
 /**
@@ -241,6 +237,7 @@ void next_interval_handler(uint32_t interval)
         {
             sense_feedback = false;
         }
+        sensepi_pir_add_tick(interval);
     }
         break;
     case ADVERTISING:
@@ -289,14 +286,16 @@ void state_change_handler(uint32_t new_state)
                 DEVICE_TICK_SAME
             };
             device_tick_init(&tick_cfg);
-
-//            pir_sense_cfg pir_cfg =
-//            {
-//                PIR_SENSE_INTERVAL_MS, PIN_TO_ANALOG_INPUT(PIR_AMP_SIGNAL_PIN),
-//                PIN_TO_ANALOG_INPUT(PIR_AMP_OFFSET_PIN),
-//                PIR_SENSE_THRESHOLD, APP_IRQ_PRIORITY_HIGH, pir_handler
-//            };
-//            pir_sense_start(&pir_cfg);
+#if 0
+            pir_sense_cfg pir_cfg =
+            {
+                PIR_SENSE_INTERVAL_MS, PIN_TO_ANALOG_INPUT(PIR_AMP_SIGNAL_PIN),
+                PIN_TO_ANALOG_INPUT(PIR_AMP_OFFSET_PIN),
+                PIR_SENSE_THRESHOLD, APP_IRQ_PRIORITY_HIGH, pir_handler
+            };
+            pir_sense_start(&pir_cfg);
+            sensepi_pir_start();
+#endif
         }
         break;
     case ADVERTISING:
@@ -526,7 +525,7 @@ int main(void)
         device_tick_process();
         irq_msg_process();
         slumber();
-        data_process_pattern_gen();
+//        data_process_pattern_gen();
     }
 }
 
