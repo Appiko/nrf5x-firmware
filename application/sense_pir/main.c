@@ -137,6 +137,27 @@ static uint32_t sense_count;
 /** Boolen to indicate if PIR sensing feedback is required for user  */
 static bool sense_feedback = false;
 
+static sensepi_config sensepi_ble_default_config = 
+{
+    .oper_time = DAY_ONLY,
+    .pre_focus = 0,
+    .mode = 0,
+    .inter_trig_time = 1000,
+    .threshold = 200,
+    .amplification = 0,
+    .cam_comp = 0,
+    .cam_model = 0,
+};
+
+static sensepi_pir_config_t sensepi_pir_default_config = 
+{
+    .config_sensepi = &sensepi_ble_default_config,
+    .led_sense_analog_in_pin = PIN_TO_ANALOG_INPUT(LED_LIGHT_SENSE),
+    .led_sense_off_val = !(LEDS_ACTIVE_STATE),
+    .led_sense_out_pin = LED_2,
+    .pir_sense_offset_input = PIN_TO_ANALOG_INPUT(PIR_AMP_OFFSET_PIN),
+    .pir_sense_signal_input = PIN_TO_ANALOG_INPUT(PIR_AMP_SIGNAL_PIN),
+};
 
 
 /* ----- Function declarations ----- */
@@ -294,8 +315,9 @@ void state_change_handler(uint32_t new_state)
                 PIR_SENSE_THRESHOLD, APP_IRQ_PRIORITY_HIGH, pir_handler
             };
             pir_sense_start(&pir_cfg);
-            sensepi_pir_start();
 #endif
+            device_tick_switch_mode(DEVICE_TICK_SLOW);
+//            sensepi_pir_start();
         }
         break;
     case ADVERTISING:
@@ -511,11 +533,11 @@ int main(void)
             { next_interval_handler, state_change_handler };
         irq_msg_init(&cb);
     }
+    sensepi_pir_init(&sensepi_pir_default_config);
 
     current_state = ADVERTISING; //So that a state change happens
     irq_msg_push(MSG_STATE_CHANGE, (void *)SENSING);
     sensepi_ble_init(ble_evt_handler, get_sensepi_config);
-
     while (true)
     {
 #if ENABLE_WDT == 1
@@ -525,7 +547,6 @@ int main(void)
         device_tick_process();
         irq_msg_process();
         slumber();
-//        data_process_pattern_gen();
     }
 }
 

@@ -117,7 +117,6 @@ void data_process_pattern_gen()
             { 
                 memcpy(&out_pattern[row][0], &local_out_pattern[row][0], (SINGLE_SHOT_TRANSITIONS+1));
             }
-            hal_nop_delay_ms(1000);
             break;
         }
         
@@ -126,8 +125,8 @@ void data_process_pattern_gen()
             log_printf("MULTISHOT MODE\n");
 //            multishot(input1, input2);
 
-            input1 = 50;
-            input2 = 4;
+//            input1 = 50;
+//            input2 = 4;
             number_of_transition = SINGLE_SHOT_TRANSITIONS * input2;
             uint32_t repeat_delay_array[] = {FOCUS_TRIGGER_TIME_DIFF, SINGLE_SHOT_DURATION, FOCUS_TRIGGER_TIME_DIFF, LFCLK_TICKS_MS(input1)};
             delay_array[0] = SINGLE_SHOT_DURATION;
@@ -150,14 +149,13 @@ void data_process_pattern_gen()
                 }
                 log_printf("\n\n");
             }
-            hal_nop_delay_ms(3000);
 
             break;
         }
         case MODE_BULB :
         {
 //            bulb(input1, input2)
-#if 1
+#if 0
             input1 = 1500;
             input2 = 10;
 #endif
@@ -168,14 +166,13 @@ void data_process_pattern_gen()
                 {1, 0, 0, 0, 1},
                 {1, 1, 0, 1, 1}};
             memcpy(out_pattern, local_out_pattern, sizeof(local_out_pattern));
-            hal_nop_delay_ms(5000);
             break;
         }
         case MODE_VIDEO :
         {
 //            video(input1, input2)
-            input1 = 60;
-            input2 = 10;
+//            input1 = 60;
+//            input2 = 10;
 
             number_of_transition = VIDEO_TRANSITION;
             uint32_t local_delay_array[VIDEO_TRANSITION + 1] = {SINGLE_SHOT_DURATION, FOCUS_TRIGGER_TIME_DIFF, LFCLK_TICKS_977(input1*1000), FOCUS_TRIGGER_TIME_DIFF, SINGLE_SHOT_DURATION, FOCUS_TRIGGER_TIME_DIFF, VIDEO_STOP_PULSE, FOCUS_TRIGGER_TIME_DIFF, SINGLE_SHOT_DURATION};
@@ -186,7 +183,6 @@ void data_process_pattern_gen()
             { 
                 memcpy(&out_pattern[row][0], &local_out_pattern[row][0], (VIDEO_TRANSITION+1));
             }
-//            hal_nop_delay_ms(70000);
             break;
         }
         case MODE_FOCUS :
@@ -203,7 +199,6 @@ void data_process_pattern_gen()
             { 
                 memcpy(&out_pattern[row][0], &local_out_pattern[row][0], 3);
             }
-    //        hal_nop_delay_ms(7000);
             break;
         }
   
