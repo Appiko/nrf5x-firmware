@@ -33,22 +33,17 @@
 
 /*lint ++flb "Enter library region */
 
-#ifdef NRF51422
-#include "nrf51422_peripherals.h"
+#if defined(NRF51)
+    #include "nrf51_peripherals.h"
+#elif defined(NRF52810_XXAA)
+    #include "nrf52810_peripherals.h"
+#elif defined(NRF52832_XXAA) || defined(NRF52832_XXAB)
+    #include "nrf52832_peripherals.h"
+#elif defined(NRF52840_XXAA)
+    #include "nrf52840_peripherals.h"
+#else
+    #error "Device must be defined. See nrf.h."
 #endif
-
-#ifdef NRF51802
-#include "nrf51802_peripherals.h"
-#endif
-
-#ifdef NRF51822
-#include "nrf51822_peripherals.h"
-#endif
-
-#ifdef NRF52832
-#include "nrf52832_peripherals.h"
-#endif
-
 
 /*lint --flb "Leave library region" */
 
