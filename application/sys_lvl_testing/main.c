@@ -69,6 +69,8 @@
 #include "app_error.h"
 #include "sd_evt_handler.h"
 
+#include "stdint.h"
+
 /**Defines*/
 /**Pin number for trigger pin*/
 #define TRIGGER 2   
@@ -118,7 +120,7 @@ void extract_product_id(void);
  * @retval toggle_flag If this flag is 1 then both trigger and focus pulse is
  *  detected. And if this flag is 0 then not.
  */
-uint32_t if_pulse(uint32_t pin_trigger, uint32_t pin_focus)
+uint32_t if_pulse(uint32_t pin_trigger, uint32_t pin_focus);
 
 /**
  * @brief Function to start scanning.
@@ -184,14 +186,16 @@ int main(void)
 {
     lfclk_init(LFCLK_SRC_Xtal);
     hal_uart_init(HAL_UART_BAUD_1M, recv_data);
+    log_printf("\n SYSTEM LEVEL TEST\n");
+//    scan_start();
     while (true)
     {
         if(conn_terminate_flag == 1)
         {
-            if(err_code == 0)
             uint32_t err_code;
             err_code = sd_softdevice_disable();
             APP_ERROR_CHECK(err_code);
+            if(err_code == 0)
             {
                 log_printf("BLE_Status : 1\n");
             }
@@ -237,7 +241,7 @@ static void ble_evt_handler(ble_evt_t * evt)
         case BLE_GAP_EVT_ADV_REPORT:
         {
                 my_adv_report = (evt->evt.gap_evt.params.adv_report);
-
+//                log_printf("SCANNED\n");
                 uint32_t mac_flag = 1;
                 for(uint32_t addr_byte = BLE_GAP_ADDR_LEN; addr_byte > 0; addr_byte--)
                 {
@@ -249,7 +253,7 @@ static void ble_evt_handler(ble_evt_t * evt)
                 if(mac_flag)
                 {
                     my_peer_addr = evt->evt.gap_evt.params.adv_report.peer_addr;
-                    if(my_adv_report.type.scan_response == 1 && my_adv_report.rssi >= (-55))
+                    if(my_adv_report.type.scan_response == 1 && my_adv_report.rssi >= (-65))
                     {
                         uint32_t err_code;
                         err_code = sd_ble_gap_connect(&my_peer_addr, &sys_lvl_app_scan_params, &sys_lvl_conn_params, BLE_CONN_CFG_TAG_DEFAULT);
@@ -291,14 +295,17 @@ static void soc_evt_handler(uint32_t evt_id)
 ///BLE Stack Initialization
 void ble_stack_init(void)
 {
+//    log_printf("BLE_INIT\n");
     uint32_t err_code;
     nrf_clock_lf_cfg_t cfg = BOARD_LFCLKSRC_STRUCT;
+//    log_printf("NRF_CLOCKS_ASSIGNMENT\n");
     err_code = sd_softdevice_enable(&cfg, app_error_fault_handler);
+//    log_printf("Err : %d", err_code);
     APP_ERROR_CHECK(err_code);
     uint32_t app_ram_start = 0x200032C8;
-    //log_printf("Init %x", app_ram_start);
+//    log_printf("Init %x", app_ram_start);
     err_code = sd_ble_enable(&app_ram_start);
-    //log_printf(" RAM needed %x\n", app_ram_start);
+//    log_printf(" RAM needed %x\n", app_ram_start);
     APP_ERROR_CHECK(err_code);
 
     sd_evt_handler_init(ble_evt_handler, soc_evt_handler);
@@ -308,9 +315,11 @@ void ble_stack_init(void)
 ///Scan Start
 void scan_start()
 {
+//    log_printf("SCAN_START\n");
     ble_stack_init();
     uint32_t err_code;
     err_code = sd_ble_gap_scan_start(&sys_lvl_app_scan_params, &sys_lvl_app_scan_buffer);
+    log_printf("Err : %d", err_code);
     APP_ERROR_CHECK(err_code);
     if (!err_code)
     {
@@ -349,6 +358,20 @@ void conn_to_sense_pi()
         {
             sense_pi_mac_addr[(addr_byte - 1)] = mac_addr_value[(addr_byte - 1)];
         }        
+#if 0
+            log_printf("MAC :\n");
+            for(uint32_t addr_byte = BLE_GAP_ADDR_LEN; addr_byte > 0; addr_byte--)
+            {
+                log_printf("%02x ",my_adv_report.peer_addr.addr[(addr_byte - 1)]);
+                if(addr_byte > 1)
+                {
+                    log_printf(":");
+                }
+            }
+            log_printf("\n");
+            log_printf("RSSI : %d\n", (int32_t)my_adv_report.rssi);
+            log_printf("SCAN_RESPONSE : %d\n", my_adv_report.type.scan_response);
+#endif
     }
     uint32_t err_code;
     err_code = sd_ble_gap_scan_start( NULL , &sys_lvl_app_scan_buffer);
@@ -390,7 +413,8 @@ uint32_t if_pulse(uint32_t pin_trigger, uint32_t pin_focus)
     {
         if(current_state_trigger != prev_state_trigger)
         {
-            current_state_trigger = prev_state_trigger;
+            log_printf("Trigger Toggle\n");
+            prev_state_trigger = current_state_trigger;
             trigger_cnt++;
         }
         else
@@ -399,7 +423,8 @@ uint32_t if_pulse(uint32_t pin_trigger, uint32_t pin_focus)
         }
         if(current_state_focus != prev_state_focus)
         {
-            current_state_focus = prev_state_focus;
+            log_printf("Focus Toggle\n");
+            prev_state_focus = current_state_focus;
             focus_cnt++;
         }
         else
@@ -430,6 +455,7 @@ uint32_t if_pulse(uint32_t pin_trigger, uint32_t pin_focus)
 ///Check PIR
 void check_pir(void)
 {
+    log_printf("CHECK_PIR\n");
     hal_gpio_cfg_input(TRIGGER, HAL_GPIO_PULL_DISABLED);
     hal_gpio_cfg_input(FOCUS, HAL_GPIO_PULL_DISABLED);
     pir_flag = if_pulse(TRIGGER, FOCUS);
@@ -448,11 +474,12 @@ void check_pir(void)
 ///IRQ Handler for UART
 void recv_data(uint8_t * buffer)
 {
+    log_printf("UART DATA SCANNED : %s\n", (char*)buffer);
     char temp_str[] = {};
-    char * start_pir = "PIR\0";
+    char * start_pir = "PIR\n";
     char * start_scan = "SCN\n";
     memcpy(temp_str, buffer, sizeof(start_pir));
-    if(memcmp(temp_str, start_pir,(sizeof(start_pir))) == 0)
+    if(memcmp(temp_str, start_pir,(sizeof(start_pir)) - 1) == 0)
     {
         check_pir();
     }

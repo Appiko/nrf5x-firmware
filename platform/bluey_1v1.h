@@ -69,8 +69,8 @@
  * @name Serial port definitions for Bluey 1.1
  * @{*/
 #define RX_PIN_NUMBER  8
-#define TX_PIN_NUMBER  29
-#define CTS_PIN_NUMBER 30
+#define TX_PIN_NUMBER  6
+#define CTS_PIN_NUMBER 7
 #define RTS_PIN_NUMBER 5
 /** Bool to say if the hardware flow control is required */
 #define HWFC           false
@@ -133,7 +133,7 @@
 #define BOARD_LFCLKSRC_STRUCT  {.source        = NRF_CLOCK_LF_SRC_XTAL,            \
                                     .rc_ctiv       = 0,                                \
                                     .rc_temp_ctiv  = 0,                                \
-                                    .xtal_accuracy = NRF_CLOCK_LF_XTAL_ACCURACY_20_PPM}
+                                    .accuracy = NRF_CLOCK_LF_ACCURACY_20_PPM}
 
 #define BOARD_LFCLKSRC         NRF_CLOCK_LFCLK_Xtal
 
