@@ -8,7 +8,7 @@
   <version>1</version>
   <description>nRF52810 reference description for radio MCU with ARM 32-bit Cortex-M4 Microcontroller </description>
   <licenseText>
-Copyright (c) 2010 - 2017, Nordic Semiconductor ASA All rights reserved.\n
+Copyright (c) 2010 - 2018, Nordic Semiconductor ASA All rights reserved.\n
 \n
 Redistribution and use in source and binary forms, with or without\n
 modification, are permitted provided that the following conditions are met:\n
@@ -7128,6 +7128,24 @@ POSSIBILITY OF SUCH DAMAGE.\n
               <description>Shortcut between LASTRX event and STARTTX task</description>
               <lsb>10</lsb>
               <msb>10</msb>
+              <enumeratedValues>
+                <enumeratedValue>
+                  <name>Disabled</name>
+                  <description>Disable shortcut</description>
+                  <value>0</value>
+                </enumeratedValue>
+                <enumeratedValue>
+                  <name>Enabled</name>
+                  <description>Enable shortcut</description>
+                  <value>1</value>
+                </enumeratedValue>
+              </enumeratedValues>
+            </field>
+            <field>
+              <name>LASTRX_SUSPEND</name>
+              <description>Shortcut between LASTRX event and SUSPEND task</description>
+              <lsb>11</lsb>
+              <msb>11</msb>
               <enumeratedValues>
                 <enumeratedValue>
                   <name>Disabled</name>
@@ -20820,7 +20838,7 @@ POSSIBILITY OF SUCH DAMAGE.\n
     </peripheral>
     <peripheral>
       <name>PWM0</name>
-      <description>Pulse Width Modulation Unit</description>
+      <description>Pulse width modulation unit</description>
       <groupName>PWM</groupName>
       <baseAddress>0x4001C000</baseAddress>
       <size>32</size>
@@ -20852,7 +20870,7 @@ POSSIBILITY OF SUCH DAMAGE.\n
           <dim>2</dim>
           <dimIncrement>4</dimIncrement>
           <name>TASKS_SEQSTART[%s]</name>
-          <description>Description collection[0]:  Loads the first PWM value on all enabled channels from sequence 0, and starts playing that sequence at the rate defined in SEQ[0]REFRESH and/or DECODER.MODE. Causes PWM generation to start it was not running.</description>
+          <description>Description collection[0]:  Loads the first PWM value on all enabled channels from sequence 0, and starts playing that sequence at the rate defined in SEQ[0]REFRESH and/or DECODER.MODE. Causes PWM generation to start if not running.</description>
           <addressOffset>0x008</addressOffset>
           <access>write-only</access>
           <fields>
@@ -20865,7 +20883,7 @@ POSSIBILITY OF SUCH DAMAGE.\n
         </register>
         <register>
           <name>TASKS_NEXTSTEP</name>
-          <description>Steps by one value in the current sequence on all enabled channels if DECODER.MODE=NextStep. Does not cause PWM generation to start it was not running.</description>
+          <description>Steps by one value in the current sequence on all enabled channels if DECODER.MODE=NextStep. Does not cause PWM generation to start if not running.</description>
           <addressOffset>0x010</addressOffset>
           <access>write-only</access>
           <fields>
@@ -21607,18 +21625,18 @@ POSSIBILITY OF SUCH DAMAGE.\n
           <fields>
             <field>
               <name>UPDOWN</name>
-              <description>Selects up or up and down as wave counter mode</description>
+              <description>Selects up mode or up-and-down mode for the counter</description>
               <lsb>0</lsb>
               <msb>0</msb>
               <enumeratedValues>
                 <enumeratedValue>
                   <name>Up</name>
-                  <description>Up counter - edge aligned PWM duty-cycle</description>
+                  <description>Up counter, edge-aligned PWM duty cycle</description>
                   <value>0</value>
                 </enumeratedValue>
                 <enumeratedValue>
                   <name>UpAndDown</name>
-                  <description>Up and down counter - center aligned PWM duty cycle</description>
+                  <description>Up and down counter, center-aligned PWM duty cycle</description>
                   <value>1</value>
                 </enumeratedValue>
               </enumeratedValues>
@@ -21634,7 +21652,7 @@ POSSIBILITY OF SUCH DAMAGE.\n
           <fields>
             <field>
               <name>COUNTERTOP</name>
-              <description>Value up to which the pulse generator counter counts. This register is ignored when DECODER.MODE=WaveForm and only values from RAM will be used.</description>
+              <description>Value up to which the pulse generator counter counts. This register is ignored when DECODER.MODE=WaveForm and only values from RAM are used.</description>
               <lsb>0</lsb>
               <msb>14</msb>
             </field>
@@ -21649,7 +21667,7 @@ POSSIBILITY OF SUCH DAMAGE.\n
           <fields>
             <field>
               <name>PRESCALER</name>
-              <description>Pre-scaler of PWM_CLK</description>
+              <description>Prescaler of PWM_CLK</description>
               <lsb>0</lsb>
               <msb>2</msb>
               <enumeratedValues>
@@ -21754,14 +21772,14 @@ POSSIBILITY OF SUCH DAMAGE.\n
         </register>
         <register>
           <name>LOOP</name>
-          <description>Amount of playback of a loop</description>
+          <description>Number of playbacks of a loop</description>
           <addressOffset>0x514</addressOffset>
           <access>read-write</access>
           <resetValue>0x00000000</resetValue>
           <fields>
             <field>
               <name>CNT</name>
-              <description>Amount of playback of pattern cycles</description>
+              <description>Number of playbacks of pattern cycles</description>
               <lsb>0</lsb>
               <msb>15</msb>
               <enumeratedValues>
@@ -21783,14 +21801,14 @@ POSSIBILITY OF SUCH DAMAGE.\n
           <addressOffset>0x520</addressOffset>
           <register>
             <name>PTR</name>
-            <description>Description cluster[0]:  Beginning address in Data RAM of this sequence</description>
+            <description>Description cluster[0]:  Beginning address in RAM of this sequence</description>
             <addressOffset>0x000</addressOffset>
             <access>read-write</access>
             <resetValue>0x00000000</resetValue>
             <fields>
               <field>
                 <name>PTR</name>
-                <description>Beginning address in Data RAM of this sequence</description>
+                <description>Beginning address in RAM of this sequence</description>
                 <lsb>0</lsb>
                 <msb>31</msb>
               </field>
@@ -21798,14 +21816,14 @@ POSSIBILITY OF SUCH DAMAGE.\n
           </register>
           <register>
             <name>CNT</name>
-            <description>Description cluster[0]:  Amount of values (duty cycles) in this sequence</description>
+            <description>Description cluster[0]:  Number of values (duty cycles) in this sequence</description>
             <addressOffset>0x004</addressOffset>
             <access>read-write</access>
             <resetValue>0x00000000</resetValue>
             <fields>
               <field>
                 <name>CNT</name>
-                <description>Amount of values (duty cycles) in this sequence</description>
+                <description>Number of values (duty cycles) in this sequence</description>
                 <lsb>0</lsb>
                 <msb>14</msb>
                 <enumeratedValues>
@@ -21820,14 +21838,14 @@ POSSIBILITY OF SUCH DAMAGE.\n
           </register>
           <register>
             <name>REFRESH</name>
-            <description>Description cluster[0]:  Amount of additional PWM periods between samples loaded into compare register</description>
+            <description>Description cluster[0]:  Number of additional PWM periods between samples loaded into compare register</description>
             <addressOffset>0x008</addressOffset>
             <access>read-write</access>
             <resetValue>0x00000001</resetValue>
             <fields>
               <field>
                 <name>CNT</name>
-                <description>Amount of additional PWM periods between samples loaded into compare register (load every REFRESH.CNT+1 PWM periods)</description>
+                <description>Number of additional PWM periods between samples loaded into compare register (load every REFRESH.CNT+1 PWM periods)</description>
                 <lsb>0</lsb>
                 <msb>23</msb>
                 <enumeratedValues>
