@@ -319,11 +319,10 @@ void scan_start()
     ble_stack_init();
     uint32_t err_code;
     err_code = sd_ble_gap_scan_start(&sys_lvl_app_scan_params, &sys_lvl_app_scan_buffer);
-    log_printf("Err : %d", err_code);
     APP_ERROR_CHECK(err_code);
     if (!err_code)
     {
-        log_printf("\nSTART\n");
+        log_printf("START\n");
     }
 }
 
@@ -413,7 +412,6 @@ uint32_t if_pulse(uint32_t pin_trigger, uint32_t pin_focus)
     {
         if(current_state_trigger != prev_state_trigger)
         {
-            log_printf("Trigger Toggle\n");
             prev_state_trigger = current_state_trigger;
             trigger_cnt++;
         }
@@ -423,7 +421,6 @@ uint32_t if_pulse(uint32_t pin_trigger, uint32_t pin_focus)
         }
         if(current_state_focus != prev_state_focus)
         {
-            log_printf("Focus Toggle\n");
             prev_state_focus = current_state_focus;
             focus_cnt++;
         }
@@ -455,7 +452,6 @@ uint32_t if_pulse(uint32_t pin_trigger, uint32_t pin_focus)
 ///Check PIR
 void check_pir(void)
 {
-    log_printf("CHECK_PIR\n");
     hal_gpio_cfg_input(TRIGGER, HAL_GPIO_PULL_DISABLED);
     hal_gpio_cfg_input(FOCUS, HAL_GPIO_PULL_DISABLED);
     pir_flag = if_pulse(TRIGGER, FOCUS);
@@ -474,7 +470,6 @@ void check_pir(void)
 ///IRQ Handler for UART
 void recv_data(uint8_t * buffer)
 {
-    log_printf("UART DATA SCANNED : %s\n", (char*)buffer);
     char temp_str[] = {};
     char * start_pir = "PIR\n";
     char * start_scan = "SCN\n";
