@@ -35,14 +35,20 @@
 
 #include "sensepi_ble.h"
 
+#define PIR_DATA_PROCESS_MODE false
+
+#define TIMER_DATA_PROCESS_MODE true
+
 #ifdef __cplusplus
 extern "C" {
 #endif
-
+    
 /**
  * @brief Function which is to be called to generate and send output pattern
+ * @param data_process_mode boolean value to select from which configuration
+ * mode has to be selected
  */
-void data_process_pattern_gen();
+void data_process_pattern_gen(bool data_process_mode);
 /**
  * @brief Function to store configuration received from mobile app.
  * @param config Configuration for which local copy has to be created.

@@ -39,13 +39,6 @@
 #include "stdbool.h"
 #include "ble.h"
 
-typedef enum
-{
-    DAY_ONLY,
-    NIGHT_ONLY,
-    DAY_AND_NIGHT
-}sensepi_oper_time_t;
-
 typedef struct
 {
     uint8_t prod_code[2];
@@ -63,16 +56,40 @@ typedef struct
     bool is_battery_low;
 }__attribute__ ((packed)) sensepi_sysinfo ;
 
+typedef enum
+{
+    PIR_ONLY,
+    TIMER_ONLY,
+    PIR_AND_TIMER,
+}trigger_conf_t;
+
 typedef struct
 {
-    sensepi_oper_time_t oper_time;
+    uint8_t day_or_night: 1;
+    uint8_t threshold: 7;
+}__attribute__ ((packed)) oper_time_t;
+
+typedef struct
+{
+    oper_time_t oper_time;
     uint32_t mode;
     uint8_t threshold;
     uint8_t amplification;
-    uint16_t inter_trig_time;
-    bool pre_focus;
-    uint8_t cam_comp;
-    uint8_t cam_model;
+    uint16_t intr_trig_timer; 
+}__attribute__ ((packed)) pir_conf_t;
+
+typedef struct
+{
+    uint16_t timer_interval;
+    oper_time_t oper_time;
+    uint32_t mode;
+}__attribute__ ((packed)) timer_conf_t;
+
+typedef struct
+{
+    trigger_conf_t trig_conf;
+    pir_conf_t * pir_conf;
+    timer_conf_t * timer_conf;
 }__attribute__ ((packed)) sensepi_config ;
 
 /**

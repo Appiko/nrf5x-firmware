@@ -137,16 +137,28 @@ static uint32_t sense_count;
 /** Boolen to indicate if PIR sensing feedback is required for user  */
 static bool sense_feedback = false;
 
-static sensepi_config sensepi_ble_default_config = 
+static pir_conf_t default_pir_conf = 
 {
-    .oper_time = DAY_ONLY,
-    .pre_focus = 0,
-    .mode = 0,
-    .inter_trig_time = 1000,
-    .threshold = 200,
+    .oper_time.day_or_night = 1,
+    .oper_time.threshold = 0b0000000,
     .amplification = 0,
-    .cam_comp = 0,
-    .cam_model = 0,
+    .threshold = 200,
+    .mode = 0,
+    .intr_trig_timer = 1000,  
+};
+
+static timer_conf_t default_timer_conf =
+{
+    .oper_time.day_or_night = 1,
+    .oper_time.threshold = 0b0000000,
+    .timer_interval = 10000,
+    .mode = 0,
+};
+
+static sensepi_config sensepi_ble_default_config = {
+    .pir_conf = &default_pir_conf,
+    .timer_conf = &default_timer_conf,
+    .trig_conf = PIR_ONLY,
 };
 
 static sensepi_pir_config_t sensepi_pir_default_config = 
@@ -232,11 +244,13 @@ static void ble_evt_handler(ble_evt_t * evt)
  */
 static void get_sensepi_config(sensepi_config *config)
 {
+#if 0 
     log_printf("dn %x, mode %x, amp %x, thr %x, tt %x, focus %x, cam %x %x\n",
             config->oper_time, config->mode, config->amplification,
             config->threshold, config->inter_trig_time, config->pre_focus,
             config->cam_comp, config->cam_model);
-   sensepi_pir_update(config);
+#endif
+    sensepi_pir_update(config);
 }
 
 /**

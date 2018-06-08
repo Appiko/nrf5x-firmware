@@ -68,6 +68,8 @@
 
 #define FOCUS_TRANSITIONS 2
 
+
+
 static bool one_click_pattern[NUM_PIN_OUT][SINGLE_SHOT_TRANSITIONS + 1] = {{0,0,0,1},
     {1,0,1,1,}};
 
@@ -87,13 +89,22 @@ void data_process_local_config_copy(sensepi_config *local_config)
 }
 
 /**To Generate pattern which is to be sent over pins.*/
-void data_process_pattern_gen()
+void data_process_pattern_gen(bool data_process_mode)
 {
+    uint32_t config_mode;
+    if(data_process_mode == PIR_DATA_PROCESS_MODE)
+    {
+        config_mode = config->pir_conf->mode;
+    }
+    else
+    {
+        config_mode = config->timer_conf->mode;
+    }
     hal_gpio_cfg_output(JACK_FOCUS_PIN, 1);
     hal_gpio_cfg_output(JACK_TRIGGER_PIN, 1);
-    uint32_t mode = (config->mode & MODE_MSK) >> (POS_OF_MODE * SIZE_OF_BYTE);
-    uint32_t input1 = (config->mode & INPUT1_MSK) >> (POS_OF_INPUT1 * SIZE_OF_BYTE);
-    uint32_t input2 = (config->mode & INPUT2_MSK) >> (POS_OF_INPUT2 * SIZE_OF_BYTE);
+    uint32_t mode = (config_mode & MODE_MSK) >> (POS_OF_MODE * SIZE_OF_BYTE);
+    uint32_t input1 = (config_mode & INPUT1_MSK) >> (POS_OF_INPUT1 * SIZE_OF_BYTE);
+    uint32_t input2 = (config_mode & INPUT2_MSK) >> (POS_OF_INPUT2 * SIZE_OF_BYTE);
     uint32_t delay_array[OUT_GEN_MAX_TRANSITIONS] = {};
     bool out_pattern[OUT_GEN_MAX_NUM_OUT][OUT_GEN_MAX_TRANSITIONS] = {};
     uint32_t number_of_transition = 0;
