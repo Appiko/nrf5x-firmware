@@ -53,18 +53,17 @@
 #include "stdint.h"
 #include "stdbool.h"
 
-#define DAY_LIGHT_THRESHOLD 15
-#define NIGHT_LIGHT_THRESHOLD 2000
+
 #define LED_WAIT_TIME_MS 301
 #define PIR_SENSE_INTERVAL_MS 50
 #define PIR_SENSE_THRESHOLD 600
 #define PIR_THRESHOLD_MULTIPLY_FACTOR 8
+#define LIGHT_THRESHOLD_MULTIPLY_FACTOR 32
 
 static sensepi_pir_config_t *config;
 static bool led_sense_flag = 0;
 static bool pir_sense_flag = 1;
 static pir_sense_cfg config_pir;
-static bool inter_trig_time_flag = 1;
 static uint32_t intr_trig_time_in = 0;
 static bool led_sense_init_done_flag = 1;//CHANGE THIS TO ) WHHILE IMPLEMENTING NON_BLOCKING
 static uint32_t led_wait_time_count = 0; 
@@ -109,7 +108,7 @@ void sensepi_pir_led_sense_conf(sensepi_pir_config_t * led_conf)
     led_sense_cfg_input(1);
     led_wait_time_count = 0;
     led_sense_init_done_flag = 1; //CHANGE THIS TO 0 WHHILE IMPLEMENTING NON_BLOCKING
-    hal_nop_delay_ms(301);
+    hal_nop_delay_ms(LED_WAIT_TIME_MS);
 }
 
 void sensepi_pir_init(sensepi_pir_config_t * config_sensepi_pir)
@@ -208,9 +207,31 @@ void sensepi_pir_stop()
 {
     pir_sense_stop();
     pir_substate = PIR_DISABLED;
-    inter_trig_time_flag = 0;
     intr_trig_time_count = 0;
     pir_sense_flag = 0;
+}
+
+bool sensepi_pir_light_check(oper_time_t oper_time_temp)
+{
+    static uint8_t light_sense_config = 1;
+    static uint32_t light_threshold = 0;
+    static bool light_check_flag = 0;
+    light_sense_config = oper_time_temp.day_or_night;
+    light_threshold = (uint32_t)((oper_time_temp.threshold) * LIGHT_THRESHOLD_MULTIPLY_FACTOR);
+    if(light_sense_config == 1 && led_sense_get() > light_threshold)
+    {
+        light_check_flag = 1;
+    }
+    else if(light_sense_config == 0 && led_sense_get() < light_threshold)
+    {
+        light_check_flag = 1;
+    }
+    else
+    {
+        light_check_flag = 0;
+    }
+    return light_check_flag;
+
 }
 
 void sensepi_pir_add_tick(uint32_t interval)
@@ -224,6 +245,12 @@ void sensepi_pir_add_tick(uint32_t interval)
             {
                 case PIR_DETECTING:
                 {
+                    led_sense_flag = sensepi_pir_light_check(config->config_sensepi->pir_conf->oper_time);
+                    if(led_sense_flag == 0)
+                    {
+                        device_tick_switch_mode(DEVICE_TICK_SLOW);
+                        pir_substate = PIR_DISABLED;
+                    }
                     break;
                 }
 
@@ -234,31 +261,18 @@ void sensepi_pir_add_tick(uint32_t interval)
                 }
                 case PIR_DISABLED :
                 {
-                    intr_trig_time_count += interval;
-                    if(intr_trig_time_count >= intr_trig_time_in)
-                    {
-                        inter_trig_time_flag = 1;
-                    }
-                    
-                    if((config->config_sensepi->oper_time == DAY_ONLY &&
-                            (led_sense_get()) > DAY_LIGHT_THRESHOLD) || 
-                        (config->config_sensepi->oper_time == NIGHT_ONLY &&
-                            (led_sense_get()) < NIGHT_LIGHT_THRESHOLD) || 
-                        (config->config_sensepi->oper_time == DAY_AND_NIGHT))
-                    {
-                        led_sense_flag = 1;
-                    }
-                    else
-                    {
-                        led_sense_flag = 0;
-                    }
+                    led_sense_flag = sensepi_pir_light_check(config->config_sensepi->pir_conf->oper_time);
                     if(led_sense_flag == 0)
                     {
                         device_tick_switch_mode(DEVICE_TICK_SLOW);
                     }
-                    if(inter_trig_time_flag == 1 && led_sense_flag == 1)
+                    if(led_sense_flag == 1)
                     {
-                        pir_substate = PIR_ENABLED;
+                        intr_trig_time_count += interval;
+                        if(intr_trig_time_count >= intr_trig_time_in)
+                        {
+                            pir_substate = PIR_ENABLED;
+                        }
                     }
                     break;
                 }
@@ -277,7 +291,13 @@ void sensepi_pir_add_tick(uint32_t interval)
         case TIMER_ONLY:
         {
             timer_interval_count += interval;
-            if(timer_interval_count >= timer_interval_in)
+            led_sense_flag = sensepi_pir_light_check(config->config_sensepi->timer_conf->oper_time);
+            if(led_sense_flag == 0)
+            {
+                device_tick_switch_mode(DEVICE_TICK_SLOW);
+            }
+            
+            if(timer_interval_count >= timer_interval_in && led_sense_flag == 1)
             {
                 data_process_pattern_gen(TIMER_DATA_PROCESS_MODE);
             }
@@ -289,6 +309,12 @@ void sensepi_pir_add_tick(uint32_t interval)
             {
                 case PIR_DETECTING:
                 {
+                    led_sense_flag = sensepi_pir_light_check(config->config_sensepi->pir_conf->oper_time);
+                    if(led_sense_flag == 0)
+                    {
+                        device_tick_switch_mode(DEVICE_TICK_SLOW);
+                        pir_substate = PIR_DISABLED;
+                    }
                     break;
                 }
 
@@ -299,30 +325,18 @@ void sensepi_pir_add_tick(uint32_t interval)
                 }
                 case PIR_DISABLED :
                 {
-                    intr_trig_time_count += interval;
-                    if(intr_trig_time_count >= intr_trig_time_in)
-                    {
-                        inter_trig_time_flag = 1;
-                    }
-                    if((config->config_sensepi->oper_time == DAY_ONLY &&
-                            (led_sense_get()) > DAY_LIGHT_THRESHOLD) || 
-                        (config->config_sensepi->oper_time == NIGHT_ONLY &&
-                            (led_sense_get()) < NIGHT_LIGHT_THRESHOLD) || 
-                        (config->config_sensepi->oper_time == DAY_AND_NIGHT))
-                    {
-                        led_sense_flag = 1;
-                    }
-                    else
-                    {
-                        led_sense_flag = 0;
-                    }
+                    led_sense_flag = sensepi_pir_light_check(config->config_sensepi->pir_conf->oper_time);
                     if(led_sense_flag == 0)
                     {
                         device_tick_switch_mode(DEVICE_TICK_SLOW);
                     }
-                    if(inter_trig_time_flag == 1 && led_sense_flag == 1)
+                    if(led_sense_flag == 1)
                     {
-                        pir_substate = PIR_ENABLED;
+                        intr_trig_time_count += interval;
+                        if(intr_trig_time_count >= intr_trig_time_in)
+                        {
+                            pir_substate = PIR_ENABLED;
+                        }
                     }
                     break;
                 }
@@ -337,7 +351,12 @@ void sensepi_pir_add_tick(uint32_t interval)
                 }
             }
             timer_interval_count += interval;
-            if(timer_interval_count >= timer_interval_in)
+            led_sense_flag = sensepi_pir_light_check(config->config_sensepi->timer_conf->oper_time);
+            if(led_sense_flag == 0)
+            {
+                device_tick_switch_mode(DEVICE_TICK_SLOW);
+            }          
+            if(timer_interval_count >= timer_interval_in && led_sense_flag == 1)
             {
                 data_process_pattern_gen(TIMER_DATA_PROCESS_MODE);
             }

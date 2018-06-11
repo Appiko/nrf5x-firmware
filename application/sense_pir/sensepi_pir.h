@@ -90,7 +90,22 @@ void sensepi_pir_update(sensepi_config * update_config);
  */
 void sensepi_pir_led_sense_conf(sensepi_pir_config_t * led_conf);
 
+/**
+ * @brief Function to decide what to decide at current tick
+ * @param intervel Duration since last tick in ms
+ */
 void sensepi_pir_add_tick(uint32_t intervel);
+
+/**
+ * @brief Function to check light conditions and comapre light conditions with 
+ * configuration provided by user.
+ * @param oper_time_temp Local copy of oper_time to select light condition
+ * configuration
+ * @return if light conditions satisfies the conditions provided by config
+ * return 1, else retunr 0.
+ */
+bool sensepi_pir_light_check(oper_time_t oper_time_temp)
+
 
 #ifdef __cplusplus
 }
