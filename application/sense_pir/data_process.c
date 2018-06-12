@@ -54,15 +54,15 @@
 
 #define NUM_PIN_OUT 2
 
-#define FOCUS_TRIGGER_TIME_DIFF LFCLK_TICKS_MS(50)
+#define FOCUS_TRIGGER_TIME_DIFF LFCLK_TICKS_977(50)
 
 #define SINGLE_SHOT_TRANSITIONS 4
 
-#define SINGLE_SHOT_DURATION LFCLK_TICKS_MS(250)
+#define SINGLE_SHOT_DURATION LFCLK_TICKS_977(250)
 
 #define VIDEO_TRANSITION 8
 
-#define VIDEO_STOP_PULSE LFCLK_TICKS_MS(995)
+#define VIDEO_STOP_PULSE LFCLK_TICKS_977(995)
 
 #define VIDEO_EXTENTION_TRANSITION 7
 
@@ -79,19 +79,109 @@ static bool one_click_pattern[NUM_PIN_OUT][SINGLE_SHOT_TRANSITIONS + 1] = {{0,0,
 #define MODE_VIDEO          0x03
 #define MODE_FOCUS          0x04
 
-uint32_t out_pin_array[] = {JACK_FOCUS_PIN, JACK_TRIGGER_PIN};
-
 static sensepi_config *config;
 
-void data_process_local_config_copy(sensepi_config *local_config)
+static uint32_t delay_array[OUT_GEN_MAX_TRANSITIONS] = {};
+static bool out_pattern[OUT_GEN_MAX_NUM_OUT][OUT_GEN_MAX_TRANSITIONS] = {};
+static uint32_t number_of_transition = 0;
+static uint32_t config_mode;
+static uint32_t *pin_outs;
+
+void single_shot_mode();
+void multi_shot_mode(uint32_t input1, uint32_t input2);
+void bulb_mode(uint32_t input1, uint32_t input2);
+void video_mode(uint32_t input1, uint32_t input2);
+void focus_mode();
+
+void data_process_config(sensepi_config *local_config, uint32_t *out_pin_array )
 {
     config = local_config;
+    out_gen_init(NUM_PIN_OUT, out_pin_array);
+    memcpy(pin_outs, out_pin_array, sizeof(out_pin_array));
 }
 
+
+
+void single_shot_mode()
+{
+    number_of_transition = SINGLE_SHOT_TRANSITIONS;
+    uint32_t local_delay_array[] = {SINGLE_SHOT_DURATION, FOCUS_TRIGGER_TIME_DIFF, SINGLE_SHOT_DURATION, FOCUS_TRIGGER_TIME_DIFF, SINGLE_SHOT_DURATION};
+    memcpy(delay_array, local_delay_array, sizeof(local_delay_array));
+    bool local_out_pattern[NUM_PIN_OUT][SINGLE_SHOT_TRANSITIONS+1] = {{1, 0, 0, 0, 1},
+        {1, 1, 0, 1, 1}};
+    for(uint32_t row; row < NUM_PIN_OUT; row++)
+    { 
+        memcpy(&out_pattern[row][0], &local_out_pattern[row][0], (SINGLE_SHOT_TRANSITIONS+1));
+    }   
+}
+void multi_shot_mode(uint32_t input1, uint32_t input2)
+{
+    number_of_transition = SINGLE_SHOT_TRANSITIONS * input2;
+    uint32_t repeat_delay_array[] = {FOCUS_TRIGGER_TIME_DIFF, SINGLE_SHOT_DURATION, FOCUS_TRIGGER_TIME_DIFF, LFCLK_TICKS_MS(input1)};
+    delay_array[0] = SINGLE_SHOT_DURATION;
+    out_pattern[0][0] = 1;
+    out_pattern[1][0] = 1;
+    for(uint32_t loop = 1; loop <= number_of_transition; loop = loop+SINGLE_SHOT_TRANSITIONS)
+    {
+        memcpy(&delay_array[loop], repeat_delay_array, sizeof(repeat_delay_array));
+        memcpy(&(out_pattern[0][loop]), &one_click_pattern[0][loop],SINGLE_SHOT_TRANSITIONS);
+        memcpy(&(out_pattern[1][loop]), &one_click_pattern[1][loop],SINGLE_SHOT_TRANSITIONS);
+
+    }
+
+    for(uint32_t row = 0; row < NUM_PIN_OUT; row++)
+    {
+        log_printf("ROW[%d]: \n", row);
+        for(uint32_t col = 0; col < ARRAY_SIZE(delay_array); col++)
+        {
+            log_printf("    COL[%d] : %d,  %d\n", col, out_pattern[row][col], delay_array[col]);
+        }
+        log_printf("\n\n");
+    }
+}
+
+void bulb_mode(uint32_t input1, uint32_t input2)
+{
+    number_of_transition = SINGLE_SHOT_TRANSITIONS;
+    uint32_t local_delay_array[SINGLE_SHOT_TRANSITIONS + 1] = {SINGLE_SHOT_DURATION, LFCLK_TICKS_977((input1+input2) - 4), LFCLK_TICKS_977(4), FOCUS_TRIGGER_TIME_DIFF, SINGLE_SHOT_DURATION};
+    memcpy(delay_array, local_delay_array, sizeof(local_delay_array));
+    bool local_out_pattern[NUM_PIN_OUT][SINGLE_SHOT_TRANSITIONS + 1] = {
+        {1, 0, 0, 0, 1},
+        {1, 1, 0, 1, 1}};
+    memcpy(out_pattern, local_out_pattern, sizeof(local_out_pattern));
+
+}
+
+void video_mode(uint32_t input1, uint32_t input2)
+{
+    number_of_transition = VIDEO_TRANSITION;
+    uint32_t local_delay_array[VIDEO_TRANSITION + 1] = {SINGLE_SHOT_DURATION, FOCUS_TRIGGER_TIME_DIFF, LFCLK_TICKS_977(input1*1000), FOCUS_TRIGGER_TIME_DIFF, SINGLE_SHOT_DURATION, FOCUS_TRIGGER_TIME_DIFF, VIDEO_STOP_PULSE, FOCUS_TRIGGER_TIME_DIFF, SINGLE_SHOT_DURATION};
+    memcpy(delay_array, local_delay_array, sizeof(local_delay_array));
+    bool local_out_pattern[NUM_PIN_OUT][VIDEO_TRANSITION + 1] = {{1, 0, 0, 0, 1, 0, 0, 0, 1},
+        {1, 1, 0, 1, 1, 1, 0 ,1 ,1}};
+    for(uint32_t row; row < NUM_PIN_OUT; row++)
+    { 
+        memcpy(&out_pattern[row][0], &local_out_pattern[row][0], (VIDEO_TRANSITION+1));
+    }
+}
+
+void focus_mode()
+{
+    number_of_transition = 2;
+    uint32_t local_delay_array[3] = {SINGLE_SHOT_DURATION, SINGLE_SHOT_DURATION * 20, SINGLE_SHOT_DURATION};
+    memcpy(delay_array, local_delay_array, sizeof(local_delay_array));
+    bool local_out_pattern[NUM_PIN_OUT][FOCUS_TRANSITIONS + 1] = {
+        {1, 0, 1},
+        {1, 0, 1}
+    };
+    for(uint32_t row; row < NUM_PIN_OUT; row++)
+    { 
+        memcpy(&out_pattern[row][0], &local_out_pattern[row][0], 3);
+    }
+}
 /**To Generate pattern which is to be sent over pins.*/
 void data_process_pattern_gen(bool data_process_mode)
 {
-    uint32_t config_mode;
     if(data_process_mode == PIR_DATA_PROCESS_MODE)
     {
         config_mode = config->pir_conf->mode;
@@ -100,15 +190,13 @@ void data_process_pattern_gen(bool data_process_mode)
     {
         config_mode = config->timer_conf->mode;
     }
-    hal_gpio_cfg_output(JACK_FOCUS_PIN, 1);
-    hal_gpio_cfg_output(JACK_TRIGGER_PIN, 1);
+    for(uint32_t pin_num = 0; pin_num < ARRAY_SIZE(pin_outs); pin_num++)
+    {
+        hal_gpio_cfg_output(pin_outs[pin_num], 1);
+    }
     uint32_t mode = (config_mode & MODE_MSK) >> (POS_OF_MODE * SIZE_OF_BYTE);
     uint32_t input1 = (config_mode & INPUT1_MSK) >> (POS_OF_INPUT1 * SIZE_OF_BYTE);
     uint32_t input2 = (config_mode & INPUT2_MSK) >> (POS_OF_INPUT2 * SIZE_OF_BYTE);
-    uint32_t delay_array[OUT_GEN_MAX_TRANSITIONS] = {};
-    bool out_pattern[OUT_GEN_MAX_NUM_OUT][OUT_GEN_MAX_TRANSITIONS] = {};
-    uint32_t number_of_transition = 0;
-    out_gen_init(NUM_PIN_OUT, out_pin_array);
 #if 0
     log_printf("Mode : %02x\n", mode);
     log_printf("Input 1 : %04x\n", input1);
@@ -119,15 +207,7 @@ void data_process_pattern_gen(bool data_process_mode)
         case MODE_SINGLE_SHOT:
         {
 //            single_shot
-            number_of_transition = SINGLE_SHOT_TRANSITIONS;
-            uint32_t local_delay_array[] = {SINGLE_SHOT_DURATION, FOCUS_TRIGGER_TIME_DIFF, SINGLE_SHOT_DURATION, FOCUS_TRIGGER_TIME_DIFF, SINGLE_SHOT_DURATION};
-            memcpy(delay_array, local_delay_array, sizeof(local_delay_array));
-            bool local_out_pattern[NUM_PIN_OUT][SINGLE_SHOT_TRANSITIONS+1] = {{1, 0, 0, 0, 1},
-                {1, 1, 0, 1, 1}};
-            for(uint32_t row; row < NUM_PIN_OUT; row++)
-            { 
-                memcpy(&out_pattern[row][0], &local_out_pattern[row][0], (SINGLE_SHOT_TRANSITIONS+1));
-            }
+            single_shot_mode();
             break;
         }
         
@@ -138,29 +218,7 @@ void data_process_pattern_gen(bool data_process_mode)
 
 //            input1 = 50;
 //            input2 = 4;
-            number_of_transition = SINGLE_SHOT_TRANSITIONS * input2;
-            uint32_t repeat_delay_array[] = {FOCUS_TRIGGER_TIME_DIFF, SINGLE_SHOT_DURATION, FOCUS_TRIGGER_TIME_DIFF, LFCLK_TICKS_MS(input1)};
-            delay_array[0] = SINGLE_SHOT_DURATION;
-            out_pattern[0][0] = 1;
-            out_pattern[1][0] = 1;
-            for(uint32_t loop = 1; loop <= number_of_transition; loop = loop+SINGLE_SHOT_TRANSITIONS)
-            {
-                memcpy(&delay_array[loop], repeat_delay_array, sizeof(repeat_delay_array));
-                memcpy(&(out_pattern[0][loop]), &one_click_pattern[0][loop],SINGLE_SHOT_TRANSITIONS);
-                memcpy(&(out_pattern[1][loop]), &one_click_pattern[1][loop],SINGLE_SHOT_TRANSITIONS);
-
-            }
-
-            for(uint32_t row = 0; row < NUM_PIN_OUT; row++)
-            {
-                log_printf("ROW[%d]: \n", row);
-                for(uint32_t col = 0; col < ARRAY_SIZE(delay_array); col++)
-                {
-                    log_printf("    COL[%d] : %d,  %d\n", col, out_pattern[row][col], delay_array[col]);
-                }
-                log_printf("\n\n");
-            }
-
+            multi_shot_mode(input1, input2);
             break;
         }
         case MODE_BULB :
@@ -170,13 +228,7 @@ void data_process_pattern_gen(bool data_process_mode)
             input1 = 1500;
             input2 = 10;
 #endif
-            number_of_transition = SINGLE_SHOT_TRANSITIONS;
-            uint32_t local_delay_array[SINGLE_SHOT_TRANSITIONS + 1] = {SINGLE_SHOT_DURATION, LFCLK_TICKS_977((input1+input2) - 4), LFCLK_TICKS_977(4), FOCUS_TRIGGER_TIME_DIFF, SINGLE_SHOT_DURATION};
-            memcpy(delay_array, local_delay_array, sizeof(local_delay_array));
-            bool local_out_pattern[NUM_PIN_OUT][SINGLE_SHOT_TRANSITIONS + 1] = {
-                {1, 0, 0, 0, 1},
-                {1, 1, 0, 1, 1}};
-            memcpy(out_pattern, local_out_pattern, sizeof(local_out_pattern));
+            bulb_mode(input1,input2);
             break;
         }
         case MODE_VIDEO :
@@ -184,36 +236,22 @@ void data_process_pattern_gen(bool data_process_mode)
 //            video(input1, input2)
 //            input1 = 60;
 //            input2 = 10;
-
-            number_of_transition = VIDEO_TRANSITION;
-            uint32_t local_delay_array[VIDEO_TRANSITION + 1] = {SINGLE_SHOT_DURATION, FOCUS_TRIGGER_TIME_DIFF, LFCLK_TICKS_977(input1*1000), FOCUS_TRIGGER_TIME_DIFF, SINGLE_SHOT_DURATION, FOCUS_TRIGGER_TIME_DIFF, VIDEO_STOP_PULSE, FOCUS_TRIGGER_TIME_DIFF, SINGLE_SHOT_DURATION};
-            memcpy(delay_array, local_delay_array, sizeof(local_delay_array));
-            bool local_out_pattern[NUM_PIN_OUT][VIDEO_TRANSITION + 1] = {{1, 0, 0, 0, 1, 0, 0, 0, 1},
-                {1, 1, 0, 1, 1, 1, 0 ,1 ,1}};
-            for(uint32_t row; row < NUM_PIN_OUT; row++)
-            { 
-                memcpy(&out_pattern[row][0], &local_out_pattern[row][0], (VIDEO_TRANSITION+1));
-            }
+            video_mode(input1, input2);
             break;
         }
         case MODE_FOCUS :
         {
-//            focus();
-            number_of_transition = 2;
-            uint32_t local_delay_array[3] = {SINGLE_SHOT_DURATION, SINGLE_SHOT_DURATION * 20, SINGLE_SHOT_DURATION};
-            memcpy(delay_array, local_delay_array, sizeof(local_delay_array));
-            bool local_out_pattern[NUM_PIN_OUT][FOCUS_TRANSITIONS + 1] = {
-                {1, 0, 1},
-                {1, 0, 1}
-            };
-            for(uint32_t row; row < NUM_PIN_OUT; row++)
-            { 
-                memcpy(&out_pattern[row][0], &local_out_pattern[row][0], 3);
-            }
+            focus_mode();
             break;
         }
   
     }
     out_gen_start(number_of_transition, delay_array, out_pattern);
     return;        
+}
+
+void data_process_stop()
+{
+    hal_gpio_cfg_output(JACK_FOCUS_PIN, 1);
+    hal_gpio_cfg_output(JACK_TRIGGER_PIN, 1);
 }

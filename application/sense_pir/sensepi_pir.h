@@ -40,6 +40,8 @@
 extern "C" {
 #endif
 
+
+
 /**Strcture to configure SensePi_PIR module*/
 typedef struct{
     sensepi_config * config_sensepi; ///Configuration received from mobile app
@@ -48,24 +50,15 @@ typedef struct{
     uint32_t led_sense_out_pin;      ///Pin number for LED driving pin.
     uint32_t led_sense_analog_in_pin;///Pin number for light sensing.
     uint32_t led_sense_off_val;      ///Value at which LED is off.
+    uint32_t amp_ud_pin;             ///Pin number for UDbar pin for MCP4012
+    uint32_t amp_cs_pin;             ///Pin number for CSbar pin for MCP4012
+    uint32_t amp_spi_sck_pin;            ///Pin number for local SPI clk pin for 
+                                     ///MCP4012
+    uint32_t *signal_out_pin_array;  ///Array of pins on which output signal is 
+                                     ///to be sent.
 
 }sensepi_pir_config_t;
 
-/**Enum with all the substate for SENSING state*/
-typedef enum
-{
-    PIR_DETECTING,
-    PIR_ENABLED,
-    PIR_DISABLED,
-    PIR_WAIT_LED,
-}sensepi_pir_substate;
-
-/**
- * @brief Function to initiate SensePi_PIR module
- * @param config strcture pointer of configuration for which we need to
- * configure the SensePi_PIR module
- */
-void sensepi_pir_init(sensepi_pir_config_t * config_sensepi_pir);
 
 /**
  * @brief Function to start PIR sensing
@@ -78,17 +71,25 @@ void sensepi_pir_start();
 void sensepi_pir_stop();
 
 /**
+ * @brief Function to initiate SensePi_PIR module
+ * @param config strcture pointer of configuration for which we need to
+ * configure the SensePi_PIR module
+ */
+void sensepi_pir_init(sensepi_pir_config_t * config_sensepi_pir);
+
+/**
  * @brief Function to update the configuration at every instance when it is
  * changed in the program. 
  * @param update_config configuration to which module needs to be updated.
  */
 void sensepi_pir_update(sensepi_config * update_config);
 
+//Add a get config
 /**
- * @brief Function to enable LED sensing with proper parameters.
- * @param led_conf
+ * @brief Function to get the current configuration to send it to mobile app.
+ * @return pointer to copy of current config
  */
-void sensepi_pir_led_sense_conf(sensepi_pir_config_t * led_conf);
+sensepi_config * sensepi_pir_get_sensepi_config();
 
 /**
  * @brief Function to decide what to decide at current tick
@@ -96,15 +97,6 @@ void sensepi_pir_led_sense_conf(sensepi_pir_config_t * led_conf);
  */
 void sensepi_pir_add_tick(uint32_t intervel);
 
-/**
- * @brief Function to check light conditions and comapre light conditions with 
- * configuration provided by user.
- * @param oper_time_temp Local copy of oper_time to select light condition
- * configuration
- * @return if light conditions satisfies the conditions provided by config
- * return 1, else retunr 0.
- */
-bool sensepi_pir_light_check(oper_time_t oper_time_temp)
 
 
 #ifdef __cplusplus

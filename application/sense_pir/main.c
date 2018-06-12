@@ -161,14 +161,20 @@ static sensepi_config sensepi_ble_default_config = {
     .trig_conf = PIR_ONLY,
 };
 
+static uint32_t out_pin_array[] = {JACK_FOCUS_PIN, JACK_TRIGGER_PIN};
+
 static sensepi_pir_config_t sensepi_pir_default_config = 
 {
     .config_sensepi = &sensepi_ble_default_config,
     .led_sense_analog_in_pin = PIN_TO_ANALOG_INPUT(LED_LIGHT_SENSE),
     .led_sense_off_val = !(LEDS_ACTIVE_STATE),
-    .led_sense_out_pin = LED_2,
+    .led_sense_out_pin = LED_GREEN,
     .pir_sense_offset_input = PIN_TO_ANALOG_INPUT(PIR_AMP_OFFSET_PIN),
     .pir_sense_signal_input = PIN_TO_ANALOG_INPUT(PIR_AMP_SIGNAL_PIN),
+    .amp_cs_pin = MCP4012T_CS_PIN,
+    .amp_ud_pin= MCP4012T_UD_PIN,
+    .amp_spi_sck_pin = SPI_SCK_PIN,
+    .signal_out_pin_array = out_pin_array,
 };
 
 
@@ -307,9 +313,8 @@ void state_change_handler(uint32_t new_state)
     switch(current_state)
     {
     case SENSING:
-        sd_softdevice_disable();
-
         {
+            sd_softdevice_disable();
             log_printf("State Change : SENSING\n");
             sense_count = 0;
             sense_feedback = true;
@@ -331,11 +336,12 @@ void state_change_handler(uint32_t new_state)
             pir_sense_start(&pir_cfg);
 #endif
             device_tick_switch_mode(DEVICE_TICK_SLOW);
-//            sensepi_pir_start();
+            sensepi_pir_start();
         }
         break;
     case ADVERTISING:
         {
+            sensepi_pir_stop();
             conn_count = 0;
             light_val = led_sense_get();
             led_set_state(true, true);
@@ -350,7 +356,7 @@ void state_change_handler(uint32_t new_state)
 
             uint8_t is_sd_enabled;
             sd_softdevice_is_enabled(&is_sd_enabled);
-            // Would be coming from the SENSEING mode
+            // Would be coming from the SENSING mode
             if(is_sd_enabled == 0)
             {
                 pir_sense_stop();
@@ -366,12 +372,17 @@ void state_change_handler(uint32_t new_state)
                         .is_battery_low = batt_low
                 };
                 sensepi_ble_update_sysinfo(&sysinfo);
+
+                ///TODO get config from sensepi_pir
             }
             sensepi_ble_adv_start();
         }
         break;
     case CONNECTED:
         {
+            sensepi_config prev_config;
+            memcpy(&prev_config, sensepi_pir_get_sensepi_config(),
+                    sizeof(prev_config));
             led_set_state(true, false);
             device_tick_cfg tick_cfg =
             {

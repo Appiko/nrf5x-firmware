@@ -35,6 +35,7 @@
 
 #include "sensepi_ble.h"
 
+///Make this an enum
 #define PIR_DATA_PROCESS_MODE false
 
 #define TIMER_DATA_PROCESS_MODE true
@@ -53,7 +54,13 @@ void data_process_pattern_gen(bool data_process_mode);
  * @brief Function to store configuration received from mobile app.
  * @param config Configuration for which local copy has to be created.
  */
-void data_process_local_config_copy(sensepi_config *local_config);
+void data_process_config(sensepi_config *local_config, uint32_t * out_pin_array);
+
+/**
+ * @brief Function which is to be called when Sensepi_PIR module is being \
+ * terminated
+ */
+void data_process_stop();
 #ifdef __cplusplus
 }
 #endif
