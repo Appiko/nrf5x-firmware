@@ -54,7 +54,7 @@
 
 #define NUM_PIN_OUT 2
 
-#define FOCUS_TRIGGER_TIME_DIFF LFCLK_TICKS_977(50)
+#define FOCUS_TRIGGER_TIME_DIFF LFCLK_TICKS_977(10)
 
 #define SINGLE_SHOT_TRANSITIONS 4
 
@@ -85,7 +85,7 @@ static uint32_t delay_array[OUT_GEN_MAX_TRANSITIONS] = {};
 static bool out_pattern[OUT_GEN_MAX_NUM_OUT][OUT_GEN_MAX_TRANSITIONS] = {};
 static uint32_t number_of_transition = 0;
 static uint32_t config_mode;
-static uint32_t *pin_outs;
+static uint32_t pin_outs[NUM_PIN_OUT];
 
 void single_shot_mode();
 void multi_shot_mode(uint32_t input1, uint32_t input2);
@@ -98,17 +98,22 @@ void data_process_config(sensepi_config *local_config, uint32_t *out_pin_array )
     log_printf("Data_Process_CONF\n");
     config = local_config;
     out_gen_init(NUM_PIN_OUT, out_pin_array);
-    memcpy(pin_outs, out_pin_array, sizeof(out_pin_array));
+    memcpy(pin_outs, out_pin_array, sizeof(pin_outs));
+#if 0
+    for(uint32_t pin_num = 0; pin_num < ARRAY_SIZE(pin_outs); pin_num++)
+    {
+        log_printf("OUT_PIN_ARRAY[%d] : %d\n", pin_num, out_pin_array[pin_num]);        
+    }
     for(uint32_t pin_num = 0; pin_num < ARRAY_SIZE(pin_outs); pin_num++)
     {
         log_printf("PIN_OUT[%d] : %d\n", pin_num, pin_outs[pin_num]);        
     }
+#endif
 }
-
-
 
 void single_shot_mode()
 {
+    log_printf("SINGLE SHOT MODE\n");
     number_of_transition = SINGLE_SHOT_TRANSITIONS;
     uint32_t local_delay_array[] = {SINGLE_SHOT_DURATION, FOCUS_TRIGGER_TIME_DIFF, SINGLE_SHOT_DURATION, FOCUS_TRIGGER_TIME_DIFF, SINGLE_SHOT_DURATION};
     memcpy(delay_array, local_delay_array, sizeof(local_delay_array));
@@ -117,7 +122,7 @@ void single_shot_mode()
     for(uint32_t row; row < NUM_PIN_OUT; row++)
     { 
         memcpy(&out_pattern[row][0], &local_out_pattern[row][0], (SINGLE_SHOT_TRANSITIONS+1));
-    }   
+    } 
 }
 void multi_shot_mode(uint32_t input1, uint32_t input2)
 {
@@ -187,7 +192,7 @@ void focus_mode()
 /**To Generate pattern which is to be sent over pins.*/
 void data_process_pattern_gen(bool data_process_mode)
 {
-    log_printf("Pattern_Gen\n");
+    log_printf("Pattern_Gen : %d \n", data_process_mode);
     if(data_process_mode == PIR_DATA_PROCESS_MODE)
     {
         config_mode = config->pir_conf->mode;
@@ -198,12 +203,13 @@ void data_process_pattern_gen(bool data_process_mode)
     }
     for(uint32_t pin_num = 0; pin_num < ARRAY_SIZE(pin_outs); pin_num++)
     {
+//        log_printf("OUTPUT_SET : %d\n",pin_outs[pin_num]);
         hal_gpio_cfg_output(pin_outs[pin_num], 1);
     }
     uint32_t mode = (config_mode & MODE_MSK) >> (POS_OF_MODE * SIZE_OF_BYTE);
     uint32_t input1 = (config_mode & INPUT1_MSK) >> (POS_OF_INPUT1 * SIZE_OF_BYTE);
     uint32_t input2 = (config_mode & INPUT2_MSK) >> (POS_OF_INPUT2 * SIZE_OF_BYTE);
-#if 1
+#if 0
     log_printf("Mode : %02x\n", mode);
     log_printf("Input 1 : %04x\n", input1);
     log_printf("input 2 : %02x\n", input2);
@@ -252,6 +258,25 @@ void data_process_pattern_gen(bool data_process_mode)
         }
   
     }
+#if 0
+    log_printf("Number of Transition : %d\n", number_of_transition);
+    log_printf("Delay Array : \n");
+    for(uint32_t arr_p = 0; arr_p<ARRAY_SIZE(delay_array); arr_p++)
+    {
+        log_printf("%d ", delay_array[arr_p]);
+    }
+    log_printf("\n");
+    log_printf("Out Pattern :\n");
+    for(uint32_t row = 0; row< NUM_PIN_OUT; row++)
+    {
+        for(uint32_t arr_p = 0; arr_p<ARRAY_SIZE(out_pattern[0]); arr_p++)
+        {
+            log_printf("%x ", out_pattern[row][arr_p]);
+        }
+        log_printf("\n");
+    }
+    log_printf("\n");
+#endif
     out_gen_start(number_of_transition, delay_array, out_pattern);
     return;        
 }

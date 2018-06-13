@@ -151,8 +151,8 @@ static timer_conf_t default_timer_conf =
 {
     .oper_time.day_or_night = 1,
     .oper_time.threshold = 0b0000000,
-    .timer_interval = 500,
-    .mode = 0,
+    .timer_interval = 2000,
+    .mode = 0x00000000,
 };
 
 static sensepi_config sensepi_ble_default_config = {
@@ -563,12 +563,15 @@ int main(void)
     current_state = ADVERTISING; //So that a state change happens
     irq_msg_push(MSG_STATE_CHANGE, (void *)SENSING);
     sensepi_ble_init(ble_evt_handler, get_sensepi_config);
+//    data_process_config(sensepi_pir_default_config.config_sensepi,
+//            sensepi_pir_default_config.signal_out_pin_array);
     while (true)
     {
 #if ENABLE_WDT == 1
         //Since the application demands that CPU wakes up
         hal_wdt_feed();
 #endif
+//        data_process_pattern_gen(true);
         device_tick_process();
         irq_msg_process();
         slumber();

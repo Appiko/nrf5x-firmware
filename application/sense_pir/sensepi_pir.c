@@ -186,7 +186,12 @@ void timer_handler(void)
 {
     log_printf("Timer Handler\n");
     data_process_pattern_gen(TIMER_DATA_PROCESS_MODE);
-    ms_timer_stop(MS_TIMER1);
+//    ms_timer_stop(MS_TIMER1);
+    ms_timer_start(MS_TIMER2,
+        MS_REPEATED_CALL,
+        LFCLK_TICKS_977(config.config_sensepi->timer_conf->timer_interval),
+        timer_handler);
+
 }
 
 void led_sense_conf(sensepi_pir_config_t * led_conf)
@@ -228,10 +233,12 @@ void sensepi_pir_start()
     log_printf("SensePi_PIR_Start\n");
     led_sense_cfg_input(true);
     hal_nop_delay_ms(LED_WAIT_TIME_MS);
+    data_process_config(config.config_sensepi, config.signal_out_pin_array);
     timer_interval_in = config.config_sensepi->timer_conf->timer_interval;
-    if( timer_interval_in < SENSEPI_PIR_SLOW_TICK_INTERVAL_MS)
+    if(config.config_sensepi->trig_conf != PIR_ONLY &&
+            timer_interval_in < SENSEPI_PIR_SLOW_TICK_INTERVAL_MS)
     {
-        ms_timer_start(MS_TIMER1,
+        ms_timer_start(MS_TIMER2,
             MS_REPEATED_CALL,
             LFCLK_TICKS_977(config.config_sensepi->timer_conf->timer_interval),
             timer_handler);
@@ -295,8 +302,6 @@ void sensepi_pir_init(sensepi_pir_config_t * config_sensepi_pir)
             timer_interval_in = local_sensepi_config.timer_conf->timer_interval;
             break;
         }
-    data_process_config(&local_sensepi_config, config.signal_out_pin_array);
-
     }
     return;
 }
