@@ -151,14 +151,14 @@ static timer_conf_t default_timer_conf =
 {
     .oper_time.day_or_night = 1,
     .oper_time.threshold = 0b0000000,
-    .timer_interval = 10000,
+    .timer_interval = 500,
     .mode = 0,
 };
 
 static sensepi_config sensepi_ble_default_config = {
     .pir_conf = &default_pir_conf,
     .timer_conf = &default_timer_conf,
-    .trig_conf = PIR_ONLY,
+    .trig_conf = TIMER_ONLY,
 };
 
 static uint32_t out_pin_array[] = {JACK_FOCUS_PIN, JACK_TRIGGER_PIN};

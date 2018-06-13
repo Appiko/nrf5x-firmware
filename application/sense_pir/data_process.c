@@ -95,9 +95,14 @@ void focus_mode();
 
 void data_process_config(sensepi_config *local_config, uint32_t *out_pin_array )
 {
+    log_printf("Data_Process_CONF\n");
     config = local_config;
     out_gen_init(NUM_PIN_OUT, out_pin_array);
     memcpy(pin_outs, out_pin_array, sizeof(out_pin_array));
+    for(uint32_t pin_num = 0; pin_num < ARRAY_SIZE(pin_outs); pin_num++)
+    {
+        log_printf("PIN_OUT[%d] : %d\n", pin_num, pin_outs[pin_num]);        
+    }
 }
 
 
@@ -182,6 +187,7 @@ void focus_mode()
 /**To Generate pattern which is to be sent over pins.*/
 void data_process_pattern_gen(bool data_process_mode)
 {
+    log_printf("Pattern_Gen\n");
     if(data_process_mode == PIR_DATA_PROCESS_MODE)
     {
         config_mode = config->pir_conf->mode;
@@ -197,7 +203,7 @@ void data_process_pattern_gen(bool data_process_mode)
     uint32_t mode = (config_mode & MODE_MSK) >> (POS_OF_MODE * SIZE_OF_BYTE);
     uint32_t input1 = (config_mode & INPUT1_MSK) >> (POS_OF_INPUT1 * SIZE_OF_BYTE);
     uint32_t input2 = (config_mode & INPUT2_MSK) >> (POS_OF_INPUT2 * SIZE_OF_BYTE);
-#if 0
+#if 1
     log_printf("Mode : %02x\n", mode);
     log_printf("Input 1 : %04x\n", input1);
     log_printf("input 2 : %02x\n", input2);
@@ -252,6 +258,7 @@ void data_process_pattern_gen(bool data_process_mode)
 
 void data_process_stop()
 {
+    log_printf("Data Process Stop\n");
     hal_gpio_cfg_output(JACK_FOCUS_PIN, 1);
     hal_gpio_cfg_output(JACK_TRIGGER_PIN, 1);
 }

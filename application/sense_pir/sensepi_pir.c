@@ -123,7 +123,7 @@ bool light_check(oper_time_t oper_time_temp);
 
 void pir_enable()
 {
-    log_printf("Sense pir : SENSE_PIR_ENABLED\n");
+    log_printf("PIR_Enabled\n");
     pir_sense_start(&config_pir);
     pir_sense_flag = 1;
     device_tick_switch_mode(DEVICE_TICK_SLOW);
@@ -135,6 +135,7 @@ void pir_enable()
 
 void pir_disable()
 {
+    log_printf("PIR_Disabled\n");
     pir_sense_stop();
     pir_substate = PIR_DISABLED;
     intr_trig_time_count = 0;
@@ -143,6 +144,7 @@ void pir_disable()
 
 void pir_operation(uint32_t interval)
 {
+    log_printf("PIR_Operation\n");
     switch(pir_substate)
     {
         case PIR_ENABLED:
@@ -182,12 +184,14 @@ void pir_handler(int32_t adc_val)
 
 void timer_handler(void)
 {
+    log_printf("Timer Handler\n");
     data_process_pattern_gen(TIMER_DATA_PROCESS_MODE);
     ms_timer_stop(MS_TIMER1);
 }
 
 void led_sense_conf(sensepi_pir_config_t * led_conf)
 {
+    log_printf("Led_Sense_Conf\n");
     led_sense_init(led_conf->led_sense_out_pin,
             led_conf->led_sense_analog_in_pin,
             led_conf->led_sense_off_val);
@@ -195,6 +199,8 @@ void led_sense_conf(sensepi_pir_config_t * led_conf)
 
 bool light_check(oper_time_t oper_time_temp)
 {
+    log_printf("Light check\n");
+    log_printf("Light intensity : %d", led_sense_get());
     static uint8_t light_sense_config = 1;
     static uint32_t light_threshold = 0;
     static bool light_check_flag = 0;
@@ -217,9 +223,9 @@ bool light_check(oper_time_t oper_time_temp)
 
 }
 
-
 void sensepi_pir_start()
 {
+    log_printf("SensePi_PIR_Start\n");
     led_sense_cfg_input(true);
     hal_nop_delay_ms(LED_WAIT_TIME_MS);
     timer_interval_in = config.config_sensepi->timer_conf->timer_interval;
@@ -235,6 +241,7 @@ void sensepi_pir_start()
 
 void sensepi_pir_stop()
 {
+    log_printf("SensePi_PIR_Stop\n");
     led_sense_cfg_input(false);
     pir_disable();
     ms_timer_stop(MS_TIMER1);
@@ -243,6 +250,7 @@ void sensepi_pir_stop()
 
 void sensepi_pir_init(sensepi_pir_config_t * config_sensepi_pir)
 {
+    log_printf("SensePi_PIR_init\n");
     memcpy(&config, config_sensepi_pir, sizeof(config));
     sensepi_config local_sensepi_config;
     memcpy(&local_sensepi_config, config.config_sensepi,sizeof(local_sensepi_config));
@@ -295,6 +303,7 @@ void sensepi_pir_init(sensepi_pir_config_t * config_sensepi_pir)
 
 void sensepi_pir_update(sensepi_config * update_config)
 {
+    log_printf("SensePi_PIR_update\n");
     working_mode = update_config->trig_conf;
     switch(working_mode)
     {
@@ -324,6 +333,7 @@ void sensepi_pir_update(sensepi_config * update_config)
 
 void sensepi_pir_add_tick(uint32_t interval)
 {
+    log_printf("SensePi Add ticks : %d", interval);
     working_mode = config.config_sensepi->trig_conf;
     switch(working_mode)
     {
@@ -366,5 +376,6 @@ void sensepi_pir_add_tick(uint32_t interval)
 
 sensepi_config * sensepi_pir_get_sensepi_config()
 {
+    log_printf("SensePi_PIR_get_config\n");
     return (config.config_sensepi);
 }
