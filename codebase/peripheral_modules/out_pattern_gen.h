@@ -56,6 +56,23 @@
 /** The maximum number of output pins for which pattern can be generated */
 #define OUT_GEN_MAX_NUM_OUT     4
 
+typedef enum
+{
+    IDLE,
+    PHOTO,
+    VIDEO_START,
+    VIDEO_END,
+} out_gen_state_t;
+
+typedef struct 
+{
+    uint32_t num_transitions;
+    uint32_t * transitions_durations;
+    bool *next_out[OUT_GEN_MAX_TRANSITIONS];
+    void (*out_gen_done_handler)(out_gen_state_t out_gen_state);
+    out_gen_state_t out_gen_state;
+} out_gen_config_t;
+
 /**
  * @brief Initialize the output pattern generator module with the information of
  *  the pins on which the pattern is generated
@@ -74,8 +91,7 @@ void out_gen_init(uint32_t num_out, uint32_t * out_pins);
  * @param next_out A pointer to a two dimensional array containing the next
  *  digital output value for the various transitions across the initialized pins.
  */
-void out_gen_start(uint32_t num_transitions, uint32_t * transitions_durations,
-        bool next_out[][OUT_GEN_MAX_TRANSITIONS]);
+void out_gen_start(out_gen_config_t * out_gen_config);
 
 /**
  * @brief Stop the output pattern generation and sets the output pins
@@ -90,6 +106,12 @@ void out_gen_stop(bool * out_vals);
  * @return True if pattern generation is on and false if off
  */
 bool out_gen_is_on(void);
+
+/**
+ * @brieg Function to get ticks since last call for out_gen_start;
+ * @return Number of ms_timer ticks since last call for out_gen_start
+ */
+uint32_t out_gen_get_ticks(void);
 
 #endif /* CODEBASE_PERIPHERAL_MODULES_OUT_PATTERN_GEN_H_ */
 

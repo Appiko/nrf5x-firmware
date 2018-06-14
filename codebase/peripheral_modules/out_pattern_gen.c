@@ -54,6 +54,8 @@ static struct
     uint32_t transitions_durations[OUT_GEN_MAX_TRANSITIONS];
 }context;
 
+void (*out_gen_done_handler)(out_gen_state_t out_gen_state);
+
 static void timer_handler(void)
 {
     context.current_transition++;
@@ -66,6 +68,7 @@ static void timer_handler(void)
     if(context.current_transition == context.num_transitions)
     {
         context.is_on = false;
+        out_gen_done_handler();
     }
     else
     {
@@ -87,21 +90,23 @@ void out_gen_init(uint32_t num_out, uint32_t * out_pins)
     context.is_on = false;
 }
 
-void out_gen_start(uint32_t num_transitions, uint32_t * transitions_durations,
-        bool next_out[][OUT_GEN_MAX_TRANSITIONS])
+void out_gen_start(out_gen_config_t * out_gen_config)
 {
-    ASSERT((num_transitions < OUT_GEN_MAX_TRANSITIONS) && (num_transitions > 0));
+    out_gen_config_t local_config;
+    memcpy(&local_config, out_gen_config, sizeof(local_config));
+    ASSERT((local_config.num_transitions < OUT_GEN_MAX_TRANSITIONS) 
+            && (local_config.num_transitions >= 0));
 
-    context.num_transitions = num_transitions;
-    memcpy(context.transitions_durations, transitions_durations,
-            num_transitions*sizeof(uint32_t) );
+    context.num_transitions = local_config->num_transitions;
+    memcpy(context.transitions_durations, local_config->transitions_durations,
+            local_config.num_transitions*sizeof(uint32_t) );
 
     for(uint32_t i = 0; i < context.num_out; i++)
     {
-        memcpy( (*(context.next_out + i)), (*(next_out+i)),
-                (1+num_transitions)*sizeof(bool));
+        memcpy( (*(context.next_out + i)), (*(local_config.next_out+i)),
+                (1+local_config.num_transitions)*sizeof(bool));
         hal_gpio_pin_write(context.out_pins[i],
-                next_out[i][context.current_transition]);
+                local_config.next_out[i][context.current_transition]);
     }
 
     context.is_on = true;
