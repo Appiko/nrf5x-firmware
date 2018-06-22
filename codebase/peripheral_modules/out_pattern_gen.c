@@ -39,6 +39,7 @@
 #include "ms_timer.h"
 #include "hal_gpio.h"
 #include "string.h"
+#include "log.h"
 
 /** Specify the MS_TIMER used for the output pattern generator module */
 #define OUT_GEN_MS_TIMER_USED           MS_TIMER1
@@ -52,13 +53,17 @@ static struct
     uint32_t num_transitions;
     uint32_t current_transition;
     uint32_t transitions_durations[OUT_GEN_MAX_TRANSITIONS];
+    out_gen_state_t current_state;
 }context;
 
 void (*out_gen_done_handler)(out_gen_state_t out_gen_state);
 
+static uint32_t timer_start_ticks_value;
+
 static void timer_handler(void)
 {
     context.current_transition++;
+
 
     for(uint32_t i = 0; i< context.num_out; i++)
     {
@@ -68,7 +73,7 @@ static void timer_handler(void)
     if(context.current_transition == context.num_transitions)
     {
         context.is_on = false;
-        out_gen_done_handler();
+        out_gen_done_handler(context.current_state);
     }
     else
     {
@@ -94,11 +99,14 @@ void out_gen_start(out_gen_config_t * out_gen_config)
 {
     out_gen_config_t local_config;
     memcpy(&local_config, out_gen_config, sizeof(local_config));
+    memset(context.next_out, 0, sizeof(context.next_out));
+    memset(context.transitions_durations, 0 ,
+            sizeof(context.transitions_durations));
     ASSERT((local_config.num_transitions < OUT_GEN_MAX_TRANSITIONS) 
             && (local_config.num_transitions >= 0));
 
-    context.num_transitions = local_config->num_transitions;
-    memcpy(context.transitions_durations, local_config->transitions_durations,
+    context.num_transitions = local_config.num_transitions;
+    memcpy(context.transitions_durations, local_config.transitions_durations,
             local_config.num_transitions*sizeof(uint32_t) );
 
     for(uint32_t i = 0; i < context.num_out; i++)
@@ -107,26 +115,36 @@ void out_gen_start(out_gen_config_t * out_gen_config)
                 (1+local_config.num_transitions)*sizeof(bool));
         hal_gpio_pin_write(context.out_pins[i],
                 local_config.next_out[i][context.current_transition]);
+//        log_printf("Pin[%d] value : %x\n", i,
+//                next_out[i][context.current_transition]);
     }
-
     context.is_on = true;
     context.current_transition = 0;
+    context.current_state = local_config.out_gen_state;
+    out_gen_done_handler = out_gen_config->out_gen_done_handler;
 
     ms_timer_start(OUT_GEN_MS_TIMER_USED, MS_SINGLE_CALL,
-            transitions_durations[context.current_transition],timer_handler);
+            local_config.transitions_durations[context.current_transition],timer_handler);
+    timer_start_ticks_value = ms_timer_get_current_count();
 }
 
 void out_gen_stop(bool * out_vals)
 {
+    context.is_on = false;
     ms_timer_stop(OUT_GEN_MS_TIMER_USED);
     for(uint32_t i = 0; i< context.num_out; i++)
     {
         hal_gpio_pin_write(context.out_pins[i], out_vals[i]);
     }
-    context.is_on = false;
 }
 
 bool out_gen_is_on(void)
 {
     return context.is_on;
+}
+
+inline uint32_t out_gen_get_ticks(void)
+{
+    return ((ms_timer_get_current_count() + (1<<24) - timer_start_ticks_value)
+            && 0x00FFFFFF);
 }

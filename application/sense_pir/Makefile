@@ -50,8 +50,7 @@ C_SRC += button_ui.c
 C_SRC += led_sense.c
 C_SRC += simple_adc.c
 C_SRC += sensepi_ble.c
-C_SRC += data_process.c
-C_SRC += sensepi_pir.c
+C_SRC += sensepi_cam_trigger.c
 C_SRC += out_pattern_gen.c
 C_SRC += mcp4012_x.c
 

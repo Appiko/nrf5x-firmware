@@ -72,8 +72,7 @@
 #include "out_pattern_gen.h"
 
 #include "sensepi_ble.h"
-#include "data_process.h"
-#include "sensepi_pir.h"
+#include "sensepi_cam_trigger.h"
 
 /* ----- Defines ----- */
 /** The WDT bites if not fed every 301 sec (5 min) */
@@ -137,33 +136,25 @@ static uint32_t sense_count;
 /** Boolen to indicate if PIR sensing feedback is required for user  */
 static bool sense_feedback = false;
 
-static pir_conf_t default_pir_conf = 
-{
-    .oper_time.day_or_night = 1,
-    .oper_time.threshold = 0b0000000,
-    .amplification = 0,
-    .threshold = 200,
-    .mode = 0,
-    .intr_trig_timer = 1000,  
-};
-
-static timer_conf_t default_timer_conf =
-{
-    .oper_time.day_or_night = 1,
-    .oper_time.threshold = 0b0000000,
-    .timer_interval = 2000,
-    .mode = 0x00000000,
-};
-
-static sensepi_config sensepi_ble_default_config = {
-    .pir_conf = &default_pir_conf,
-    .timer_conf = &default_timer_conf,
-    .trig_conf = TIMER_ONLY,
+static sensepi_config_t sensepi_ble_default_config = {
+    .pir_conf.oper_time.day_or_night = 1,
+    .pir_conf.oper_time.threshold = 0b0000000,
+    .pir_conf.amplification = 31,
+    .pir_conf.threshold = 100,
+    .pir_conf.mode = 0x00271000,
+    .pir_conf.intr_trig_timer = 5000,
+    
+    .timer_conf.oper_time.day_or_night = 1,
+    .timer_conf.oper_time.threshold = 0b0000000,
+    .timer_conf.mode = 0x00000000,
+    .timer_conf.timer_interval = 5000,
+    
+    .trig_conf = PIR_ONLY,
 };
 
 static uint32_t out_pin_array[] = {JACK_FOCUS_PIN, JACK_TRIGGER_PIN};
-
-static sensepi_pir_config_t sensepi_pir_default_config = 
+#if 1
+static sensepi_cam_trigger_config_t sensepi_cam_trigger_default_config = 
 {
     .config_sensepi = &sensepi_ble_default_config,
     .led_sense_analog_in_pin = PIN_TO_ANALOG_INPUT(LED_LIGHT_SENSE),
@@ -176,7 +167,7 @@ static sensepi_pir_config_t sensepi_pir_default_config =
     .amp_spi_sck_pin = SPI_SCK_PIN,
     .signal_out_pin_array = out_pin_array,
 };
-
+#endif
 
 /* ----- Function declarations ----- */
 
@@ -248,15 +239,22 @@ static void ble_evt_handler(ble_evt_t * evt)
  * Handler to get the configuration of SensePi from the mobile app
  * @param config Pointer to the configuration received
  */
-static void get_sensepi_config(sensepi_config *config)
+static void get_sensepi_config_t(sensepi_config_t *config)
 {
-#if 0 
+#if 0
     log_printf("dn %x, mode %x, amp %x, thr %x, tt %x, focus %x, cam %x %x\n",
             config->oper_time, config->mode, config->amplification,
             config->threshold, config->inter_trig_time, config->pre_focus,
             config->cam_comp, config->cam_model);
+
+    log_printf("Trig mode %d, PIR ope time %x, PIR mode %x, PIR amp %d, PIR thres %d, \
+             PIR int trig time %d, Timer oper %x, Timer mode %x, timer interval %d \n",
+            config->trig_conf, config->pir_conf.oper_time, config->pir_conf.mode,
+            config->pir_conf.amplification, config->pir_conf.threshold,
+            config->pir_conf.intr_trig_timer,
+            config->timer_conf.oper_time, config->timer_conf.mode, config->timer_conf.timer_interval);
 #endif
-    sensepi_pir_update(config);
+    sensepi_cam_trigger_update(config);
 }
 
 /**
@@ -278,7 +276,7 @@ void next_interval_handler(uint32_t interval)
         {
             sense_feedback = false;
         }
-        sensepi_pir_add_tick(interval);
+        sensepi_cam_trigger_add_tick(interval);
     }
         break;
     case ADVERTISING:
@@ -336,12 +334,12 @@ void state_change_handler(uint32_t new_state)
             pir_sense_start(&pir_cfg);
 #endif
             device_tick_switch_mode(DEVICE_TICK_SLOW);
-            sensepi_pir_start();
+            sensepi_cam_trigger_start();
         }
         break;
     case ADVERTISING:
         {
-            sensepi_pir_stop();
+            sensepi_cam_trigger_stop();
             conn_count = 0;
             light_val = led_sense_get();
             led_set_state(true, true);
@@ -373,16 +371,16 @@ void state_change_handler(uint32_t new_state)
                 };
                 sensepi_ble_update_sysinfo(&sysinfo);
 
-                ///TODO get config from sensepi_pir
+                ///TODO get config from sensepi_cam_trigger
             }
             sensepi_ble_adv_start();
         }
         break;
     case CONNECTED:
         {
-            sensepi_config prev_config;
-            memcpy(&prev_config, sensepi_pir_get_sensepi_config(),
-                    sizeof(prev_config));
+//            sensepi_config_t prev_config;
+//            memcpy(&prev_config, sensepi_cam_trigger_get_sensepi_config_t(),
+  //                  sizeof(prev_config));
             led_set_state(true, false);
             device_tick_cfg tick_cfg =
             {
@@ -558,13 +556,12 @@ int main(void)
             { next_interval_handler, state_change_handler };
         irq_msg_init(&cb);
     }
-    sensepi_pir_init(&sensepi_pir_default_config);
+    sensepi_cam_trigger_init(&sensepi_cam_trigger_default_config);
 
     current_state = ADVERTISING; //So that a state change happens
     irq_msg_push(MSG_STATE_CHANGE, (void *)SENSING);
-    sensepi_ble_init(ble_evt_handler, get_sensepi_config);
-//    data_process_config(sensepi_pir_default_config.config_sensepi,
-//            sensepi_pir_default_config.signal_out_pin_array);
+    sensepi_ble_init(ble_evt_handler, get_sensepi_config_t);
+//    data_process_config(&sensepi_ble_default_config, out_pin_array);
     while (true)
     {
 #if ENABLE_WDT == 1

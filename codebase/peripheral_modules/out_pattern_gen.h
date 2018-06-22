@@ -61,16 +61,26 @@ typedef enum
     IDLE,
     PHOTO,
     VIDEO_START,
+    VIDEO_EXT,
     VIDEO_END,
 } out_gen_state_t;
-
+/** 
+ * @brief Configuration Strcture for output pattern generation.
+ */
 typedef struct 
 {
-    uint32_t num_transitions;
-    uint32_t * transitions_durations;
-    bool *next_out[OUT_GEN_MAX_TRANSITIONS];
+    uint32_t num_transitions;                                
+    /** The number of transitions in this pattern. */
+    uint32_t transitions_durations[OUT_GEN_MAX_TRANSITIONS];
+    /** Pointer to array containing the durations in terms of LFCLK frequency
+    ticks for the transitions. */
+    bool next_out[OUT_GEN_MAX_NUM_OUT][OUT_GEN_MAX_TRANSITIONS];
+    ///A pointer to a two dimensional array containing the next digital output
+    ///value for the various transitions across the initialized pins.
     void (*out_gen_done_handler)(out_gen_state_t out_gen_state);
-    out_gen_state_t out_gen_state;
+    ///A pointer to a handler
+    out_gen_state_t out_gen_state;                              
+    ///State which is to be started with this configuration
 } out_gen_config_t;
 
 /**
@@ -84,12 +94,8 @@ void out_gen_init(uint32_t num_out, uint32_t * out_pins);
 
 /**
  * @brief Start the generation of the pattern with the information provided
- *  in this function on the pins initialized.
- * @param num_transitions The number of transitions in this pattern
- * @param transitions_durations Pointer to array containing the durations in
- *  terms of LFCLK frequency ticks for the transitions
- * @param next_out A pointer to a two dimensional array containing the next
- *  digital output value for the various transitions across the initialized pins.
+ * @param out_gen_config A pointer to configuration which is used to generate
+ * pattern.
  */
 void out_gen_start(out_gen_config_t * out_gen_config);
 
