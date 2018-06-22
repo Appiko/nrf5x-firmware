@@ -141,7 +141,7 @@ static sensepi_config_t sensepi_ble_default_config = {
     .pir_conf.oper_time.threshold = 0b0000000,
     .pir_conf.amplification = 31,
     .pir_conf.threshold = 100,
-    .pir_conf.mode = 0x00271000,
+    .pir_conf.mode = 0x03000800,
     .pir_conf.intr_trig_timer = 5000,
     
     .timer_conf.oper_time.day_or_night = 1,

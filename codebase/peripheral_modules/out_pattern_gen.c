@@ -84,6 +84,7 @@ static void timer_handler(void)
 
 void out_gen_init(uint32_t num_out, uint32_t * out_pins)
 {
+    log_printf("OUT_GEN_INIT\n");
     ASSERT((num_out <= OUT_GEN_MAX_NUM_OUT) && (num_out > 0));
 
     context.num_out = num_out;
@@ -97,34 +98,29 @@ void out_gen_init(uint32_t num_out, uint32_t * out_pins)
 
 void out_gen_start(out_gen_config_t * out_gen_config)
 {
-    out_gen_config_t local_config;
-    memcpy(&local_config, out_gen_config, sizeof(local_config));
     memset(context.next_out, 0, sizeof(context.next_out));
     memset(context.transitions_durations, 0 ,
             sizeof(context.transitions_durations));
-    ASSERT((local_config.num_transitions < OUT_GEN_MAX_TRANSITIONS) 
-            && (local_config.num_transitions >= 0));
+    ASSERT((out_gen_config->num_transitions < OUT_GEN_MAX_TRANSITIONS) 
+            && (out_gen_config->num_transitions > 0));
 
-    context.num_transitions = local_config.num_transitions;
-    memcpy(context.transitions_durations, local_config.transitions_durations,
-            local_config.num_transitions*sizeof(uint32_t) );
-
+    context.num_transitions = out_gen_config->num_transitions;
+    memcpy(context.transitions_durations, out_gen_config->transitions_durations,
+            out_gen_config->num_transitions*sizeof(uint32_t) );
     for(uint32_t i = 0; i < context.num_out; i++)
     {
-        memcpy( (*(context.next_out + i)), (*(local_config.next_out+i)),
-                (1+local_config.num_transitions)*sizeof(bool));
+        memcpy( (*(context.next_out + i)), (*(out_gen_config->next_out+i)),
+                (1+out_gen_config->num_transitions)*sizeof(bool));
         hal_gpio_pin_write(context.out_pins[i],
-                local_config.next_out[i][context.current_transition]);
-//        log_printf("Pin[%d] value : %x\n", i,
-//                next_out[i][context.current_transition]);
+                out_gen_config->next_out[i][context.current_transition]);
     }
     context.is_on = true;
     context.current_transition = 0;
-    context.current_state = local_config.out_gen_state;
+    context.current_state = out_gen_config->out_gen_state;
     out_gen_done_handler = out_gen_config->out_gen_done_handler;
 
     ms_timer_start(OUT_GEN_MS_TIMER_USED, MS_SINGLE_CALL,
-            local_config.transitions_durations[context.current_transition],timer_handler);
+            out_gen_config->transitions_durations[context.current_transition],timer_handler);
     timer_start_ticks_value = ms_timer_get_current_count();
 }
 

@@ -71,8 +71,8 @@ typedef struct
  */
 typedef enum
 {
-    PIR_ONLY,       ///Trigger only on motion detection
     TIMER_ONLY,     ///Trigger only on timer
+    PIR_ONLY,       ///Trigger only on motion detection
     PIR_AND_TIMER,  ///Trigger on both motion detection or timer.
 }trigger_conf_t;
 

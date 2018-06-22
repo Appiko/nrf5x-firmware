@@ -51,7 +51,7 @@
 #include "stdbool.h"
 
 /** The maximum number of transitions that can occur in the generated pattern */
-#define OUT_GEN_MAX_TRANSITIONS 64
+#define OUT_GEN_MAX_TRANSITIONS 32
 
 /** The maximum number of output pins for which pattern can be generated */
 #define OUT_GEN_MAX_NUM_OUT     4
@@ -63,6 +63,7 @@ typedef enum
     VIDEO_START,
     VIDEO_EXT,
     VIDEO_END,
+    VIDEO_TIMER,
 } out_gen_state_t;
 /** 
  * @brief Configuration Strcture for output pattern generation.

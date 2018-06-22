@@ -292,7 +292,7 @@ void timer_handler(void)
     log_printf("Timer Handler\n");
     data_process_pattern_gen(TIMER_DATA_PROCESS_MODE);
     ms_timer_start(MS_TIMER2,
-        MS_REPEATED_CALL,
+        MS_SINGLE_CALL,
         LFCLK_TICKS_977(config.config_sensepi->timer_conf.timer_interval),
         timer_handler);
 
@@ -339,15 +339,16 @@ void sensepi_cam_trigger_start()
         log_printf("SensePi_PIR_Start\n");
         led_sense_cfg_input(true);
         hal_nop_delay_ms(LED_WAIT_TIME_MS);
-//        data_process_config(config.config_sensepi, config.signal_out_pin_array);
         timer_interval_in = config_sensepi.timer_conf.timer_interval;
-        if(config.config_sensepi->trig_conf != PIR_ONLY)
+        if(!(config.config_sensepi->trig_conf == PIR_ONLY))
         {
+            log_printf("\n\nTimer ON\n\n");
             ms_timer_start(MS_TIMER2,
-                MS_REPEATED_CALL, timer_interval_in, timer_handler);
+                MS_SINGLE_CALL, LFCLK_TICKS_977(timer_interval_in), timer_handler);
         }
-        if(config.config_sensepi->trig_conf != TIMER_ONLY)
+        if(!(config.config_sensepi->trig_conf == TIMER_ONLY))
         {
+            log_printf("\n\nPIR ON\n\n");
             pir_enable();
         }
         sensepi_cam_trigger_start_flag = 1;
@@ -416,37 +417,41 @@ void sensepi_cam_trigger_init(sensepi_cam_trigger_config_t * config_sensepi_cam_
             break;
         }
     }
+        data_process_config(config.config_sensepi, config.signal_out_pin_array);
     return;
 }
 
 void sensepi_cam_trigger_update(sensepi_config_t * update_config)
 {
     log_printf("SensePi_PIR_update\n");
-    working_mode = update_config->trig_conf;
+    memcpy(config.config_sensepi, update_config, sizeof(sensepi_config_t));
+    working_mode = config.config_sensepi->trig_conf;
     switch(working_mode)
     {
         case PIR_ONLY:
         {
-            config_pir.threshold = ((uint32_t) update_config->pir_conf.threshold)*PIR_THRESHOLD_MULTIPLY_FACTOR;
-            mcp4012_set_value(update_config->pir_conf.amplification);
-            intr_trig_time_in = ((uint32_t)update_config->pir_conf.intr_trig_timer);
+            config_pir.threshold = ((uint32_t) config.config_sensepi->pir_conf.threshold)
+                    *PIR_THRESHOLD_MULTIPLY_FACTOR;
+            mcp4012_set_value(config.config_sensepi->pir_conf.amplification);
+            intr_trig_time_in = ((uint32_t)config.config_sensepi->pir_conf.intr_trig_timer);
             break;
         }
         case TIMER_ONLY:
         {
-            timer_interval_in = (update_config->timer_conf.timer_interval);
+            timer_interval_in = (config.config_sensepi->timer_conf.timer_interval);
             break;
         }
         case PIR_AND_TIMER:
         {
-            config_pir.threshold = ((uint32_t) update_config->pir_conf.threshold)*PIR_THRESHOLD_MULTIPLY_FACTOR;
-            mcp4012_set_value(update_config->pir_conf.amplification);
-            intr_trig_time_in = ((uint32_t)update_config->pir_conf.intr_trig_timer);
-            timer_interval_in = (update_config->timer_conf.timer_interval);
+            config_pir.threshold = ((uint32_t) config.config_sensepi->pir_conf.threshold)
+                    *PIR_THRESHOLD_MULTIPLY_FACTOR;
+            mcp4012_set_value(config.config_sensepi->pir_conf.amplification);
+            intr_trig_time_in = ((uint32_t)config.config_sensepi->pir_conf.intr_trig_timer);
+            timer_interval_in = (config.config_sensepi->timer_conf.timer_interval);
             break;
         }
     }
-    data_process_config(update_config, config.signal_out_pin_array);
+    data_process_config(config.config_sensepi, config.signal_out_pin_array);
 }
 
 void sensepi_cam_trigger_add_tick(uint32_t interval)
@@ -509,7 +514,10 @@ void pattern_out_done_handler(out_gen_state_t out_gen_state)
     {
         case IDLE:
         {
-            pir_enable();
+            if(!(config.config_sensepi->trig_conf == TIMER_ONLY))
+            {
+                pir_enable();            
+            }
             for(uint32_t pin_num = 0; pin_num < ARRAY_SIZE(pin_outs); pin_num++)
             {
                 hal_gpio_cfg_output(pin_outs[pin_num], 1);
@@ -619,6 +627,10 @@ void pattern_out_done_handler(out_gen_state_t out_gen_state)
         {
             video_on_flag = 0;
             pir_enable();
+            break;
+        }
+        case VIDEO_TIMER:
+        {
             break;
         }
     }
@@ -798,26 +810,49 @@ void bulb_mode(uint32_t input1, uint32_t input2)
 void video_mode(uint32_t input1, uint32_t input2)
 {
     log_printf("VIDEO_MODE\n");
-    video_ext_time = data_process_get_video_extention();
-    video_pir_disable_len = LFCLK_TICKS_977((input1 * 100) - video_ext_time);
-    number_of_transition = VIDEO_TRANSITION;
-    time_remain = LFCLK_TICKS_977(video_ext_time);
-    uint32_t local_delay_array[VIDEO_TRANSITION] = 
-    {FOCUS_TRIGGER_TIME_DIFF, VIDEO_CONTROL_PULSE,
-        (video_pir_disable_len)};
-    memcpy(delay_array, local_delay_array, sizeof(local_delay_array));
-    bool local_out_pattern[NUM_PIN_OUT][VIDEO_TRANSITION + 1] = {
-        {1, 0, 1, 1},
-        {1, 1, 1, 1}};
-    for(uint32_t row; row < NUM_PIN_OUT; row++)
-    { 
-        memcpy(&out_pattern[row][0], &local_out_pattern[row][0], (VIDEO_TRANSITION+1));
+    if(!(config.config_sensepi->trig_conf == TIMER_ONLY))
+    {
+        video_ext_time = data_process_get_video_extention();
+        video_pir_disable_len = LFCLK_TICKS_977((input1 * 100) - video_ext_time);
+        number_of_transition = VIDEO_TRANSITION;
+        time_remain = LFCLK_TICKS_977(video_ext_time);
+        uint32_t local_delay_array[VIDEO_TRANSITION] = 
+        {FOCUS_TRIGGER_TIME_DIFF, VIDEO_CONTROL_PULSE,
+            (video_pir_disable_len)};
+        bool local_out_pattern[NUM_PIN_OUT][VIDEO_TRANSITION + 1] = {
+            {1, 0, 1, 1},
+            {1, 1, 1, 1}};
+        memcpy(delay_array, local_delay_array, sizeof(local_delay_array));
+        for(uint32_t row; row < NUM_PIN_OUT; row++)
+        { 
+            memcpy(&out_pattern[row][0], &local_out_pattern[row][0], (VIDEO_TRANSITION+1));
+        }
     }
-        out_gen_config_t out_gen_config = 
+    else
+    {
+        time_remain = timer_interval_in + (1 << 24) - ((input1 * 100) - 500);
+        log_printf("time_remain: %d\n",time_remain);
+        time_remain = LFCLK_TICKS_977(time_remain);
+        number_of_transition = VIDEO_TRANSITION * 2;
+        uint32_t local_delay_array[VIDEO_TRANSITION * 2] =
+        {FOCUS_TRIGGER_TIME_DIFF, VIDEO_CONTROL_PULSE,
+            LFCLK_TICKS_977(input1*100), VIDEO_CONTROL_PULSE,
+            FOCUS_TRIGGER_TIME_DIFF, time_remain};
+        bool local_out_pattern[NUM_PIN_OUT][(VIDEO_TRANSITION * 2) + 1] = {
+            {1, 0, 1, 0, 1, 1},
+            {1, 1, 1, 1, 1, 1}};
+        memcpy(delay_array, local_delay_array, sizeof(local_delay_array));
+        for(uint32_t row; row < NUM_PIN_OUT; row++)
+        { 
+            memcpy(&out_pattern[row][0], &local_out_pattern[row][0], (number_of_transition+1));
+        }
+    }
+    
+    out_gen_config_t out_gen_config = 
     {
         .num_transitions = number_of_transition,
         .out_gen_done_handler = pattern_out_done_handler,
-        .out_gen_state = VIDEO_START,
+        .out_gen_state = VIDEO_TIMER,
     };
     memcpy(out_gen_config.transitions_durations, delay_array, sizeof(delay_array));
     memcpy(out_gen_config.next_out, out_pattern, sizeof(out_pattern));
@@ -876,7 +911,6 @@ void data_process_pattern_gen(bool data_process_mode)
     if(data_process_mode == PIR_DATA_PROCESS_MODE)
     {
         config_mode = config_sensepi.pir_conf.mode;
-        log_printf("CONFIG_SENSEPI_PIR_MODE : %d\n", config_mode);
     }
     else
     {
