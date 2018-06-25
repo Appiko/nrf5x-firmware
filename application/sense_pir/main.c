@@ -154,7 +154,7 @@ static sensepi_config_t sensepi_ble_default_config = {
 
 static uint32_t out_pin_array[] = {JACK_FOCUS_PIN, JACK_TRIGGER_PIN};
 #if 1
-static sensepi_cam_trigger_config_t sensepi_cam_trigger_default_config = 
+static sensepi_cam_trigger_init_config_t sensepi_cam_trigger_default_config = 
 {
     .config_sensepi = &sensepi_ble_default_config,
     .led_sense_analog_in_pin = PIN_TO_ANALOG_INPUT(LED_LIGHT_SENSE),

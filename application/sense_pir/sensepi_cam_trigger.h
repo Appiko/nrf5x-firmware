@@ -70,8 +70,7 @@ typedef struct{
                                      ///MCP4012
     uint32_t *signal_out_pin_array;  ///Array of pins on which output signal is 
                                      ///to be sent.
-
-}sensepi_cam_trigger_config_t;
+}sensepi_cam_trigger_init_config_t;
 
 
 /**
@@ -89,7 +88,7 @@ void sensepi_cam_trigger_stop();
  * @param config strcture pointer of configuration for which we need to
  * configure the SensePi_PIR module
  */
-void sensepi_cam_trigger_init(sensepi_cam_trigger_config_t * config_sensepi_cam_trigger);
+void sensepi_cam_trigger_init(sensepi_cam_trigger_init_config_t * config_sensepi_cam_trigger);
 
 /**
  * @brief Function to update the configuration at every instance when it is
@@ -98,12 +97,11 @@ void sensepi_cam_trigger_init(sensepi_cam_trigger_config_t * config_sensepi_cam_
  */
 void sensepi_cam_trigger_update(sensepi_config_t * update_config);
 
-//Add a get config
 /**
  * @brief Function to get the current configuration to send it to mobile app.
  * @return pointer to copy of current config
  */
-sensepi_config_t * sensepi_cam_trigger_get_sensepi_config_t();
+sensepi_config_t * sensepi_cam_trigger_get_sensepi_config();
 
 /**
  * @brief Function to decide what to decide at current tick
