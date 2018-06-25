@@ -50,7 +50,7 @@
 #pragma GCC diagnostic push
 #define log_printf(...)  tfp_printf(__VA_ARGS__)
 #pragma GCC diagnostic pop
-#elif defined LOG_UART_PRINTF//UARTE printf
+#elif defined LOG_UART_PRINTF//UART printf
 #include "nrf.h"
 #include "tinyprintf.h"
 #include "hal_uart.h"
