@@ -56,32 +56,24 @@
 /** The maximum number of output pins for which pattern can be generated */
 #define OUT_GEN_MAX_NUM_OUT     4
 
-typedef enum
-{
-    IDLE,
-    PHOTO,
-    VIDEO_START,
-    VIDEO_EXT,
-    VIDEO_END,
-    VIDEO_TIMER,
-} out_gen_state_t;
 /** 
- * @brief Configuration Strcture for output pattern generation.
+ * @brief Configuration structure for output pattern generation.
  */
 typedef struct 
 {
-    uint32_t num_transitions;                                
-    /** The number of transitions in this pattern. */
+    /** @brief The number of transitions in this pattern. */
+    uint32_t num_transitions;
+    /** @brief 1 dimensional array containing the durations in terms of LFCLK
+        frequency ticks for the transitions. */
     uint32_t transitions_durations[OUT_GEN_MAX_TRANSITIONS];
-    /** Pointer to array containing the durations in terms of LFCLK frequency
-    ticks for the transitions. */
+    /** @brief A 2 dimensional boolean array containing the next digital output
+        value for the various transitions across the initialized pins. */
     bool next_out[OUT_GEN_MAX_NUM_OUT][OUT_GEN_MAX_TRANSITIONS];
-    ///A pointer to a two dimensional array containing the next digital output
-    ///value for the various transitions across the initialized pins.
-    void (*out_gen_done_handler)(out_gen_state_t out_gen_state);
-    ///A pointer to a handler
-    out_gen_state_t out_gen_state;                              
-    ///State which is to be started with this configuration
+    /** @brief A pointer to a handler called after a pattern is generated */
+    void (*out_gen_done_handler)(uint32_t out_gen_state);
+    /** @brief State which is to be started with this configuration,
+         passed as an argument with the @p out_gen_done_handler */
+    uint32_t out_gen_state;
 } out_gen_config_t;
 
 /**
@@ -115,8 +107,8 @@ void out_gen_stop(bool * out_vals);
 bool out_gen_is_on(void);
 
 /**
- * @brieg Function to get ticks since last call for out_gen_start;
- * @return Number of ms_timer ticks since last call for out_gen_start
+ * @brief Function to get ticks since last call of @ref out_gen_start
+ * @return Number of ms_timer ticks since last call of @ref out_gen_start
  */
 uint32_t out_gen_get_ticks(void);
 
