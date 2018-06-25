@@ -96,8 +96,7 @@
 
 
 /*SensePi_PIR module variables.*/
-static sensepi_cam_trigger_config_t config;
-static bool pir_sense_flag = 1;
+static sensepi_cam_trigger_init_config_t config;
 static pir_sense_cfg config_pir;
 static uint32_t intr_trig_time_in = 0;
 static uint32_t timer_interval_in = 0;
@@ -130,7 +129,16 @@ typedef enum
     PIR_DISABLED,
 }sensepi_cam_trigger_substate;
 
-static sensepi_cam_trigger_substate pir_substate = PIR_ENABLED;
+typedef enum
+{
+    IDLE,
+    PHOTO,
+    VIDEO_START,
+    VIDEO_EXT,
+    VIDEO_END,
+    VIDEO_TIMER,
+} cam_trig_state_t;
+
 /**
  * @brief Function to enable PIR sensing
  */
@@ -151,7 +159,7 @@ void timer_handler(void);
  * @param led_conf Configuration which is to be used to activate LED light 
  * sensing
  */
-void led_sense_conf(sensepi_cam_trigger_config_t * led_conf);
+void led_sense_conf(sensepi_cam_trigger_init_config_t * led_conf);
 
 /**
  * @brief Function to check light conditions and comapre light conditions with 
@@ -193,6 +201,7 @@ void data_process_config(sensepi_config_t *local_config, uint32_t * out_pin_arra
  * terminated
  */
 void data_process_stop();
+
 /**
  * @brief Function to add extention to video
  * @param time_remaining How much time is remaining out of original video len.
@@ -220,7 +229,7 @@ void focus_mode();
  * @brief Handler for out pattern generation done.
  * @param out_gen_state State from which handler is called.
  */
-void pattern_out_done_handler(out_gen_state_t out_gen_state);
+void pattern_out_done_handler(uint32_t out_gen_state);
 
 ///Function definations
 /*SensePi_PIR module*/
@@ -228,18 +237,12 @@ void pir_enable()
 {
     log_printf("PIR_Enabled\n");
     pir_sense_start(&config_pir);
-    pir_sense_flag = 1;
-    device_tick_switch_mode(DEVICE_TICK_SLOW);
-    pir_substate = PIR_ENABLED;
-    return;
 }
 
 void pir_disable()
 {
     log_printf("PIR_Disabled\n");
     pir_sense_stop();
-    pir_substate = PIR_DISABLED;
-    pir_sense_flag = 0;
 }
 
 void pir_handler(int32_t adc_val)
@@ -291,6 +294,7 @@ void timer_handler(void)
 {
     log_printf("Timer Handler\n");
     data_process_pattern_gen(TIMER_DATA_PROCESS_MODE);
+    //TODO Make it repeated to start off initially
     ms_timer_start(MS_TIMER2,
         MS_SINGLE_CALL,
         LFCLK_TICKS_977(config.config_sensepi->timer_conf.timer_interval),
@@ -298,7 +302,7 @@ void timer_handler(void)
 
 }
 
-void led_sense_conf(sensepi_cam_trigger_config_t * led_conf)
+void led_sense_conf(sensepi_cam_trigger_init_config_t * led_conf)
 {
     log_printf("Led_Sense_Conf\n");
     led_sense_init(led_conf->led_sense_out_pin,
@@ -326,7 +330,6 @@ bool light_check(oper_time_t oper_time_temp)
     else
     {
         light_check_flag = 0;
-        device_tick_switch_mode(DEVICE_TICK_SLOW);
     }
     return light_check_flag;
 
@@ -339,14 +342,13 @@ void sensepi_cam_trigger_start()
         log_printf("SensePi_PIR_Start\n");
         led_sense_cfg_input(true);
         hal_nop_delay_ms(LED_WAIT_TIME_MS);
-        timer_interval_in = config_sensepi.timer_conf.timer_interval;
-        if(!(config.config_sensepi->trig_conf == PIR_ONLY))
+        if(false == (config.config_sensepi->trig_conf == PIR_ONLY))
         {
             log_printf("\n\nTimer ON\n\n");
             ms_timer_start(MS_TIMER2,
                 MS_SINGLE_CALL, LFCLK_TICKS_977(timer_interval_in), timer_handler);
         }
-        if(!(config.config_sensepi->trig_conf == TIMER_ONLY))
+        if(false == (config.config_sensepi->trig_conf == TIMER_ONLY))
         {
             log_printf("\n\nPIR ON\n\n");
             pir_enable();
@@ -369,7 +371,7 @@ void sensepi_cam_trigger_stop()
 
 }
 
-void sensepi_cam_trigger_init(sensepi_cam_trigger_config_t * config_sensepi_cam_trigger)
+void sensepi_cam_trigger_init(sensepi_cam_trigger_init_config_t * config_sensepi_cam_trigger)
 {
     log_printf("SensePi_PIR_init\n");
     memcpy(&config, config_sensepi_cam_trigger, sizeof(config));
@@ -457,6 +459,7 @@ void sensepi_cam_trigger_update(sensepi_config_t * update_config)
 void sensepi_cam_trigger_add_tick(uint32_t interval)
 {
     log_printf("SensePi Add ticks : %d\n", interval);
+    //TODO Take care of this if
     if(interval > 50)
     {
         working_mode = config.config_sensepi->trig_conf;
@@ -486,6 +489,7 @@ void sensepi_cam_trigger_add_tick(uint32_t interval)
                 }
                 break;
             }
+            //TODO make an internal config for the oper time
             case PIR_AND_TIMER:
             {
                 if(light_check(config.config_sensepi->pir_conf.oper_time) || 
@@ -506,15 +510,15 @@ void sensepi_cam_trigger_add_tick(uint32_t interval)
 
 /*Data_Process module*/
 
-void pattern_out_done_handler(out_gen_state_t out_gen_state)
+void pattern_out_done_handler(uint32_t out_gen_state)
 {
     log_printf("OUT_GEN_STATE : %02x\n", out_gen_state);
 
-    switch(out_gen_state)
+    switch((cam_trig_state_t)out_gen_state)
     {
         case IDLE:
         {
-            if(!(config.config_sensepi->trig_conf == TIMER_ONLY))
+            if(false == (config.config_sensepi->trig_conf == TIMER_ONLY))
             {
                 pir_enable();            
             }
@@ -800,7 +804,7 @@ void bulb_mode(uint32_t input1, uint32_t input2)
 void video_mode(uint32_t input1, uint32_t input2)
 {
     log_printf("VIDEO_MODE\n");
-    if(!(config.config_sensepi->trig_conf == TIMER_ONLY))
+    if(false == (config.config_sensepi->trig_conf == TIMER_ONLY))
     {
         video_ext_time = data_process_get_video_extention();
         video_pir_disable_len = LFCLK_TICKS_977((input1 * 100) - video_ext_time);
@@ -820,7 +824,7 @@ void video_mode(uint32_t input1, uint32_t input2)
     }
     else
     {
-        time_remain = timer_interval_in + (1 << 24) - ((input1 * 100) - 500);
+        time_remain = timer_interval_in - ((input1 * 100) - 500);
         log_printf("time_remain: %d\n",time_remain);
         time_remain = LFCLK_TICKS_977(time_remain);
         number_of_transition = VIDEO_TRANSITION * 2;
@@ -837,7 +841,7 @@ void video_mode(uint32_t input1, uint32_t input2)
             memcpy(&out_pattern[row][0], &local_out_pattern[row][0], (number_of_transition+1));
         }
     }
-    
+    //TODO check out_gen_state value
     out_gen_config_t out_gen_config = 
     {
         .num_transitions = number_of_transition,
@@ -920,7 +924,7 @@ void data_process_pattern_gen(bool data_process_mode)
     log_printf("Mode : %02x\n", mode);
     log_printf("Input 1 : %06d\n", input1);
     log_printf("input 2 : %02x\n", input2);
-#endif    
+#endif
     switch(mode)
     {
         case MODE_SINGLE_SHOT:
