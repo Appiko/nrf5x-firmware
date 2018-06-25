@@ -53,10 +53,10 @@ static struct
     uint32_t num_transitions;
     uint32_t current_transition;
     uint32_t transitions_durations[OUT_GEN_MAX_TRANSITIONS];
-    out_gen_state_t current_state;
+    uint32_t end_context;
 }context;
 
-void (*out_gen_done_handler)(out_gen_state_t out_gen_state);
+void (*out_gen_done_handler)(uint32_t out_gen_state);
 
 static uint32_t timer_start_ticks_value;
 
@@ -73,7 +73,7 @@ static void timer_handler(void)
     if(context.current_transition == context.num_transitions)
     {
         context.is_on = false;
-        out_gen_done_handler(context.current_state);
+        out_gen_done_handler(context.end_context);
     }
     else
     {
@@ -98,11 +98,11 @@ void out_gen_init(uint32_t num_out, uint32_t * out_pins)
 
 void out_gen_start(out_gen_config_t * out_gen_config)
 {
+    ASSERT((out_gen_config->num_transitions < OUT_GEN_MAX_TRANSITIONS)
+            && (out_gen_config->num_transitions > 0));
     memset(context.next_out, 0, sizeof(context.next_out));
     memset(context.transitions_durations, 0 ,
             sizeof(context.transitions_durations));
-    ASSERT((out_gen_config->num_transitions < OUT_GEN_MAX_TRANSITIONS) 
-            && (out_gen_config->num_transitions > 0));
 
     context.num_transitions = out_gen_config->num_transitions;
     memcpy(context.transitions_durations, out_gen_config->transitions_durations,
@@ -116,7 +116,7 @@ void out_gen_start(out_gen_config_t * out_gen_config)
     }
     context.is_on = true;
     context.current_transition = 0;
-    context.current_state = out_gen_config->out_gen_state;
+    context.end_context = out_gen_config->out_gen_state;
     out_gen_done_handler = out_gen_config->out_gen_done_handler;
 
     ms_timer_start(OUT_GEN_MS_TIMER_USED, MS_SINGLE_CALL,
