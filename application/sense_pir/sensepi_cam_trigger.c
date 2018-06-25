@@ -388,7 +388,7 @@ void sensepi_cam_trigger_init(sensepi_cam_trigger_config_t * config_sensepi_cam_
                 APP_IRQ_PRIORITY_HIGH, pir_handler, 
             };
             config_pir = local_config_pir;
-            intr_trig_time_in = (local_sensepi_config_t.pir_conf.intr_trig_timer);
+            intr_trig_time_in = (local_sensepi_config_t.pir_conf.intr_trig_timer)*100;
             led_sense_conf(&config);
             mcp4012_init(config.amp_cs_pin, config.amp_ud_pin, config.amp_spi_sck_pin);
             mcp4012_set_value(config_sensepi_cam_trigger->config_sensepi->pir_conf.amplification);
@@ -396,7 +396,7 @@ void sensepi_cam_trigger_init(sensepi_cam_trigger_config_t * config_sensepi_cam_
         }
         case TIMER_ONLY:
         {
-            timer_interval_in = (local_sensepi_config_t.timer_conf.timer_interval)*100;
+            timer_interval_in = (local_sensepi_config_t.timer_conf.timer_interval);
             break;
         }
         case PIR_AND_TIMER:
@@ -433,7 +433,7 @@ void sensepi_cam_trigger_update(sensepi_config_t * update_config)
             config_pir.threshold = ((uint32_t) config.config_sensepi->pir_conf.threshold)
                     *PIR_THRESHOLD_MULTIPLY_FACTOR;
             mcp4012_set_value(config.config_sensepi->pir_conf.amplification);
-            intr_trig_time_in = ((uint32_t)config.config_sensepi->pir_conf.intr_trig_timer);
+            intr_trig_time_in = ((uint32_t)config.config_sensepi->pir_conf.intr_trig_timer)*100;
             break;
         }
         case TIMER_ONLY:
@@ -446,7 +446,7 @@ void sensepi_cam_trigger_update(sensepi_config_t * update_config)
             config_pir.threshold = ((uint32_t) config.config_sensepi->pir_conf.threshold)
                     *PIR_THRESHOLD_MULTIPLY_FACTOR;
             mcp4012_set_value(config.config_sensepi->pir_conf.amplification);
-            intr_trig_time_in = ((uint32_t)config.config_sensepi->pir_conf.intr_trig_timer);
+            intr_trig_time_in = ((uint32_t)config.config_sensepi->pir_conf.intr_trig_timer)*100;
             timer_interval_in = (config.config_sensepi->timer_conf.timer_interval);
             break;
         }
@@ -659,16 +659,6 @@ void data_process_config(sensepi_config_t *local_config, uint32_t *out_pin_array
     {
         log_printf("OUT_PIN_ARRAY[%d] : %d\n", pin_num, out_pin_array[pin_num]);        
     }
-        log_printf("Trig mode %d, PIR ope time %x, PIR mode %x, PIR amp %d, PIR thres %d, \
-             PIR int trig time %d, Timer oper %x, Timer mode %x, timer interval %d \n",
-            config_sensepi.trig_conf, config_sensepi.pir_conf.oper_time,
-            config_sensepi.pir_conf.mode, config_sensepi.pir_conf.amplification,
-            config_sensepi.pir_conf.threshold,
-            config_sensepi.pir_conf.intr_trig_timer,
-            config_sensepi.timer_conf.oper_time,
-            config_sensepi.timer_conf.mode, config_sensepi.timer_conf.timer_interval);
-
-
 #endif
 }
 
@@ -768,14 +758,14 @@ void multi_shot_mode(uint32_t input1, uint32_t input2)
 void bulb_mode(uint32_t input1, uint32_t input2)
 {
     log_printf("BULB_MODE\n");
-    number_of_transition = SINGLE_SHOT_TRANSITIONS+1;
+    number_of_transition = SINGLE_SHOT_TRANSITIONS+2;
     uint32_t local_delay_array[OUT_GEN_MAX_TRANSITIONS ] =
-    {(LFCLK_TICKS_977((input1+input2)*100) - BULB_TRIGGER_PULSE),
+    {LFCLK_TICKS_977(1), (LFCLK_TICKS_977((input1+input2)*100) - BULB_TRIGGER_PULSE),
     BULB_TRIGGER_PULSE, LFCLK_TICKS_977(1)};
     memcpy(delay_array, local_delay_array, sizeof(local_delay_array));
     bool local_out_pattern[OUT_GEN_MAX_NUM_OUT][OUT_GEN_MAX_TRANSITIONS] = {
-        {  0, 0, 1,1},
-        {  1, 0, 1,1}};
+        {1, 0, 0, 1,1},
+        {1, 1, 0, 1,1}};
     memcpy(out_pattern, local_out_pattern, sizeof(local_out_pattern));
     total_delay = 0;
     for(uint32_t arr_c = 0; arr_c < ARRAY_SIZE(local_delay_array); arr_c++)

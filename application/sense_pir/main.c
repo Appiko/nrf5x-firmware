@@ -142,12 +142,12 @@ static sensepi_config_t sensepi_ble_default_config = {
     .pir_conf.amplification = 31,
     .pir_conf.threshold = 100,
     .pir_conf.mode = 0x03000800,
-    .pir_conf.intr_trig_timer = 5000,
+    .pir_conf.intr_trig_timer = 50,
     
     .timer_conf.oper_time.day_or_night = 1,
     .timer_conf.oper_time.threshold = 0b0000000,
     .timer_conf.mode = 0x00000000,
-    .timer_conf.timer_interval = 5000,
+    .timer_conf.timer_interval = 50,
     
     .trig_conf = PIR_ONLY,
 };
@@ -246,14 +246,14 @@ static void get_sensepi_config_t(sensepi_config_t *config)
             config->oper_time, config->mode, config->amplification,
             config->threshold, config->inter_trig_time, config->pre_focus,
             config->cam_comp, config->cam_model);
+#endif
 
-    log_printf("Trig mode %d, PIR ope time %x, PIR mode %x, PIR amp %d, PIR thres %d, \
-             PIR int trig time %d, Timer oper %x, Timer mode %x, timer interval %d \n",
+    log_printf("Trig mode %d, PIR ope time %08x, PIR mode %08x, PIR amp %d, PIR thres %d, \
+             PIR int trig time %04d, Timer oper %x, Timer mode %x, timer interval %04d \n",
             config->trig_conf, config->pir_conf.oper_time, config->pir_conf.mode,
             config->pir_conf.amplification, config->pir_conf.threshold,
             config->pir_conf.intr_trig_timer,
             config->timer_conf.oper_time, config->timer_conf.mode, config->timer_conf.timer_interval);
-#endif
     sensepi_cam_trigger_update(config);
 }
 
