@@ -147,7 +147,7 @@ static sensepi_config_t sensepi_ble_default_config = {
     .timer_conf.oper_time.day_or_night = 1,
     .timer_conf.oper_time.threshold = 0b0000000,
     .timer_conf.mode = 0x00000000,
-    .timer_conf.timer_interval = 50,
+    .timer_conf.timer_interval = 5000,
     
     .trig_conf = PIR_ONLY,
 };
