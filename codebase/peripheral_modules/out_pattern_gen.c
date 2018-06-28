@@ -40,6 +40,7 @@
 #include "hal_gpio.h"
 #include "string.h"
 #include "log.h"
+#include "stddef.h"
 
 /** Specify the MS_TIMER used for the output pattern generator module */
 #define OUT_GEN_MS_TIMER_USED           MS_TIMER1
@@ -73,7 +74,10 @@ static void timer_handler(void)
     if(context.current_transition == context.num_transitions)
     {
         context.is_on = false;
-        out_gen_done_handler(context.end_context);
+        if(out_gen_done_handler != NULL)
+        {
+            out_gen_done_handler(context.end_context);
+        }
     }
     else
     {
@@ -104,6 +108,7 @@ void out_gen_start(out_gen_config_t * out_gen_config)
     memset(context.transitions_durations, 0 ,
             sizeof(context.transitions_durations));
 
+    context.current_transition = 0;
     context.num_transitions = out_gen_config->num_transitions;
     memcpy(context.transitions_durations, out_gen_config->transitions_durations,
             out_gen_config->num_transitions*sizeof(uint32_t) );
@@ -115,7 +120,6 @@ void out_gen_start(out_gen_config_t * out_gen_config)
                 out_gen_config->next_out[i][context.current_transition]);
     }
     context.is_on = true;
-    context.current_transition = 0;
     context.end_context = out_gen_config->out_gen_state;
     out_gen_done_handler = out_gen_config->out_gen_done_handler;
 
