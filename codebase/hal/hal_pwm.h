@@ -35,6 +35,23 @@
 #ifndef CODEBASE_HAL_HAL_PWM_H_
 #define CODEBASE_HAL_HAL_PWM_H_
 
+/**
+ * @addtogroup group_hal
+ * @{
+ *
+ * @defgroup group_hal_pwm HAL PWM
+ * @brief Hardware abstraction layer of the PWM peripheral in the nRF52 SoCs.
+ * @{
+ */
+
+#include "stdint.h"
+#include "stdbool.h"
+#include "nrf.h"
+
+#ifdef NRF51
+#error "nRF51 series SoCs don't have a PWM peripheral"
+#endif
+
 #define HAL_PWM_MAX_PIN_NUM     4
 
 /** @brief Select the PWM frequency to operate at. */
@@ -106,17 +123,20 @@ typedef enum
  */
 typedef struct
 {
-    /// Pointer to an array containing the PWM duty cycle values.
-    /// This array present in the data RAM should preferably have a
-    /// program lifetime (global or local static variable).
+    /// @brief Pointer to an array containing the PWM duty cycle values.
+    ///  This array present in the data RAM should preferably have a
+    ///  program lifetime (global or local static variable).
+    /// @note Depending on the decoder load mode the 16 bit data for the various
+    ///  channels must be present one after the other
+    /// @note The MSB of the 16 bit value determines the polarity of the PWM output
     uint16_t * seq_values;
     /// Number of 16-bit values in the buffer pointed by @p seq_values.
     uint16_t len;
-    /// Number of times a particular value should be played minus one.
-    /// Only for @ref HAL_PWM_STEP_INTERNAL mode.
+    /// @brief Number of times a particular value should be played.
+    ///  Only for @ref HAL_PWM_STEP_INTERNAL mode.
     uint32_t repeats;
-    /// Additional number of cycles that the last PWM value is to be played after the end.
-    /// Only for @ref HAL_PWM_STEP_INTERNAL mode.
+    /// @brief Additional number of cycles that the last PWM value is to be played
+    ///  after the end. Only for @ref HAL_PWM_STEP_INTERNAL mode.
     uint32_t end_delay;
 } hal_pwm_sequence_config_t;
 
@@ -142,46 +162,75 @@ typedef enum
 } hal_pwm_irq_mask_t;
 
 /**
- *
+ * @brief Struct for initializing the hal pwm module
  */
 typedef struct
 {
+    /// Pointer to array containing the pins number used by hal pwm
     uint32_t * pins;
+    /// Pointer to array having the state of pins when PWM generation isn't on
+    bool * pin_idle_state;
+    /// Number of pins to be used by hal pwm. Maximum is @ref HAL_PWM_MAX_PIN_NUM
     uint32_t pin_num;
+    /// Select the operating frequency of the hal pwm module
     hal_pwm_freq_t oper_freq;
+    /// Select the operating mode (Up or Up&Down) of the module's counter
     hal_pwm_mode_t oper_mode;
+    /// IRQ priority with which the @p irq_handler in @ref hal_pwm_start_t is called
+    uint32_t irq_priority;
 }hal_pwm_init_t;
 
 /**
- *
+ * @brief Struct containing the configuration for starting the hal pwm module
  */
 typedef struct
 {
+    /// @brief Maximum count of the counter. This and oper_freq decide the
+    /// frequency of the resulting PWM waveform
     uint32_t countertop;
+    /// The number of times the pattern of both seq_config must be repeated
     uint32_t loop;
+    /// @brief Select the shortcuts that need to be enabled.
+    /// OR the values in @ref hal_pwm_short_mask_t to enable them.
     uint32_t shorts_mask;
+    /// @brief Select the interrupts that need to be enabled
+    /// OR the values in @ref hal_pwm_irq_mask_t to enable them.
     uint32_t interrupt_masks;
+    /// @brief Select the way in which the data pointed in seq_config is
+    /// loaded into to the various channels
     hal_pwm_decoder_load_t decoder_load;
+    /// @brief Select when the next data is loaded to the PWM
     hal_pwm_dec_trigger_t decoder_trigger;
+    /// @brief The two configurations for the sequences. If @p loop is zero
+    /// only the first sequence is played once. Otherwise both the sequences
+    /// are played repeatedly based on the @p loop value.
     hal_pwm_sequence_config_t seq_config[2];
-    void (*irq_handler)(void);
+    /// @brief the handler called based on the interrupt generated with the
+    /// argument providing the source of the interrupt
+    void (*irq_handler)(hal_pwm_irq_mask_t irq_source);
 }hal_pwm_start_t;
 
 /**
- *
- * @param init_config
+ * @brief Initialize the HAL PWM module. Can be called again to change the
+ *  initialization configuration.
+ * @param init_config Pointer to the configuration for the initialization
  */
-void hal_pwm_init(hal_pwm_init_t init_config);
+void hal_pwm_init(hal_pwm_init_t * init_config);
 
 /**
- *
- * @param start_config
+ * @brief Start the PWM generation based on the configuration provided
+ * @param start_config Pointer to the configuration for the PWM to start
  */
-void hal_pwm_start(hal_pwm_start_t start_config);
+void hal_pwm_start(hal_pwm_start_t * start_config);
 
 /**
- *
+ * @brief Stop the PWM generation.
  */
 void hal_pwm_stop(void);
 
 #endif /* CODEBASE_HAL_HAL_PWM_H_ */
+
+/**
+ * @}
+ * @}
+ */
