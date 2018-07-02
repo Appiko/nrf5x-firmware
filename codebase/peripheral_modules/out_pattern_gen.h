@@ -81,9 +81,9 @@ typedef struct
  *  the pins on which the pattern is generated
  * @param num_out The number of pins with pattern generation
  * @param out_pins Pointer to array with the pin numbers
- * @note This function assumes the pins would already be initialized as output
+ * @param out_init_value Pointer to an array containing the initial pin values
  */
-void out_gen_init(uint32_t num_out, uint32_t * out_pins);
+void out_gen_init(uint32_t num_out, uint32_t * out_pins, bool * out_init_value);
 
 /**
  * @brief Start the generation of the pattern with the information provided

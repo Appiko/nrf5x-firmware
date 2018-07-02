@@ -86,7 +86,7 @@ static void timer_handler(void)
     }
 }
 
-void out_gen_init(uint32_t num_out, uint32_t * out_pins)
+void out_gen_init(uint32_t num_out, uint32_t * out_pins, bool * out_init_value)
 {
     log_printf("OUT_GEN_INIT\n");
     ASSERT((num_out <= OUT_GEN_MAX_NUM_OUT) && (num_out > 0));
@@ -95,6 +95,7 @@ void out_gen_init(uint32_t num_out, uint32_t * out_pins)
     for(uint32_t i = 0; i < num_out; i++)
     {
         context.out_pins[i] = out_pins[i];
+        hal_gpio_cfg_output(out_pins[i], out_init_value[i]);
     }
 
     context.is_on = false;
