@@ -166,6 +166,7 @@ static sensepi_cam_trigger_init_config_t sensepi_cam_trigger_default_config =
     .amp_ud_pin= MCP4012T_UD_PIN,
     .amp_spi_sck_pin = SPI_SCK_PIN,
     .signal_out_pin_array = out_pin_array,
+    .signal_pin_num = ARRAY_SIZE(out_pin_array),
 };
 #endif
 
@@ -549,7 +550,6 @@ int main(void)
     led_sense_init(LED_GREEN,
             PIN_TO_ANALOG_INPUT(LED_LIGHT_SENSE), !LEDS_ACTIVE_STATE);
     led_sense_cfg_input(true);
-    
 
     {
         irq_msg_callbacks cb =
@@ -561,7 +561,7 @@ int main(void)
     current_state = ADVERTISING; //So that a state change happens
     irq_msg_push(MSG_STATE_CHANGE, (void *)SENSING);
     sensepi_ble_init(ble_evt_handler, get_sensepi_config_t);
-//    data_process_config(&sensepi_ble_default_config, out_pin_array);
+
     while (true)
     {
 #if ENABLE_WDT == 1

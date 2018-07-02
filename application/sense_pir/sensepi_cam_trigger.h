@@ -52,8 +52,6 @@
 extern "C" {
 #endif
 
-
-
 /**
  * @brief Strcture to configure SensePi_PIR module
  */
@@ -70,6 +68,7 @@ typedef struct{
                                      ///MCP4012
     uint32_t *signal_out_pin_array;  ///Array of pins on which output signal is 
                                      ///to be sent.
+    uint32_t signal_pin_num;         ///Number of pins in the signal_out_pin_array
 }sensepi_cam_trigger_init_config_t;
 
 
@@ -108,8 +107,6 @@ sensepi_config_t * sensepi_cam_trigger_get_sensepi_config();
  * @param intervel Duration since last tick in ms
  */
 void sensepi_cam_trigger_add_tick(uint32_t intervel);
-
-
 
 #ifdef __cplusplus
 }
