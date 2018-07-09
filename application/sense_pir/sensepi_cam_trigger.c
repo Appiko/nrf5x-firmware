@@ -83,8 +83,8 @@
 #define BULB_SHOT_TRANSITIONS 3
 #define SINGLE_SHOT_DURATION LFCLK_TICKS_MS(250)
 #define BULB_TRIGGER_PULSE LFCLK_TICKS_MS(250)
-#define VIDEO_TRANSITION 3
-#define VIDEO_CONTROL_PULSE LFCLK_TICKS_MS(200)
+#define VIDEO_TRANSITION 2
+#define VIDEO_CONTROL_PULSE LFCLK_TICKS_MS(250)
 #define FOCUS_TRANSITIONS 2
 
 
@@ -226,10 +226,9 @@ void pir_handler(int32_t adc_val)
             .num_transitions = 1,
             .out_gen_done_handler = pattern_out_done_handler,
             .out_gen_state = VIDEO_EXT,
-            .transitions_durations = {video_ext_time,
-            LFCLK_TICKS_977(10)},
-            .next_out =  {{1,1,1},
-            {1,1,1}},
+            .transitions_durations = {LFCLK_TICKS_MS(video_ext_time)},
+            .next_out =  {{1,1},
+            {1,1}},
             
         };
         out_gen_start(&video_end_out_gen_config);
@@ -523,17 +522,11 @@ void pattern_out_done_handler(uint32_t out_gen_state)
                 .out_gen_done_handler = pattern_out_done_handler,
                 .out_gen_state = VIDEO_END,
                 .transitions_durations =
-                    {time_remain, VIDEO_CONTROL_PULSE,VIDEO_CONTROL_PULSE,
-                    LFCLK_TICKS_977(10)},
+                    {time_remain, VIDEO_CONTROL_PULSE},
                 .next_out = 
-                    {{1,0,1,1},
-            {1,1,1,1}},
+                    {{1,0,1},
+            {1,1,1}},
             };
-            uint32_t local_delay[OUT_GEN_MAX_TRANSITIONS] ;
-
-            memcpy((video_end_out_gen_config.transitions_durations), 
-                    local_delay, sizeof(local_delay));
-            memcpy((video_end_out_gen_config.next_out), out_pattern, sizeof(out_pattern));
             out_gen_start(&video_end_out_gen_config);
 #if DEBUG_PRINT
             log_printf("Out Pattern :\n");
@@ -551,18 +544,17 @@ void pattern_out_done_handler(uint32_t out_gen_state)
         }
         case VIDEO_EXT:
         {
-            time_remain += video_ext_time;
-
+//            time_remain += LFCLK_TICKS_MS(video_ext_time);
             out_gen_config_t video_end_out_gen_config = 
             {
-                .num_transitions = 3,
+                .num_transitions = 2,
                 .out_gen_done_handler = pattern_out_done_handler,
                 .out_gen_state = VIDEO_END,
                 .transitions_durations = {time_remain,
-                    LFCLK_TICKS_977(10), VIDEO_CONTROL_PULSE},
+                     VIDEO_CONTROL_PULSE},
                 .next_out = 
-                    {{1,1,0,1},
-                    {1,1,1,1}},
+                {{1,0,1},
+                    {1,1,1}},
             };
             out_gen_start(&video_end_out_gen_config);
             pir_enable();
@@ -602,7 +594,7 @@ sensepi_config_t * sensepi_cam_trigger_get_sensepi_config_t()
 
 uint32_t data_process_get_video_extention (void)
 {
-    return (uint32_t)config.config_sensepi->pir_conf.intr_trig_timer;
+    return (uint32_t)config.config_sensepi->pir_conf.intr_trig_timer * 100;
 }
 
 void single_shot_mode()
@@ -729,7 +721,7 @@ void bulb_mode(uint32_t bulb_time)
 void video_mode(uint32_t video_time, uint32_t extension_time)
 {
     log_printf("VIDEO_MODE\n");
-    uint32_t delay_array[OUT_GEN_MAX_TRANSITIONS] = {};
+//    uint32_t delay_array[OUT_GEN_MAX_TRANSITIONS] = {};
     uint32_t number_of_transition;
     out_gen_config_t out_gen_config = 
     {
@@ -739,19 +731,22 @@ void video_mode(uint32_t video_time, uint32_t extension_time)
     {
         out_gen_config.out_gen_state = VIDEO_START;
         video_ext_time = data_process_get_video_extention();
-        uint32_t video_pir_disable_len = LFCLK_TICKS_977((video_time * 100) - video_ext_time);
+        uint32_t video_pir_disable_len = LFCLK_TICKS_MS((video_time * 100) -
+                (video_ext_time));
         number_of_transition = VIDEO_TRANSITION;
-        time_remain = LFCLK_TICKS_977(video_ext_time);
+        time_remain = LFCLK_TICKS_MS(video_ext_time);
         uint32_t local_delay_array[VIDEO_TRANSITION] = 
-        {FOCUS_TRIGGER_TIME_DIFF, VIDEO_CONTROL_PULSE,
+        {VIDEO_CONTROL_PULSE,
             (video_pir_disable_len)};
         bool local_out_pattern[NUM_PIN_OUT][VIDEO_TRANSITION + 1] = {
-            {1, 0, 1, 1},
-            {1, 1, 1, 1}};
-        memcpy(delay_array, local_delay_array, sizeof(local_delay_array));
-        for(uint32_t row; row < NUM_PIN_OUT; row++)
+            {0, 1, 1},
+            {1, 1, 1}};
+        memcpy(out_gen_config.transitions_durations, local_delay_array, 
+                sizeof(local_delay_array));
+        for(uint32_t row = 0; row < NUM_PIN_OUT; row++)
         { 
-            memcpy(*(out_gen_config.next_out + row), &local_out_pattern[row][0], (VIDEO_TRANSITION+1));
+            memcpy(&(out_gen_config.next_out[row][0]),
+                    &local_out_pattern[row][0], (VIDEO_TRANSITION+1));
         }
     }
     else
@@ -761,20 +756,21 @@ void video_mode(uint32_t video_time, uint32_t extension_time)
         time_remain = LFCLK_TICKS_977(time_remain);
         number_of_transition = VIDEO_TRANSITION * 2;
         uint32_t local_delay_array[VIDEO_TRANSITION * 2] =
-        {FOCUS_TRIGGER_TIME_DIFF, VIDEO_CONTROL_PULSE,
-            LFCLK_TICKS_977(video_time*100), VIDEO_CONTROL_PULSE,
-            FOCUS_TRIGGER_TIME_DIFF, time_remain};
+        {VIDEO_CONTROL_PULSE,
+            LFCLK_TICKS_977(video_time*100), VIDEO_CONTROL_PULSE, time_remain};
         bool local_out_pattern[NUM_PIN_OUT][(VIDEO_TRANSITION * 2) + 1] = {
-            {1, 0, 1, 0, 1, 1},
-            {1, 1, 1, 1, 1, 1}};
-        memcpy(delay_array, local_delay_array, sizeof(local_delay_array));
-        for(uint32_t row; row < NUM_PIN_OUT; row++)
+            {0, 1, 0, 1, 1},
+            {1, 1, 1, 1, 1}};
+        memcpy(out_gen_config.transitions_durations, local_delay_array,
+                sizeof(local_delay_array));
+        for(uint32_t row = 0; row < NUM_PIN_OUT; row++)
         { 
-            memcpy(*(out_gen_config.next_out + row), &local_out_pattern[row][0], (number_of_transition+1));
+            memcpy(&(out_gen_config.next_out[row][0]),
+                    &local_out_pattern[row][0], (number_of_transition+1));
         }
     }
     out_gen_config.num_transitions = number_of_transition;
-    memcpy(out_gen_config.transitions_durations, delay_array, sizeof(delay_array));
+
     //TODO check out_gen_state value
     
 #if DEBUG_PRINT
