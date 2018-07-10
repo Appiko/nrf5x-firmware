@@ -96,6 +96,7 @@ static uint32_t timer_interval_in = 0;
 static bool video_on_flag = false;
 static uint32_t video_ext_time = 0;
 static bool sensepi_cam_trigger_start_flag = 0;
+static bool pir_oper_flag = false;
 
 /*Data_Process module variables*/
 static uint32_t time_remain = 0;
@@ -217,10 +218,11 @@ void pir_handler(int32_t adc_val)
 {
     log_printf("Sensed %d\n", adc_val);
     pir_disable();
+    out_gen_stop((bool *) out_gen_end_all_on);
+    pir_oper_flag = true;
     if(video_on_flag == true && time_remain > 0)
     {
         time_remain -= out_gen_get_ticks();
-        out_gen_stop((bool *) out_gen_end_all_on);
         out_gen_config_t video_end_out_gen_config = 
         {
             .num_transitions = 1,
@@ -254,7 +256,10 @@ void pir_handler(int32_t adc_val)
 void timer_handler(void)
 {
     log_printf("Timer Handler\n");
-    data_process_pattern_gen(TIMER_DATA_PROCESS_MODE);
+    if(pir_oper_flag == false)
+    {
+        data_process_pattern_gen(TIMER_DATA_PROCESS_MODE);    
+    }
 }
 
 void led_sense_conf(sensepi_cam_trigger_init_config_t * led_conf)
@@ -310,7 +315,6 @@ void sensepi_cam_trigger_start()
         }
         sensepi_cam_trigger_start_flag = 1;
     }
-    return;
 }
 
 void sensepi_cam_trigger_stop()
@@ -480,7 +484,11 @@ void pattern_out_done_handler(uint32_t out_gen_state)
         {
             if(false == (config.config_sensepi->trig_conf == TIMER_ONLY))
             {
-                pir_enable();            
+                pir_enable();
+                if(pir_oper_flag == true)
+                {
+                    pir_oper_flag = false;
+                }
             }
             break;
         }
