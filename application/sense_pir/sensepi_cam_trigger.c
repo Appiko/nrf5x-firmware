@@ -130,9 +130,7 @@ operational_mode_t;
 typedef enum
 {
     IDLE,
-    PHOTO,
-    VIDEO_START,
-    VIDEO_EXT,
+    VIDEO_PIR_ON,
     VIDEO_END,
     VIDEO_TIMER,
 } cam_trig_state_t;
@@ -191,7 +189,7 @@ uint32_t data_process_get_video_extention(void);
 void single_shot_mode();
 void multi_shot_mode(uint32_t burst_duration, uint32_t burst_num);
 void bulb_mode(uint32_t bulb_time);
-void video_mode(uint32_t video_time, uint32_t extension_time);
+void video_mode(uint32_t video_time);
 void focus_mode();
 
 /**
@@ -200,7 +198,24 @@ void focus_mode();
  */
 void pattern_out_done_handler(uint32_t out_gen_state);
 
-///Function definations
+///Function definitions
+
+void debug_print_bool_array(bool (* next)[OUT_GEN_MAX_TRANSITIONS], char * str)
+{
+#if DEBUG_PRINT
+    log_printf("%s\n", str);
+    for(uint32_t row = 0; row< NUM_PIN_OUT; row++)
+    {
+        for(uint32_t arr_p = 0; arr_p<OUT_GEN_MAX_TRANSITIONS; arr_p++)
+        {
+            log_printf("%x ", next[row][arr_p]);
+        }
+        log_printf("\n");
+    }
+    log_printf("\n");
+#endif
+}
+
 /*SensePi_PIR module*/
 void pir_enable()
 {
@@ -227,25 +242,15 @@ void pir_handler(int32_t adc_val)
         {
             .num_transitions = 1,
             .out_gen_done_handler = pattern_out_done_handler,
-            .out_gen_state = VIDEO_EXT,
-            .transitions_durations = {LFCLK_TICKS_MS(video_ext_time)},
+            .out_gen_state = VIDEO_PIR_ON,
+            .transitions_durations = {video_ext_time},
             .next_out =  {{1,1},
             {1,1}},
             
         };
         out_gen_start(&video_end_out_gen_config);
-#if DEBUG_PRINT
-            log_printf("Out Pattern PIR Handler:\n");
-            for(uint32_t row = 0; row< NUM_PIN_OUT; row++)
-            {
-                for(uint32_t arr_p = 0; arr_p<OUT_GEN_MAX_TRANSITIONS; arr_p++)
-                {
-                    log_printf("%x ", video_end_out_gen_config.next_out[row][arr_p]);
-                }
-                log_printf("\n");
-            }
-            log_printf("\n");
-#endif
+
+        debug_print_bool_array(video_end_out_gen_config.next_out, "Pir handler");
     }
     else
     {
@@ -291,7 +296,6 @@ bool light_check(oper_time_t oper_time_temp)
         light_check_flag = 0;
     }
     return light_check_flag;
-
 }
 
 void sensepi_cam_trigger_start()
@@ -306,7 +310,7 @@ void sensepi_cam_trigger_start()
         {
             log_printf("\n\nTimer ON\n\n");
             ms_timer_start(MS_TIMER2,
-                MS_REPEATED_CALL, LFCLK_TICKS_977(timer_interval_in), timer_handler);
+                MS_REPEATED_CALL, LFCLK_TICKS_MS(timer_interval_in), timer_handler);
         }
         if(false == (config.config_sensepi->trig_conf == TIMER_ONLY))
         {
@@ -398,6 +402,7 @@ void sensepi_cam_trigger_update(sensepi_config_t * update_config)
                     *PIR_THRESHOLD_MULTIPLY_FACTOR;
             mcp4012_set_value(config.config_sensepi->pir_conf.amplification);
             intr_trig_time_in = ((uint32_t)config.config_sensepi->pir_conf.intr_trig_timer)*100;
+            intr_trig_time_in = LFCLK_TICKS_MS(intr_trig_time_in);
             break;
         }
         case TIMER_ONLY:
@@ -411,6 +416,7 @@ void sensepi_cam_trigger_update(sensepi_config_t * update_config)
                     *PIR_THRESHOLD_MULTIPLY_FACTOR;
             mcp4012_set_value(config.config_sensepi->pir_conf.amplification);
             intr_trig_time_in = ((uint32_t)config.config_sensepi->pir_conf.intr_trig_timer)*100;
+            intr_trig_time_in = LFCLK_TICKS_MS(intr_trig_time_in);
             timer_interval_in = (config.config_sensepi->timer_conf.timer_interval);
             break;
         }
@@ -476,7 +482,6 @@ void sensepi_cam_trigger_add_tick(uint32_t interval)
 void pattern_out_done_handler(uint32_t out_gen_state)
 {
     log_printf("OUT_GEN_STATE : %02x\n", out_gen_state);
-    bool out_pattern[OUT_GEN_MAX_NUM_OUT][OUT_GEN_MAX_TRANSITIONS] ;
 
     switch((cam_trig_state_t)out_gen_state)
     {
@@ -492,35 +497,7 @@ void pattern_out_done_handler(uint32_t out_gen_state)
             }
             break;
         }
-        case PHOTO:
-        {
-            out_gen_config_t idle_out_gen_config =
-            {
-                .num_transitions = 2,
-                .out_gen_done_handler = pattern_out_done_handler,
-                .out_gen_state = IDLE,
-                .transitions_durations = {LFCLK_TICKS_977(10), time_remain},
-                .next_out = {{1,1,1},
-                {1,1,1}},
-            };
-
-#if DEBUG_PRINT
-            log_printf("Out Pattern :\n");
-            for(uint32_t row = 0; row< NUM_PIN_OUT; row++)
-            {
-                for(uint32_t arr_p = 0;
-                        arr_p<ARRAY_SIZE(idle_out_gen_config.next_out[0]); arr_p++)
-                {
-                    log_printf("%x ", idle_out_gen_config.next_out[row][arr_p]);
-                }
-                log_printf("\n");
-            }
-            log_printf("\n");
-#endif
-            out_gen_start(&idle_out_gen_config);
-            break;
-        }
-        case VIDEO_START:
+        case VIDEO_PIR_ON:
         {
             video_on_flag = true;
             pir_enable();
@@ -536,48 +513,8 @@ void pattern_out_done_handler(uint32_t out_gen_state)
             {1,1,1}},
             };
             out_gen_start(&video_end_out_gen_config);
-#if DEBUG_PRINT
-            log_printf("Out Pattern :\n");
-            for(uint32_t row = 0; row< NUM_PIN_OUT; row++)
-            {
-                for(uint32_t arr_p = 0; arr_p<ARRAY_SIZE(out_pattern[0]); arr_p++)
-                {
-                    log_printf("%x ", video_end_out_gen_config.next_out[row][arr_p]);
-                }
-                log_printf("\n");
-            }
-            log_printf("\n");
-#endif
-            break;
-        }
-        case VIDEO_EXT:
-        {
-//            time_remain += LFCLK_TICKS_MS(video_ext_time);
-            out_gen_config_t video_end_out_gen_config = 
-            {
-                .num_transitions = 2,
-                .out_gen_done_handler = pattern_out_done_handler,
-                .out_gen_state = VIDEO_END,
-                .transitions_durations = {time_remain,
-                     VIDEO_CONTROL_PULSE},
-                .next_out = 
-                {{1,0,1},
-                    {1,1,1}},
-            };
-            out_gen_start(&video_end_out_gen_config);
-            pir_enable();
-#if DEBUG_PRINT
-            log_printf("Out Pattern :\n");
-            for(uint32_t row = 0; row< NUM_PIN_OUT; row++)
-            {
-                for(uint32_t arr_p = 0; arr_p<OUT_GEN_MAX_TRANSITIONS; arr_p++)
-                {
-                    log_printf("%x ", video_end_out_gen_config.next_out[row][arr_p]);
-                }
-                log_printf("\n");
-            }
-            log_printf("\n");
-#endif
+            debug_print_bool_array(video_end_out_gen_config.next_out,
+                    "Pattern done video start");
             break;
         }
         case VIDEO_END:
@@ -610,7 +547,7 @@ void single_shot_mode()
     log_printf("SINGLE_SHOT_MODE\n");
     uint32_t number_of_transition = SINGLE_SHOT_TRANSITIONS;
 
-    time_remain = LFCLK_TICKS_MS(intr_trig_time_in) - (SINGLE_SHOT_DURATION);
+    time_remain = intr_trig_time_in - (SINGLE_SHOT_DURATION);
 
     out_gen_config_t out_gen_config = 
     {
@@ -622,20 +559,7 @@ void single_shot_mode()
                      {0, 1, 1}},
     };
 
-#if DEBUG_PRINT
-    log_printf("Out Pattern :\n");
-    for(uint32_t row = 0; row< NUM_PIN_OUT; row++)
-    {
-        for(uint32_t arr_p = 0; 
-                arr_p<ARRAY_SIZE(out_gen_config.next_out[0]); arr_p++)
-        {
-            log_printf("%x ", out_gen_config.next_out[row][arr_p]);
-        }
-        log_printf("\n");
-    }
-    log_printf("\n");
-    log_printf("Time_remain : %d\n", time_remain);
-#endif
+    debug_print_bool_array(out_gen_config.next_out, "single shot");
     out_gen_start(&out_gen_config);  
 }
 
@@ -662,35 +586,25 @@ void multi_shot_mode(uint32_t burst_duration, uint32_t burst_num)
         {
             memcpy(*(out_gen_config.next_out +j),*(multishot_generic + j),
                     burst_num* SINGLE_SHOT_TRANSITIONS*sizeof(bool));
-            //An extra '1' at the end for the remaining of the inter trigger time
+            //An extra '1' at the end for the remaining of the inter-trigger time
             out_gen_config.next_out[j][burst_num* SINGLE_SHOT_TRANSITIONS] = 1;
         }
     }
 
     // Last interval for the '1' signal till 'time till next trigger' elapses
     out_gen_config.transitions_durations[number_of_transition-1] =
-            LFCLK_TICKS_MS(intr_trig_time_in) - SINGLE_SHOT_DURATION*burst_num -
+            intr_trig_time_in - SINGLE_SHOT_DURATION*burst_num -
             (LFCLK_TICKS_MS(burst_duration * 100) - SINGLE_SHOT_DURATION)*(burst_num - 1);
 
+    debug_print_bool_array(out_gen_config.next_out, "multi shot");
 
 #if DEBUG_PRINT
     for(uint32_t i = 0; i<number_of_transition; i++)
     {
         log_printf(": %d", out_gen_config.transitions_durations[i]);
     }
-    log_printf("\nOut Pattern :\n");
-    for(uint32_t row = 0; row< NUM_PIN_OUT; row++)
-    {
-        for(uint32_t arr_p = 0; arr_p<ARRAY_SIZE(out_gen_config.next_out[0]); arr_p++)
-        {
-            log_printf("%x ", out_gen_config.next_out[row][arr_p]);
-        }
-        log_printf("\n");
-    }
-    log_printf("\n");
 #endif
     out_gen_start(&out_gen_config);
-
 }
 
 void bulb_mode(uint32_t bulb_time)
@@ -705,96 +619,65 @@ void bulb_mode(uint32_t bulb_time)
         .out_gen_state = IDLE,
         .transitions_durations =
             {bulb_time_ticks - BULB_TRIGGER_PULSE, BULB_TRIGGER_PULSE
-              , LFCLK_TICKS_MS(intr_trig_time_in) - bulb_time_ticks},
+              , intr_trig_time_in - bulb_time_ticks},
         .next_out = { {0, 0, 1, 1},
                       {1, 0, 1, 1} },
     };
 
-#if DEBUG_PRINT
-    log_printf("Out Pattern :\n");
-    for(uint32_t row = 0; row< NUM_PIN_OUT; row++)
-    {
-        for(uint32_t arr_p = 0; arr_p<ARRAY_SIZE(out_gen_config.next_out[0]); arr_p++)
-        {
-            log_printf("%x ", out_gen_config.next_out[row][arr_p]);
-        }
-        log_printf("\n");
-    }
-    log_printf("\n");
-#endif
-    out_gen_start(&out_gen_config);
+    debug_print_bool_array(out_gen_config.next_out, "bulb mode");
 
+    out_gen_start(&out_gen_config);
 }
 
-void video_mode(uint32_t video_time, uint32_t extension_time)
+void video_mode(uint32_t video_time)
 {
     log_printf("VIDEO_MODE\n");
-//    uint32_t delay_array[OUT_GEN_MAX_TRANSITIONS] = {};
-    uint32_t number_of_transition;
-    out_gen_config_t out_gen_config = 
-    {
-        .out_gen_done_handler = pattern_out_done_handler,
-    };
+
+    //With PIR
     if(false == (config.config_sensepi->trig_conf == TIMER_ONLY))
     {
-        out_gen_config.out_gen_state = VIDEO_START;
         video_ext_time = data_process_get_video_extention();
-        uint32_t video_pir_disable_len = LFCLK_TICKS_MS((video_time * 100) -
-                (video_ext_time));
-        number_of_transition = VIDEO_TRANSITION;
-        time_remain = LFCLK_TICKS_MS(video_ext_time);
-        uint32_t local_delay_array[VIDEO_TRANSITION] = 
-        {VIDEO_CONTROL_PULSE,
-            (video_pir_disable_len)};
-        bool local_out_pattern[NUM_PIN_OUT][VIDEO_TRANSITION + 1] = {
-            {0, 1, 1},
-            {1, 1, 1}};
-        memcpy(out_gen_config.transitions_durations, local_delay_array, 
-                sizeof(local_delay_array));
-        for(uint32_t row = 0; row < NUM_PIN_OUT; row++)
-        { 
-            memcpy(&(out_gen_config.next_out[row][0]),
-                    &local_out_pattern[row][0], (VIDEO_TRANSITION+1));
-        }
+        video_ext_time = LFCLK_TICKS_MS(video_ext_time);
+        uint32_t video_pir_disable_len = LFCLK_TICKS_MS((video_time * 100)) -
+                video_ext_time;
+        out_gen_config_t out_gen_config =
+        {
+            .num_transitions = VIDEO_TRANSITION,
+            .out_gen_done_handler = pattern_out_done_handler,
+            .out_gen_state = VIDEO_PIR_ON,
+            .transitions_durations =
+            {VIDEO_CONTROL_PULSE, (video_pir_disable_len)},
+            .next_out = {{0,1,1},
+                         {1,1,1}},
+        };
+
+        time_remain = video_ext_time;
+        debug_print_bool_array(out_gen_config.next_out, "video PIR mode");
+
+        out_gen_start(&out_gen_config);
     }
+    //Only Timer
     else
     {
-        time_remain = timer_interval_in - ((video_time * 100) - 500);
-        log_printf("time_remain: %d\n",time_remain);
-        time_remain = LFCLK_TICKS_977(time_remain);
-        number_of_transition = VIDEO_TRANSITION * 2;
-        uint32_t local_delay_array[VIDEO_TRANSITION * 2] =
-        {VIDEO_CONTROL_PULSE,
-            LFCLK_TICKS_977(video_time*100), VIDEO_CONTROL_PULSE, time_remain};
-        bool local_out_pattern[NUM_PIN_OUT][(VIDEO_TRANSITION * 2) + 1] = {
-            {0, 1, 0, 1, 1},
-            {1, 1, 1, 1, 1}};
-        memcpy(out_gen_config.transitions_durations, local_delay_array,
-                sizeof(local_delay_array));
-        for(uint32_t row = 0; row < NUM_PIN_OUT; row++)
-        { 
-            memcpy(&(out_gen_config.next_out[row][0]),
-                    &local_out_pattern[row][0], (number_of_transition+1));
-        }
-    }
-    out_gen_config.num_transitions = number_of_transition;
+        uint32_t time_left = timer_interval_in - ((video_time * 100) - 500);
+        log_printf("time remain: %d\n",time_left);
+        time_left = LFCLK_TICKS_MS(time_left);
 
-    //TODO check out_gen_state value
-    
-#if DEBUG_PRINT
-    log_printf("Out Pattern :\n");
-    for(uint32_t row = 0; row< NUM_PIN_OUT; row++)
-    {
-        for(uint32_t arr_p = 0; arr_p<ARRAY_SIZE(out_gen_config.next_out[0]); arr_p++)
+        out_gen_config_t out_gen_config =
         {
-            log_printf("%x ", out_gen_config.next_out[row][arr_p]);
-        }
-        log_printf("\n");
+            .num_transitions = VIDEO_TRANSITION * 2,
+            .out_gen_done_handler = pattern_out_done_handler,
+            .out_gen_state = VIDEO_TIMER,
+            .transitions_durations = {VIDEO_CONTROL_PULSE,
+                LFCLK_TICKS_MS(video_time*100), VIDEO_CONTROL_PULSE, time_left},
+            .next_out = {{0, 1, 0, 1, 1},
+                         {1, 1, 1, 1, 1}},
+        };
+
+        debug_print_bool_array(out_gen_config.next_out, "video timer mode");
+
+        out_gen_start(&out_gen_config);
     }
-    log_printf("\n");
-#endif
-    
-    out_gen_start(&out_gen_config);     
 }
 
 void focus_mode()
@@ -807,24 +690,12 @@ void focus_mode()
         .out_gen_done_handler = pattern_out_done_handler,
         .out_gen_state = IDLE,
         .transitions_durations =
-        {SINGLE_SHOT_DURATION , LFCLK_TICKS_MS(intr_trig_time_in) - SINGLE_SHOT_DURATION},
+        {SINGLE_SHOT_DURATION , intr_trig_time_in - SINGLE_SHOT_DURATION},
         .next_out = { {0, 1, 1},
                       {1, 1, 1} },
     };
     
-    
-#if DEBUG_PRINT
-    log_printf("Out Pattern :\n");
-    for(uint32_t row = 0; row< NUM_PIN_OUT; row++)
-    {
-        for(uint32_t arr_p = 0; arr_p<ARRAY_SIZE(out_gen_config.next_out[0]); arr_p++)
-        {
-            log_printf("%x ", out_gen_config.next_out[row][arr_p]);
-        }
-        log_printf("\n");
-    }
-    log_printf("\n");
-#endif
+    debug_print_bool_array(out_gen_config.next_out, "focus mode");
     
     out_gen_start(&out_gen_config);
 
@@ -850,6 +721,7 @@ void data_process_pattern_gen(bool data_process_mode)
             >> (POS_OF_INPUT1 * SIZE_OF_BYTE));
     uint32_t input2 = ((config_mode & INPUT2_MSK) 
             >> (POS_OF_INPUT2 * SIZE_OF_BYTE));
+    uint32_t single_input = config_mode>> (POS_OF_INPUT1 * SIZE_OF_BYTE);
 #if DEBUG_PRINT
     log_printf("Mode : %02x\n", mode);
     log_printf("Input 1 : %06d\n", input1);
@@ -870,12 +742,13 @@ void data_process_pattern_gen(bool data_process_mode)
         case MODE_BULB :
         {
             //Using both input 1 and input 2
-            bulb_mode(config_mode>> (POS_OF_INPUT1 * SIZE_OF_BYTE));
+            bulb_mode(single_input);
             break;
         }
         case MODE_VIDEO :
         {
-            video_mode(input1, input2);
+            //Using both input 1 and input 2
+            video_mode(single_input);
             break;
         }
         case MODE_FOCUS :
