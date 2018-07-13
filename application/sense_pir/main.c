@@ -514,9 +514,11 @@ int main(void)
         //Since the application demands that CPU wakes up
         hal_wdt_feed();
 #endif
+        log_printf("Hufflepuff..!!\n");
+        hal_nop_delay_ms(2500);
         device_tick_process();
-        irq_msg_process();
-        slumber();
+//        irq_msg_process();
+//        slumber();
     }
 }
 

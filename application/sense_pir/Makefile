@@ -1,12 +1,13 @@
 
-BOARD           := BOARD_SENSE_REV4
+BOARD           := BOARD_SENSEPI_REV4
 SLNO            := 682073614
 BLE_REQD        := BLE_STACK_SUPPORT_REQD
 PINRESET_REQD   := CONFIG_GPIO_AS_PINRESET
-DEBUGGER        := JLINK
+DEBUGGER        := BMP
 LOGGER			:= LOG_UART_PRINTF
 
 SD_USED         := s112
+SD_VER          := 6.0.0
 
 SDK_DIR         = ../../SDK_components
 DOC_DIR         = ../../doc
