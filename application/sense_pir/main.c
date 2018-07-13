@@ -322,7 +322,7 @@ void state_change_handler(uint32_t new_state)
             {
                 LFCLK_TICKS_MS(SENSE_FAST_TICK_INTERVAL_MS),
                 LFCLK_TICKS_MS(SENSE_SLOW_TICK_INTERVAL_MS),
-                DEVICE_TICK_SAME
+                DEVICE_TICK_SLOW
             };
             device_tick_init(&tick_cfg);
 #if 0
@@ -334,7 +334,6 @@ void state_change_handler(uint32_t new_state)
             };
             pir_sense_start(&pir_cfg);
 #endif
-            device_tick_switch_mode(DEVICE_TICK_SLOW);
             sensepi_cam_trigger_start();
         }
         break;
@@ -379,9 +378,6 @@ void state_change_handler(uint32_t new_state)
         break;
     case CONNECTED:
         {
-//            sensepi_config_t prev_config;
-//            memcpy(&prev_config, sensepi_cam_trigger_get_sensepi_config_t(),
-  //                  sizeof(prev_config));
             led_set_state(true, false);
             device_tick_cfg tick_cfg =
             {
