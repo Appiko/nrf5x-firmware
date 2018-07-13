@@ -567,10 +567,10 @@ void sensepi_cam_trigger_add_tick(uint32_t interval)
     log_printf("SensePi Add ticks : %d\n", interval);
     //TODO Take care of this if
     //NOTE if this if() removed then state switching does not happen
-    if(interval > 51)
-    {
+//    if(interval > 51)
+//    {
         start_sense();
-    }
+//    }
 }
 
 /*Data_Process module*/
