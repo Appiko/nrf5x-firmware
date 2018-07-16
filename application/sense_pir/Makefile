@@ -23,6 +23,7 @@ INCLUDEDIRS += $(CODEBASE_DIR)/segger_rtt
 INCLUDEDIRS += $(CODEBASE_DIR)/sd_assist
 INCLUDEDIRS += $(CODEBASE_DIR)/peripheral_modules
 INCLUDEDIRS += $(CODEBASE_DIR)/util
+INCLUDEDIRS += led_sequences
 
 C_SRC_DIRS = .
 C_SRC_DIRS += $(CODEBASE_DIR)/segger_rtt
@@ -30,6 +31,7 @@ C_SRC_DIRS += $(CODEBASE_DIR)/hal
 C_SRC_DIRS += $(CODEBASE_DIR)/sd_assist
 C_SRC_DIRS += $(CODEBASE_DIR)/peripheral_modules
 C_SRC_DIRS += $(CODEBASE_DIR)/util
+C_SRC_DIRS += led_sequences
 
 C_SRC = main.c
 C_SRC += nrf_assert.c app_error.c
@@ -50,6 +52,9 @@ C_SRC += button_ui.c
 C_SRC += led_sense.c
 C_SRC += simple_adc.c
 C_SRC += sensepi_ble.c
+C_SRC += hal_pwm.c
+C_SRC += led_ui.c
+C_SRC += led_seq.c
 
 #Gets the name of the application folder
 APPLN = $(shell basename $(PWD))

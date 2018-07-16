@@ -34,6 +34,7 @@
 
 #include "hal_clocks.h"
 #include "log.h"
+#include "nrf_peripherals.h"
 
 void lfclk_init(lfclk_src_t lfclk_src)
 {
@@ -69,11 +70,12 @@ void lfclk_init(lfclk_src_t lfclk_src)
 
     // Enable wake-up on only enabled interrupts
     SCB->SCR &= (~(SCB_SCR_SEVONPEND_Msk));
-#ifdef NRF52832
-        //Due to errata 20 in Eng rev 1
-        NRF_RTC0->TASKS_STOP = 0;
-        NRF_RTC1->TASKS_STOP = 0;
-        NRF_RTC2->TASKS_STOP = 0;
+
+    //Due to errata
+    NRF_RTC0->TASKS_STOP = 0;
+    NRF_RTC1->TASKS_STOP = 0;
+#if RTC_COUNT == 3
+    NRF_RTC2->TASKS_STOP = 0;
 #endif
 }
 
