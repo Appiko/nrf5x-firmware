@@ -515,6 +515,7 @@ int main(void)
         hal_wdt_feed();
 #endif
         log_printf("Hufflepuff..!!\n");
+        log_printf("FW Ver = %d", FW_VER);
         hal_nop_delay_ms(2500);
         device_tick_process();
 //        irq_msg_process();

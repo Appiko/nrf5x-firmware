@@ -48,8 +48,6 @@ extract_ver_int()
     fi
 
     echo $ver_no
-
-
 }
 
 sd_ver_int=""
@@ -63,9 +61,7 @@ fw_ver="$(git tag --list "SensePi_"[00-99]"."[00-99]"."[00-99] | sort | tail -n1
 echo "FW_VER = "$fw_ver
 fw_ver="$(echo $fw_ver | tr '_' ' ' | awk '{print $NF}')"
 fw_ver_int=$( extract_ver_int $fw_ver "." )
-export FW_VER_VAL=$fw_ver_int
 echo "FW_VER_INT = "$fw_ver_int
-
 
 hw_ver="$(awk '/BOARD /{print $3}' Makefile | tr '_' ' ' )"
 echo "HW_VER = "$hw_ver
@@ -92,20 +88,10 @@ bl_hex_name="$(awk -v bl_used="$bl_ver" '$1 ~ bl_used {print $2}' bootloader_loo
 bl_ver_int=$( extract_ver_int $bl_ver "." )
 echo "BL_VER_INT = "$bl_ver_int
 
-
-
-#source ./fw_ver_check.sh
-
-
-make_release="$(make clean all V=1)"
+make_release="$(make FW_VER_VAL=$fw_ver_int clean all V=1)"
 
 nrfutil_settings_gen="$(nrfutil settings generate --family NRF52810 --application ./build/$pwd.hex --application-version $fw_ver_int --application-version-string "$fw_ver" --bootloader-version $bl_ver_int --bl-settings-version 1  ./build/${pwd}_bl_settings.hex)"
 
 nrfutil_pkg_gen="$(nrfutil pkg generate --application build/$pwd.hex --application-version $fw_ver_int --application-version-string "$fw_ver" --hw-version $hw_ver_int --sd-req "$sd_id" --key-file ../key_file.pem build/${pwd}_010.zip)"
 
 out_hex="$(srec_cat build/${pwd}_${sd_used}.hex --Intel ../$bl_hex_name.hex --Intel build/${pwd}_bl_settings.hex --Intel -O build/${pwd}_output.hex --Intel)"
-
-
-
-
-
