@@ -46,8 +46,10 @@
 #include "string.h"
 
 /**< Name of device, to be included in the advertising data. */
+
 #define DEVICE_NAME_CHAR           'S','e','n','s','e','P','i'
 const uint8_t device_name[] = { DEVICE_NAME_CHAR };
+
 
 /** Complete 128 bit UUID of the SensePi service
  * 3c73dc50-07f5-480d-b066-837407fbde0a */
@@ -72,22 +74,8 @@ const uint8_t device_name[] = { DEVICE_NAME_CHAR };
 /**< Connection supervisory timeout (4 seconds). */
 #define CONN_SUP_TIMEOUT           MSEC_TO_UNITS(4000, UNIT_10_MS)
 
-/** The data to be sent in the advertising payload. It is of the format
- *  of a sequence of {Len, type, data} */
-#define ADV_DATA   {                                        \
-                       0x02, BLE_GAP_AD_TYPE_FLAGS, BLE_GAP_ADV_FLAGS_LE_ONLY_LIMITED_DISC_MODE,    \
-                       sizeof(device_name) + 1, BLE_GAP_AD_TYPE_COMPLETE_LOCAL_NAME, DEVICE_NAME_CHAR,   \
-                       0x11, BLE_GAP_AD_TYPE_128BIT_SERVICE_UUID_COMPLETE, SENSEPI_UUID_COMPLETE     \
-                   }
 
 
-/** The data to be sent in the scan response payload. It is of the format
- *  of a sequence of {Len, type, data} */
-///TODO Dynamically update the device ID in the scan response data
-#define SCAN_RSP_DATA  {                                        \
-                           0x02, BLE_GAP_AD_TYPE_TX_POWER_LEVEL, 0   ,     \
-                           0x11, BLE_GAP_AD_TYPE_SHORT_LOCAL_NAME, 'S', 'P','0', '4', '0', '0' , '1', '8', '0', '5', '1', '1', '0', '0', '0', '1' \
-                       }
 
 /** Handle to specify the advertising state to the soft device */
 uint8_t h_adv;
@@ -352,20 +340,18 @@ void sensepi_ble_gap_params_init(void)
     APP_ERROR_CHECK(err_code);
 }
 
-void sensepi_ble_adv_init(void)
+void sensepi_ble_adv_init(sensepi_ble_adv_data_t * sensepi_ble_adv_data)
 {
     h_adv = BLE_GAP_ADV_SET_HANDLE_NOT_SET;
     uint32_t err_code;
-    uint8_t adv_buffer[] = ADV_DATA;
-    uint8_t scan_rsp_buffer[] = SCAN_RSP_DATA;
-
+    
     ble_gap_adv_data_t adv_payload;
 
-    adv_payload.adv_data.p_data = adv_buffer;
-    adv_payload.adv_data.len = sizeof(adv_buffer);
+    adv_payload.adv_data.p_data = sensepi_ble_adv_data->adv_data;
+    adv_payload.adv_data.len = sensepi_ble_adv_data->adv_len;
 
-    adv_payload.scan_rsp_data.p_data = scan_rsp_buffer;
-    adv_payload.scan_rsp_data.len = sizeof(scan_rsp_buffer);
+    adv_payload.scan_rsp_data.p_data = sensepi_ble_adv_data->scan_rsp_data;
+    adv_payload.scan_rsp_data.len = sensepi_ble_adv_data->scan_rsp_len;
 
     ble_gap_adv_params_t adv_params;
 

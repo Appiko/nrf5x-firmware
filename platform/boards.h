@@ -46,12 +46,12 @@
   #include "detect_rev1.h"
 #elif defined(BOARD_BLUEY_1V1)
   #include "bluey_1v1.h"
-#elif defined(BOARD_SENSE_REV2)
-  #include "sense_rev2.h"
-#elif defined(BOARD_SENSE_REV3)
-  #include "sense_rev3.h"
-#elif defined(BOARD_SENSE_REV4)
-  #include "sense_rev4.h"
+#elif defined(BOARD_SENSEPI_REV2)
+  #include "sensepi_rev2.h"
+#elif defined(BOARD_SENSEPI_REV3)
+  #include "sensepi_rev3.h"
+#elif defined(BOARD_SENSEPI_REV4)
+  #include "sensepi_rev4.h"
 #elif defined(BOARD_HACKABLE)
   #include "hackable.h"
 #elif defined(BOARD_CUSTOM)

@@ -1,12 +1,14 @@
 
-BOARD           := BOARD_SENSE_REV4
+BOARD           := BOARD_SENSEPI_REV4
 SLNO            := 682073614
 BLE_REQD        := BLE_STACK_SUPPORT_REQD
 PINRESET_REQD   := CONFIG_GPIO_AS_PINRESET
 DEBUGGER        := BMP
 LOGGER			:= LOG_UART_PRINTF
+FW_VER_VAL          := 0
 
 SD_USED         := s112
+SD_VER          := 6.0.0
 
 SDK_DIR         = ../../SDK_components
 DOC_DIR         = ../../doc
@@ -67,6 +69,7 @@ CFLAGS_APP = -DDEBUG
 CFLAGS_APP += -D$(BLE_REQD)
 CFLAGS_APP += -D$(PINRESET_REQD)
 CFLAGS_APP += -D$(LOGGER)
+CFLAGS_APP  += -DFW_VER=$(FW_VER_VAL)
 
 #Lower case of BOARD
 BOARD_HEADER  = $(shell echo $(BOARD) | tr A-Z a-z)
