@@ -378,7 +378,8 @@ bool light_check(oper_time_t oper_time_temp)
     log_printf("Light intensity : %d\n", led_sense_get());
     static uint8_t light_sense_config = 1;
     static uint32_t light_threshold = 0;
-    static uint32_t light_intensity = led_sense_get();
+    static uint32_t light_intensity = 0;
+    light_intensity = led_sense_get();
     static bool light_check_flag = 0;
     light_sense_config = oper_time_temp.day_or_night;
     light_threshold = (uint32_t)((oper_time_temp.threshold) * LIGHT_THRESHOLD_MULTIPLY_FACTOR);
