@@ -329,5 +329,8 @@ powercycle:
 doc:
 	( cat $(DOC_DIR)/Appiko.doxyfile ; echo "$(DOXY_EDITS)" ) | doxygen -
 
+#release:
+ #   ( source  ./fw_version_check.sh; )
+
 .PHONY: upload eraseall recover pinreset doc debug
 

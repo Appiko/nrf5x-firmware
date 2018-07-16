@@ -1,6 +1,5 @@
 #!/bin/bash
 #
-
 extract_ver_int()
 {
     ver_no=""
@@ -64,14 +63,15 @@ fw_ver="$(git tag --list "SensePi_"[00-99]"."[00-99]"."[00-99] | sort | tail -n1
 echo "FW_VER = "$fw_ver
 fw_ver="$(echo $fw_ver | tr '_' ' ' | awk '{print $NF}')"
 fw_ver_int=$( extract_ver_int $fw_ver "." )
+export FW_VER_VAL=$fw_ver_int
 echo "FW_VER_INT = "$fw_ver_int
+
 
 hw_ver="$(awk '/BOARD /{print $3}' Makefile | tr '_' ' ' )"
 echo "HW_VER = "$hw_ver
 
 hw_ver_minor="$(echo $hw_ver | awk '{print $NF}')"
 hw_ver_minor="$(echo ${hw_ver_minor//[A-Z]/})"
-
 
 hw_ver_major="$(echo $hw_ver | awk '{print $2}')"
 hw_ver_major="$(awk -v var1="$hw_ver_major" '$1 ~ var1 {print $2}' boards_lookup)"
@@ -87,14 +87,23 @@ echo "SD_VER = "$sd_ver
 sd_id="$(awk -v name_var="$sd_used" -v ver_var="$sd_ver" '$1 ~ name_var && $2 ~ ver_var {print $3}' sd_lookup)"
 echo "SD_ID = "$sd_id
 
+bl_hex_name="$(awk -v bl_used="$bl_ver" '$1 ~ bl_used {print $2}' bootloader_lookup)"
+
 bl_ver_int=$( extract_ver_int $bl_ver "." )
 echo "BL_VER_INT = "$bl_ver_int
 
 
-nrfutil_settings_gen="$(nrfutil settings generate --family NRF52810 --application ./build/$pwd.hex --application-version $fw_ver_int --application-version-string "$fw_ver" --bootloader-version $bl_ver_int --bl-settings-version 1  ./build/bl_settings.hex)"
 
-nrfutil_pkg_gen="$(nrfutil pkg generate --application build/$pwd.hex --application-version $fw_ver_int --application-version-string "$fw_ver" --hw-version $hw_ver_int --sd-req "$sd_id" --key-file ./key_file.pem build/${pwd}_010.zip)"
+#source ./fw_ver_check.sh
 
+
+make_release="$(make clean all V=1)"
+
+nrfutil_settings_gen="$(nrfutil settings generate --family NRF52810 --application ./build/$pwd.hex --application-version $fw_ver_int --application-version-string "$fw_ver" --bootloader-version $bl_ver_int --bl-settings-version 1  ./build/${pwd}_bl_settings.hex)"
+
+nrfutil_pkg_gen="$(nrfutil pkg generate --application build/$pwd.hex --application-version $fw_ver_int --application-version-string "$fw_ver" --hw-version $hw_ver_int --sd-req "$sd_id" --key-file ../key_file.pem build/${pwd}_010.zip)"
+
+out_hex="$(srec_cat build/${pwd}_${sd_used}.hex --Intel ../$bl_hex_name.hex --Intel build/${pwd}_bl_settings.hex --Intel -O build/${pwd}_output.hex --Intel)"
 
 
 

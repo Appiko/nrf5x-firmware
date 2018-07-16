@@ -5,6 +5,8 @@ BLE_REQD        := BLE_STACK_SUPPORT_REQD
 PINRESET_REQD   := CONFIG_GPIO_AS_PINRESET
 DEBUGGER        := BMP
 LOGGER			:= LOG_UART_PRINTF
+FW_VER_VAL_MAKE := $(shell echo $(FW_VER_VAL))
+FW_VER          := 0
 
 SD_USED         := s112
 SD_VER          := 6.0.0
@@ -59,6 +61,7 @@ CFLAGS_APP = -DDEBUG
 CFLAGS_APP += -D$(BLE_REQD)
 CFLAGS_APP += -D$(PINRESET_REQD)
 CFLAGS_APP += -D$(LOGGER)
+CFLAGS_APP  += -DFW_VER=$(FW_VER_VAL_MAKE)
 
 #Lower case of BOARD
 BOARD_HEADER  = $(shell echo $(BOARD) | tr A-Z a-z)
