@@ -72,6 +72,37 @@
 #include "sensepi_ble.h"
 
 /* ----- Defines ----- */
+
+/**< Name of device, to be included in the advertising data. */
+
+#define APP_DEVICE_NAME_CHAR           'S','e','n','s','e','P','i'
+const uint8_t app_device_name[] = { APP_DEVICE_NAME_CHAR };
+
+/** Complete 128 bit UUID of the SensePi service
+ * 3c73dc50-07f5-480d-b066-837407fbde0a */
+#define APP_UUID_COMPLETE        0x0a, 0xde, 0xfb, 0x07, 0x74, 0x83, 0x66, 0xb0, 0x0d, 0x48, 0xf5, 0x07, 0x50, 0xdc, 0x73, 0x3c
+
+/** The data to be sent in the advertising payload. It is of the format
+ *  of a sequence of {Len, type, data} */
+#define APP_ADV_DATA   {                                        \
+                       0x02, BLE_GAP_AD_TYPE_FLAGS, BLE_GAP_ADV_FLAGS_LE_ONLY_LIMITED_DISC_MODE,    \
+                       sizeof(app_device_name) + 1, BLE_GAP_AD_TYPE_COMPLETE_LOCAL_NAME, APP_DEVICE_NAME_CHAR,   \
+                       0x11, BLE_GAP_AD_TYPE_128BIT_SERVICE_UUID_COMPLETE, APP_UUID_COMPLETE     \
+                   }
+
+uint8_t app_adv_data[] = APP_ADV_DATA;
+
+/** The data to be sent in the scan response payload. It is of the format
+ *  of a sequence of {Len, type, data} */
+///TODO Dynamically update the device ID in the scan response data
+#define APP_SCAN_RSP_DATA  {                                        \
+                           0x02, BLE_GAP_AD_TYPE_TX_POWER_LEVEL, 0   ,     \
+                           0x11, BLE_GAP_AD_TYPE_SHORT_LOCAL_NAME,  \
+                           'x', 'x','x', 'x', 'x', 'x' , 'x', 'x', 'x', 'x', 'x', 'x', 'x', 'x', 'x', 'x',   \
+                           0x04, BLE_GAP_AD_TYPE_MANUFACTURER_SPECIFIC_DATA, 0 ,  0 , 0 \
+                       }
+uint8_t app_scan_rsp_data[] = APP_SCAN_RSP_DATA;
+
 /** The WDT bites if not fed every 301 sec (5 min) */
 #define WDT_PERIOD_MS              301000
 
@@ -133,6 +164,9 @@ static uint32_t sense_count;
 /** Boolen to indicate if PIR sensing feedback is required for user  */
 static bool sense_feedback = false;
 
+/** Advertisment data which is to be sent to BLE module */
+sensepi_ble_adv_data_t app_adv_data_struct = {0, 0, 0, 0};
+
 /* ----- Function declarations ----- */
 
 /* ----- Function definitions ----- */
@@ -162,6 +196,7 @@ void led_set_state(bool red, bool green)
 
 device_id_t get_device_id(void)
 {
+#if 0
     device_id_t id = {
         .prod_code = {'S', 'P'},
         .prod_rev = {'0', '4'},
@@ -171,8 +206,46 @@ device_id_t get_device_id(void)
         .day = {'1', '0'},
         .serial_no = {'0', '0', '0', '7' }
     };
+#endif
+    device_id_t id;
+    memcpy(&id, (uint8_t *)&NRF_UICR->CUSTOMER[0], sizeof(NRF_UICR->CUSTOMER[0]) * 4);
     return id;
 }
+
+void get_adv_data()
+{
+
+    uint8_t fw_ver_arr[3];
+    fw_ver_arr[0] = (uint8_t) (FW_VER/10000);
+    fw_ver_arr[1] = (uint8_t) ((FW_VER%10000)/100);
+    fw_ver_arr[2] = (uint8_t) (FW_VER%100);
+    memcpy(&app_scan_rsp_data[5],(uint8_t *) &NRF_UICR->CUSTOMER[0], 
+            sizeof(uint32_t) * 4);
+
+    memcpy(&app_scan_rsp_data[23], fw_ver_arr, sizeof(fw_ver_arr));
+    
+    app_adv_data_struct.adv_data = app_adv_data;
+    app_adv_data_struct.scan_rsp_data = app_scan_rsp_data;
+    app_adv_data_struct.adv_len = ARRAY_SIZE(app_adv_data);
+    app_adv_data_struct.scan_rsp_len = ARRAY_SIZE(app_scan_rsp_data);
+
+    log_printf("APP_ADV_DATA_STRUCT : \n");
+    for(uint32_t arr = 0; arr < app_adv_data_struct.adv_len; arr++)
+    {
+        log_printf("%2x ", app_adv_data_struct.adv_data[arr]);
+    }
+    log_printf("\n");
+    log_printf("ADV_LEN_STRUCT : %d\n",app_adv_data_struct.adv_len);
+    log_printf("APP_SCAN_RSP_DATA_STRUCT : \n");
+    for(uint32_t arr = 0; arr < app_adv_data_struct.scan_rsp_len; arr++)
+    {
+        log_printf("%2x ",app_adv_data_struct.scan_rsp_data[arr]);
+    }
+    log_printf("\n");    
+    log_printf("SCAN_RSP_LEN_STRUCT : %d\n",app_adv_data_struct.scan_rsp_len);
+    
+}
+
 
 /**
  * @brief Handler which will address all BLE related events
@@ -314,7 +387,8 @@ void state_change_handler(uint32_t new_state)
                 sensepi_ble_stack_init();
                 sensepi_ble_gap_params_init();
                 sensepi_ble_service_init();
-                sensepi_ble_adv_init();
+                get_adv_data();
+                sensepi_ble_adv_init(&app_adv_data_struct);
 
                 device_id_t dev_id = get_device_id();
                 bool batt_low = get_batt_low_state();
@@ -514,12 +588,12 @@ int main(void)
         //Since the application demands that CPU wakes up
         hal_wdt_feed();
 #endif
-        log_printf("Hufflepuff..!!\n");
-        log_printf("FW Ver = %d", FW_VER);
-        hal_nop_delay_ms(2500);
+//        log_printf("Hufflepuff..!!\n");
+//        log_printf("FW Ver = %d", FW_VER);
+//        hal_nop_delay_ms(2500);
         device_tick_process();
-//        irq_msg_process();
-//        slumber();
+        irq_msg_process();
+        slumber();
     }
 }
 

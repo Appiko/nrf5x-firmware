@@ -265,7 +265,7 @@ upload:
 		echo "device $(JLINKDEVICE)\nw4 $(NVMC_CONFIG_ADRS) 1\nloadfile $(PWD)/$(OUTPUT_DIR)/$(OUTPUT_FLASHING).hex\nr\ng\nqc\n" > $(OUTPUT_DIR)/upload.jlink; \
 		$(JLINK) $(OUTPUT_DIR)/upload.jlink; \
 	elif [ "$(DEBUGGER)" = "BMP" ]; then \
-		$(GDB) -q -ex 'target extended-remote /dev/ttyBmpGdb' -ex 'monitor tpwr enable' -ex 'monitor swdp_scan' -ex 'attach 1' -ex 'load' -ex 'detach' -ex 'quit' $(OUTPUT_DIR)/$(OUTPUT_FLASHING).hex; \
+		$(GDB) -q -ex 'target extended-remote /dev/ttyBmpGdb' -ex 'monitor tpwr enable' -ex 'monitor swdp_scan' -ex 'attach 1' -ex 'load' -ex 'detach' -ex 'quit' -ex 'kill' $(OUTPUT_DIR)/$(OUTPUT_FLASHING).hex; \
 	else\
 		echo "Use the DEBUGGER variable to specify the debugger to be used for uploading"; \
 	fi

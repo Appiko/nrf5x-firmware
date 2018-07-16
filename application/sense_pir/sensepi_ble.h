@@ -72,6 +72,15 @@ typedef struct
     uint8_t cam_model;
 }__attribute__ ((packed)) sensepi_config ;
 
+typedef struct
+{
+    uint8_t * adv_data;
+    uint16_t adv_len;
+    uint8_t * scan_rsp_data;
+    uint16_t scan_rsp_len;
+}
+sensepi_ble_adv_data_t;
+
 /**
  * @brief Initialize the handlers to pass the BLE SD events
  *  and the configuration received from the mobile app
@@ -113,9 +122,12 @@ void sensepi_ble_service_init(void);
  */
 void sensepi_ble_gap_params_init(void);
 
-/**@brief Function to initializing the advertising
+/**
+ * @brief Function to initializing the advertising
+ * @param sensepi_ble_adv_data Advaertise data and scan response data along with
+ * their respective lengths.
  */
-void sensepi_ble_adv_init(void);
+void sensepi_ble_adv_init(sensepi_ble_adv_data_t * sensepi_ble_adv_data);
 
 /**
  * @brief Function to start advertising.
