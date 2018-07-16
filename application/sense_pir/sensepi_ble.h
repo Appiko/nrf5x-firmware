@@ -32,17 +32,23 @@
  *  POSSIBILITY OF SUCH DAMAGE.
  */
 
+/**
+ * @addtogroup sense_appln
+ * @{
+ *
+ * @defgroup ble_support The support code for the PIR based Sense units.
+ * @brief The PIR sense application's support file that handles ble operations.
+ *
+ * @{
+ *
+ */
+
 #ifndef APPLICATION_SENSE_PIR_SENSEPI_BLE_H_
 #define APPLICATION_SENSE_PIR_SENSEPI_BLE_H_
 
 #include "stdint.h"
-
-typedef enum
-{
-    DAY_ONLY,
-    NIGHT_ONLY,
-    DAY_AND_NIGHT
-}sensepi_oper_time_t;
+#include "stdbool.h"
+#include "ble.h"
 
 typedef struct
 {
@@ -60,17 +66,97 @@ typedef struct
     device_id_t id;
     bool is_battery_low;
 }__attribute__ ((packed)) sensepi_sysinfo ;
+/**
+ * @brief Enum of all posiible modes of operation.
+ */
+typedef enum
+{
+    TIMER_ONLY,     ///Trigger only on timer
+    PIR_ONLY,       ///Trigger only on motion detection
+    PIR_AND_TIMER,  ///Trigger on both motion detection or timer.
+}trigger_conf_t;
 
+/**
+ * @brief Strcture for Operation time.
+ */
 typedef struct
 {
-    sensepi_oper_time_t oper_time;
+    /**
+     * @note 
+     * If LSB is 1 then SensePi is operational above the threshold light intensity\n
+     * If LSB is 0 then SensePi is operational below the threshold light intensity\n
+     */
+    /** In Oper_Time: To decide operation range.\n */
+    uint8_t day_or_night: 1;
+    /** In Oper_Time: Threshold for light intensity.\n */
+    uint8_t threshold: 7;
+}__attribute__ ((packed)) oper_time_t;
+
+/**
+ * @brief Strcture to configure PIR sensing. 
+ */
+typedef struct
+{
+    /** To decide in which light condition PIR should operate. */
+    oper_time_t oper_time;     
+    /**
+     * MODE DATA FORMAT:
+     *  |31  (bits) 24|23  (bits)     8|7 (bits) 0| 
+     *  |:-----------:|:--------------:|:--------:| 
+     *  |Smaller Value|Larger value    |Mode      | 
+     *  |1 Byte       |    2 Bytes     | 1 Byte   | 
+     *  
+     *  Modes: \n
+     *  \n Mode 0 : Single Shot \n
+     *  Larger Value    : -- \n
+     *  Smaller Value   : -- \n
+     *  \n Mode 1 : Multishot Burst \n
+     *  Larger Value    : Time between 2 shots in s (with a resolution of 0.1s).
+     *                   min = 0.5s, max = 60s, unit of (32000/32768) ms\n
+     *  Smaller Value   : Number of shots. min = 2, max = 255\n
+     *  \n Mode 2 : Bulb Exposure\n
+     *  Smaller + Larger Value : Time for exposure in s (with a resolution of 0.1s)
+     *                               min = 0.5s, max = (2^24-1), unit of (32000/32768) ms\n
+     *  \n Mode 3 : Video\n
+     *  Larger Value    : Duration of video in sec; min = 1s, max = 10000s\n
+     *  Smaller Value   : Extentation in sec; min = 1s, max = 250s\n
+     *  \n Mode 4 : Set focus\n
+     *  Larger Value    : --\n
+     *  Smaller Value   : --\n
+     */
     uint32_t mode;
-    uint8_t sensitivity;
-    uint16_t inter_trig_time;
-    bool pre_focus;
-    uint8_t cam_comp;
-    uint8_t cam_model;
-}__attribute__ ((packed)) sensepi_config ;
+    /** In pir_Conf: The threshold for PIR sensing is a 11 bit value, so this value needs to be
+     *  multiplied by 8 and used as the threshold. */
+    uint8_t threshold;
+    /** In pir_Conf: Amplification of the PIR signal amplifier. */
+    uint8_t amplification;
+    /** In pir_Conf: Time between triggers by a PIR in s (with a resolution of 0.1s). */
+    uint16_t intr_trig_timer; 
+}__attribute__ ((packed)) pir_conf_t;
+
+/**
+ * @brief Structure to configure Timer triggering.
+ */
+typedef struct
+{
+    /** In timer_conf: Interval between two triggers. */
+    uint16_t timer_interval;
+    oper_time_t oper_time;
+    uint32_t mode;
+}__attribute__ ((packed)) timer_conf_t;
+
+/**
+ * @brief Strcture which is used for data transfer over BLE.
+ */
+typedef struct 
+{
+    /** In sensepi_conf: Mode of operation */
+    trigger_conf_t trig_conf;
+    /** In sensepi_conf: PIR Configuration */
+    pir_conf_t  pir_conf;
+    /** In sensepi_conf: Time configuration */
+    timer_conf_t  timer_conf;
+}__attribute__ ((packed)) sensepi_config_t ;
 
 /**
  * @brief Initialize the handlers to pass the BLE SD events
@@ -78,8 +164,8 @@ typedef struct
  * @param ble_sd_evt Handler to send the BLE events to the application
  * @param config_update Handler to send SensePi config to the application
  */
-void sensepi_ble_init(void (*ble_sd_evt)(ble_evt_t * evt),
-        void (* config_update)(sensepi_config * cfg));
+void sensepi_ble_init(void (*ble_sd_evt)(ble_evt_t * evt), 
+        void (* config_update)(sensepi_config_t * cfg));
 
 /**
  * @brief Updates the characteristic that stores the sysinfo
@@ -123,3 +209,8 @@ void sensepi_ble_adv_init(void);
 void sensepi_ble_adv_start(void);
 
 #endif /* APPLICATION_SENSE_PIR_SENSEPI_BLE_H_ */
+
+/**
+ * @}
+ * @}
+ */

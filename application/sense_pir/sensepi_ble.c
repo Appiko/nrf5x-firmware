@@ -103,13 +103,13 @@ uint16_t h_sensepi_service;
 ble_gatts_char_handles_t h_sysinfo_char;
 
 /** Handle to specify the attribute of the characteristic with the
- * configuration parameters which are specified @ref sensepi_config */
+ * configuration parameters which are specified @ref sensepi_config_t */
 ble_gatts_char_handles_t h_config_char;
 
 /** Handler to pass the BLE SoftDevice events to the application */
 void (* sensepi_ble_sd_evt)(ble_evt_t * evt);
 /** Handler to pass the received SensePi configuration to the application */
-void (* sensepi_config_update)(sensepi_config * cfg);
+void (* sensepi_config_t_update)(sensepi_config_t * cfg);
 
 sensepi_sysinfo curr_sysinfo;
 
@@ -140,9 +140,9 @@ static void ble_evt_handler(ble_evt_t * evt)
         break;
     case BLE_GATTS_EVT_WRITE:
     {
-        sensepi_config * config =
-                (sensepi_config *) evt->evt.gatts_evt.params.write.data;
-        sensepi_config_update(config);
+        sensepi_config_t * config =
+                (sensepi_config_t *) evt->evt.gatts_evt.params.write.data;
+        sensepi_config_t_update(config);
         break;
     }
     case BLE_GATTS_EVT_EXCHANGE_MTU_REQUEST:
@@ -168,10 +168,10 @@ static void soc_evt_handler(uint32_t evt_id)
 }
 
 void sensepi_ble_init(void (*ble_sd_evt)(ble_evt_t * evt),
-        void (* config_update)(sensepi_config * cfg))
+        void (* config_update)(sensepi_config_t * cfg))
 {
     sensepi_ble_sd_evt = ble_sd_evt;
-    sensepi_config_update = config_update;
+    sensepi_config_t_update = config_update;
 }
 
 void sensepi_ble_disconn(void)
@@ -319,9 +319,9 @@ void sensepi_ble_service_init(void)
 
     attr_char_value.p_uuid = &ble_uuid;
     attr_char_value.p_attr_md = &attr_md;
-    attr_char_value.init_len = sizeof(sensepi_config);
+    attr_char_value.init_len = sizeof(sensepi_config_t);
     attr_char_value.init_offs = 0;
-    attr_char_value.max_len = sizeof(sensepi_config);
+    attr_char_value.max_len = sizeof(sensepi_config_t);
     attr_char_value.p_value = NULL;
 
     err_code = sd_ble_gatts_characteristic_add(

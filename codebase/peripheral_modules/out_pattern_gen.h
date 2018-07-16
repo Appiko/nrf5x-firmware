@@ -51,31 +51,46 @@
 #include "stdbool.h"
 
 /** The maximum number of transitions that can occur in the generated pattern */
-#define OUT_GEN_MAX_TRANSITIONS 64
+#define OUT_GEN_MAX_TRANSITIONS 32
 
 /** The maximum number of output pins for which pattern can be generated */
 #define OUT_GEN_MAX_NUM_OUT     4
+
+/** 
+ * @brief Configuration structure for output pattern generation.
+ */
+typedef struct 
+{
+    /** @brief The number of transitions in this pattern. */
+    uint32_t num_transitions;
+    /** @brief 1 dimensional array containing the durations in terms of LFCLK
+        frequency ticks for the transitions. */
+    uint32_t transitions_durations[OUT_GEN_MAX_TRANSITIONS];
+    /** @brief A 2 dimensional boolean array containing the next digital output
+        value for the various transitions across the initialized pins. */
+    bool next_out[OUT_GEN_MAX_NUM_OUT][OUT_GEN_MAX_TRANSITIONS];
+    /** @brief A pointer to a handler called after a pattern is generated */
+    void (*out_gen_done_handler)(uint32_t out_gen_state);
+    /** @brief State which is to be started with this configuration,
+         passed as an argument with the @p out_gen_done_handler */
+    uint32_t out_gen_state;
+} out_gen_config_t;
 
 /**
  * @brief Initialize the output pattern generator module with the information of
  *  the pins on which the pattern is generated
  * @param num_out The number of pins with pattern generation
  * @param out_pins Pointer to array with the pin numbers
- * @note This function assumes the pins would already be initialized as output
+ * @param out_init_value Pointer to an array containing the initial pin values
  */
-void out_gen_init(uint32_t num_out, uint32_t * out_pins);
+void out_gen_init(uint32_t num_out, uint32_t * out_pins, bool * out_init_value);
 
 /**
  * @brief Start the generation of the pattern with the information provided
- *  in this function on the pins initialized.
- * @param num_transitions The number of transitions in this pattern
- * @param transitions_durations Pointer to array containing the durations in
- *  terms of LFCLK frequency ticks for the transitions
- * @param next_out A pointer to a two dimensional array containing the next
- *  digital output value for the various transitions across the initialized pins.
+ * @param out_gen_config A pointer to configuration which is used to generate
+ * pattern.
  */
-void out_gen_start(uint32_t num_transitions, uint32_t * transitions_durations,
-        bool next_out[][OUT_GEN_MAX_TRANSITIONS]);
+void out_gen_start(out_gen_config_t * out_gen_config);
 
 /**
  * @brief Stop the output pattern generation and sets the output pins
@@ -90,6 +105,12 @@ void out_gen_stop(bool * out_vals);
  * @return True if pattern generation is on and false if off
  */
 bool out_gen_is_on(void);
+
+/**
+ * @brief Function to get ticks since last call of @ref out_gen_start
+ * @return Number of ms_timer ticks since last call of @ref out_gen_start
+ */
+uint32_t out_gen_get_ticks(void);
 
 #endif /* CODEBASE_PERIPHERAL_MODULES_OUT_PATTERN_GEN_H_ */
 
