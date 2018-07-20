@@ -502,7 +502,7 @@ void sensepi_cam_trigger_init(sensepi_cam_trigger_init_config_t * config_sensepi
         }
         case TIMER_ONLY:
         {
-            timer_interval_in = (local_sensepi_config_t.timer_conf.timer_interval);
+            timer_interval_in = (local_sensepi_config_t.timer_conf.timer_interval) * 100;
             break;
         }
         case PIR_AND_TIMER:
@@ -518,7 +518,7 @@ void sensepi_cam_trigger_init(sensepi_cam_trigger_init_config_t * config_sensepi
             intr_trig_time_in = (local_sensepi_config_t.pir_conf.intr_trig_timer)*100;
             mcp4012_init(config.amp_cs_pin, config.amp_ud_pin, config.amp_spi_sck_pin);
             mcp4012_set_value(config_sensepi_cam_trigger->config_sensepi->pir_conf.amplification);
-            timer_interval_in = (local_sensepi_config_t.timer_conf.timer_interval);
+            timer_interval_in = (local_sensepi_config_t.timer_conf.timer_interval) * 100;
             break;
         }
     }
@@ -547,7 +547,7 @@ void sensepi_cam_trigger_update(sensepi_config_t * update_config)
         }
         case TIMER_ONLY:
         {
-            timer_interval_in = (config.config_sensepi->timer_conf.timer_interval);
+            timer_interval_in = (config.config_sensepi->timer_conf.timer_interval) * 100;
             break;
         }
         case PIR_AND_TIMER:
@@ -557,7 +557,7 @@ void sensepi_cam_trigger_update(sensepi_config_t * update_config)
             mcp4012_set_value(config.config_sensepi->pir_conf.amplification);
             intr_trig_time_in = ((uint32_t)config.config_sensepi->pir_conf.intr_trig_timer)*100;
             intr_trig_time_in = LFCLK_TICKS_MS(intr_trig_time_in);
-            timer_interval_in = (config.config_sensepi->timer_conf.timer_interval);
+            timer_interval_in = (config.config_sensepi->timer_conf.timer_interval) * 100;
             break;
         }
     }
