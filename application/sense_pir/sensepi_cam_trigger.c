@@ -110,7 +110,7 @@ static uint32_t video_ext_time = 0;
 /**Flag to keep status of video*/
 static bool video_on_flag = false;
 /**Flag to keep status of PIR operation*/
-static bool pir_oper_flag = false;
+volatile bool pir_oper_flag = false;
 /**Flag to keep status of PIR's current state*/
 static bool pir_on_flag = false;
 /**Flag to keep status of TIMER's current state*/
@@ -127,6 +127,7 @@ static const bool multishot_generic[OUT_GEN_MAX_NUM_OUT][OUT_GEN_MAX_TRANSITIONS
             {0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1},
             {0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1}
     };
+static void (*out_gen_done_ptr)(uint32_t out_gen_ptr_state);
 
 /**
  * @brief Enum to decide the Mode for data processing. 
@@ -166,7 +167,7 @@ typedef enum
     IDLE,
     VIDEO_PIR_ON,
     VIDEO_END,
-    VIDEO_TIMER,
+    TIMER_IDLE,
 }
 cam_trig_state_t;
 
@@ -298,6 +299,9 @@ void pir_enable()
     if(pir_on_flag == false)
     {
         pir_on_flag = true;
+        log_printf("%d, %d, %d, %d, %x, %x\n", config_pir.sense_interval_ms,
+                config_pir.pir_signal_analog_in, config_pir.pir_offset_analog_in,
+                config_pir.threshold, config_pir.irq_priority, config_pir.handler);
         pir_sense_start(&config_pir);
     }
 }
@@ -311,9 +315,10 @@ void pir_disable()
 
 void pir_handler(int32_t adc_val)
 {
+    log_printf("PIR Handler\n");
+    out_gen_stop((bool *) out_gen_end_all_on);
     log_printf("Sensed %d\n", adc_val);
     pir_disable();
-    out_gen_stop((bool *) out_gen_end_all_on);
     pir_oper_flag = true;
     if(video_on_flag == true && time_remain > 0)
     {
@@ -419,6 +424,7 @@ void start_sense()
         }
         case TIMER_ONLY:
         {
+            pir_oper_flag = false;
             if(light_check(config.config_sensepi->timer_conf.oper_time) == true)
             {
                 timer_enable();
@@ -457,15 +463,23 @@ void start_sense()
 
 void sensepi_cam_trigger_start()
 {
+    log_printf("SensePi Cam Trigger Start\n");
     led_sense_cfg_input(true);
     hal_nop_delay_ms(LED_WAIT_TIME_MS);
+    
+    pir_on_flag = false;
+    pir_oper_flag = false;
+    video_on_flag = false;
+    timer_on_flag = false;
+    
     //This if will check if module is already working or not.
+
     start_sense();
 }
 
 void sensepi_cam_trigger_stop()
 {
-    log_printf("SensePi_PIR_Stop\n");
+    log_printf("SensePi Cam Trigger Stop\n");
     led_sense_cfg_input(false);
     pir_disable();
     timer_disable();
@@ -476,7 +490,7 @@ void sensepi_cam_trigger_stop()
 void sensepi_cam_trigger_init(sensepi_cam_trigger_init_config_t * config_sensepi_cam_trigger)
 {
     uint32_t working_mode = 0;
-    log_printf("SensePi_PIR_init\n");
+    log_printf("SensePi Cam Trigger Init\n");
     ASSERT(config_sensepi_cam_trigger->signal_pin_num == NUM_PIN_OUT);
     memcpy(&config, config_sensepi_cam_trigger, sizeof(config));
     sensepi_config_t local_sensepi_config_t;
@@ -496,6 +510,7 @@ void sensepi_cam_trigger_init(sensepi_cam_trigger_init_config_t * config_sensepi
             };
             config_pir = local_config_pir;
             intr_trig_time_in = (local_sensepi_config_t.pir_conf.intr_trig_timer)*100;
+            intr_trig_time_in = LFCLK_TICKS_MS(intr_trig_time_in);
             mcp4012_init(config.amp_cs_pin, config.amp_ud_pin, config.amp_spi_sck_pin);
             mcp4012_set_value(config_sensepi_cam_trigger->config_sensepi->pir_conf.amplification);
             break;
@@ -516,6 +531,7 @@ void sensepi_cam_trigger_init(sensepi_cam_trigger_init_config_t * config_sensepi
             };
             config_pir = local_config_pir;
             intr_trig_time_in = (local_sensepi_config_t.pir_conf.intr_trig_timer)*100;
+            intr_trig_time_in = LFCLK_TICKS_MS(intr_trig_time_in);
             mcp4012_init(config.amp_cs_pin, config.amp_ud_pin, config.amp_spi_sck_pin);
             mcp4012_set_value(config_sensepi_cam_trigger->config_sensepi->pir_conf.amplification);
             timer_interval_in = (local_sensepi_config_t.timer_conf.timer_interval) * 100;
@@ -531,7 +547,7 @@ void sensepi_cam_trigger_init(sensepi_cam_trigger_init_config_t * config_sensepi
 void sensepi_cam_trigger_update(sensepi_config_t * update_config)
 {
     uint32_t working_mode = 0;
-    log_printf("SensePi_PIR_update\n");
+    log_printf("SensePi Cam Trigger Update\n");
     memcpy(config.config_sensepi, update_config, sizeof(sensepi_config_t));
     working_mode = config.config_sensepi->trig_conf;
     switch((trigger_conf_t)working_mode)
@@ -568,7 +584,7 @@ void sensepi_cam_trigger_add_tick(uint32_t interval)
     log_printf("SensePi Add ticks : %d\n", interval);
     //TODO Take care of this if
     //NOTE if this if() removed then state switching does not happen
-//    if(interval > 51)
+//    if(interval > 1000)
 //    {
         start_sense();
 //    }
@@ -578,13 +594,14 @@ void sensepi_cam_trigger_add_tick(uint32_t interval)
 
 void pattern_out_done_handler(uint32_t out_gen_state)
 {
+    log_printf("Out Gen Done\n");
     log_printf("OUT_GEN_STATE : %02x\n", out_gen_state);
 
     switch((cam_trig_state_t)out_gen_state)
     {
         case IDLE:
         {
-            if(false == (config.config_sensepi->trig_conf == TIMER_ONLY))
+            if((config.config_sensepi->trig_conf == TIMER_ONLY) == false)
             {
                 pir_enable();
                 if(pir_oper_flag == true)
@@ -620,7 +637,7 @@ void pattern_out_done_handler(uint32_t out_gen_state)
             pir_enable();
             break;
         }
-        case VIDEO_TIMER:
+        case TIMER_IDLE:
         {
             break;
         }
@@ -643,14 +660,23 @@ void single_shot_mode()
 {
     log_printf("SINGLE_SHOT_MODE\n");
     uint32_t number_of_transition = SINGLE_SHOT_TRANSITIONS;
-
-    time_remain = intr_trig_time_in - (SINGLE_SHOT_DURATION);
+    uint32_t local_out_gen_state;
+    if(pir_oper_flag == true)
+    {
+        time_remain = intr_trig_time_in - (SINGLE_SHOT_DURATION); 
+        local_out_gen_state = IDLE;
+    }
+    else
+    {
+        local_out_gen_state = TIMER_IDLE;
+        time_remain = LFCLK_TICKS_MS(1);
+    }
 
     out_gen_config_t out_gen_config = 
     {
         .num_transitions = number_of_transition,
-        .out_gen_done_handler = pattern_out_done_handler,
-        .out_gen_state = IDLE,
+        .out_gen_done_handler = out_gen_done_ptr,
+        .out_gen_state = local_out_gen_state,
         .transitions_durations = { SINGLE_SHOT_DURATION, time_remain },
         .next_out = {{0, 1, 1},
                      {0, 1, 1}},
@@ -662,6 +688,7 @@ void single_shot_mode()
 
 void multi_shot_mode(uint32_t burst_duration, uint32_t burst_num)
 {
+    uint32_t local_out_gen_state;
     uint32_t number_of_transition = SINGLE_SHOT_TRANSITIONS * burst_num;
     log_printf("MULTISHOT MODE\n");
     //Time for trigger pulse and time till next trigger for each burst
@@ -670,8 +697,8 @@ void multi_shot_mode(uint32_t burst_duration, uint32_t burst_num)
     out_gen_config_t out_gen_config = 
     {
         .num_transitions = number_of_transition,
-        .out_gen_done_handler = pattern_out_done_handler,
-        .out_gen_state = IDLE,
+        .out_gen_done_handler = out_gen_done_ptr,
+//        .out_gen_state = IDLE,
     };
 
     for(uint32_t i = 0; i< burst_num; i++)
@@ -688,10 +715,21 @@ void multi_shot_mode(uint32_t burst_duration, uint32_t burst_num)
         }
     }
 
+    if(pir_oper_flag == true)
+    {
+        time_remain = intr_trig_time_in - SINGLE_SHOT_DURATION*burst_num -
+            (LFCLK_TICKS_MS(burst_duration * 100) - SINGLE_SHOT_DURATION)*(burst_num - 1);  
+        local_out_gen_state = IDLE;
+   }
+    else
+    {
+        time_remain = LFCLK_TICKS_MS(1);
+        local_out_gen_state = TIMER_IDLE;
+    }
+    out_gen_config.out_gen_state = local_out_gen_state;
     // Last interval for the '1' signal till 'time till next trigger' elapses
-    out_gen_config.transitions_durations[number_of_transition-1] =
-            intr_trig_time_in - SINGLE_SHOT_DURATION*burst_num -
-            (LFCLK_TICKS_MS(burst_duration * 100) - SINGLE_SHOT_DURATION)*(burst_num - 1);
+    out_gen_config.transitions_durations[number_of_transition-1] = time_remain;
+            
 
     debug_print_bool_array(out_gen_config.next_out, "multi shot");
 
@@ -707,16 +745,29 @@ void multi_shot_mode(uint32_t burst_duration, uint32_t burst_num)
 void bulb_mode(uint32_t bulb_time)
 {
     log_printf("BULB_MODE\n");
+    uint32_t local_out_gen_state;
     uint32_t number_of_transition = BULB_SHOT_TRANSITIONS;
     uint32_t bulb_time_ticks = LFCLK_TICKS_MS((bulb_time*100));
+
+    if(pir_oper_flag == true)
+    {
+        time_remain = intr_trig_time_in - bulb_time_ticks ;
+        local_out_gen_state = IDLE;
+    }
+    else
+    {
+        time_remain = LFCLK_TICKS_MS(1);
+        local_out_gen_state = TIMER_IDLE;
+    }
+
     out_gen_config_t out_gen_config = 
     {
         .num_transitions = number_of_transition,
-        .out_gen_done_handler = pattern_out_done_handler,
-        .out_gen_state = IDLE,
-        .transitions_durations =
+        .out_gen_done_handler = out_gen_done_ptr,
+        .out_gen_state = local_out_gen_state,
+        .transitions_durations = 
             {bulb_time_ticks - BULB_TRIGGER_PULSE, BULB_TRIGGER_PULSE
-              , intr_trig_time_in - bulb_time_ticks},
+              , time_remain},
         .next_out = { {0, 0, 1, 1},
                       {1, 0, 1, 1} },
     };
@@ -740,7 +791,7 @@ void video_mode(uint32_t video_time)
         out_gen_config_t out_gen_config =
         {
             .num_transitions = VIDEO_TRANSITION,
-            .out_gen_done_handler = pattern_out_done_handler,
+            .out_gen_done_handler = out_gen_done_ptr,
             .out_gen_state = VIDEO_PIR_ON,
             .transitions_durations =
             {VIDEO_CONTROL_PULSE, (video_pir_disable_len)},
@@ -763,8 +814,8 @@ void video_mode(uint32_t video_time)
         out_gen_config_t out_gen_config =
         {
             .num_transitions = VIDEO_TRANSITION * 2,
-            .out_gen_done_handler = pattern_out_done_handler,
-            .out_gen_state = VIDEO_TIMER,
+            .out_gen_done_handler = out_gen_done_ptr,
+            .out_gen_state = TIMER_IDLE,
             .transitions_durations = {VIDEO_CONTROL_PULSE,
                 LFCLK_TICKS_MS(video_time*100), VIDEO_CONTROL_PULSE, time_left},
             .next_out = {{0, 1, 0, 1, 1},
@@ -779,15 +830,28 @@ void video_mode(uint32_t video_time)
 
 void focus_mode()
 {
+    uint32_t local_out_gen_state;
     log_printf("FOCUS_MODE\n");
     uint32_t number_of_transition = FOCUS_TRANSITIONS;
+
+    if(pir_oper_flag == true)
+    {
+        time_remain =  intr_trig_time_in - SINGLE_SHOT_DURATION ;
+        local_out_gen_state = IDLE;
+    }
+    else
+    {
+        time_remain = LFCLK_TICKS_MS(1);
+        local_out_gen_state = TIMER_IDLE;
+    }
+
     out_gen_config_t out_gen_config = 
     {
         .num_transitions = number_of_transition,
-        .out_gen_done_handler = pattern_out_done_handler,
-        .out_gen_state = IDLE,
+        .out_gen_done_handler = out_gen_done_ptr,
+        .out_gen_state = local_out_gen_state,
         .transitions_durations =
-        {SINGLE_SHOT_DURATION , intr_trig_time_in - SINGLE_SHOT_DURATION},
+        {SINGLE_SHOT_DURATION ,time_remain},
         .next_out = { {0, 1, 1},
                       {1, 1, 1} },
     };
@@ -803,6 +867,8 @@ void data_process_pattern_gen(bool data_process_mode)
     log_printf("Pattern_Generation\n");
     uint32_t config_mode;
 
+    out_gen_done_ptr = pattern_out_done_handler;
+    
     if((data_process_mode_t)data_process_mode == PIR_DATA_PROCESS_MODE)
     {
         config_mode = config.config_sensepi->pir_conf.mode;
@@ -811,6 +877,7 @@ void data_process_pattern_gen(bool data_process_mode)
     {
         config_mode = config.config_sensepi->timer_conf.mode;
     }
+//    log_printf("Out_Gen_Done_Ptr = %x\n",out_gen_done_ptr);
     out_gen_stop((bool *) out_gen_end_all_on);
     uint32_t mode = ((config_mode & MODE_MSK) 
             >> (POS_OF_MODE * SIZE_OF_BYTE));

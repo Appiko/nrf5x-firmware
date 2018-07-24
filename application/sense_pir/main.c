@@ -141,7 +141,7 @@ static sensepi_config_t sensepi_ble_default_config = {
     .pir_conf.oper_time.threshold = 0b0000000,
     .pir_conf.amplification = 31,
     .pir_conf.threshold = 100,
-    .pir_conf.mode = 0x03000800,
+    .pir_conf.mode = 0x00000000,
     .pir_conf.intr_trig_timer = 50,
     
     .timer_conf.oper_time.day_or_night = 1,
@@ -277,7 +277,7 @@ void next_interval_handler(uint32_t interval)
         {
             sense_feedback = false;
         }
-        sensepi_cam_trigger_add_tick(interval);
+        sensepi_cam_trigger_add_tick(interval);        
     }
         break;
     case ADVERTISING:
