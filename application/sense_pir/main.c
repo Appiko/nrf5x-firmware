@@ -325,15 +325,6 @@ void state_change_handler(uint32_t new_state)
                 DEVICE_TICK_SLOW
             };
             device_tick_init(&tick_cfg);
-#if 0
-            pir_sense_cfg pir_cfg =
-            {
-                PIR_SENSE_INTERVAL_MS, PIN_TO_ANALOG_INPUT(PIR_AMP_SIGNAL_PIN),
-                PIN_TO_ANALOG_INPUT(PIR_AMP_OFFSET_PIN),
-                PIR_SENSE_THRESHOLD, APP_IRQ_PRIORITY_HIGH, pir_handler
-            };
-            pir_sense_start(&pir_cfg);
-#endif
             sensepi_cam_trigger_start();
         }
         break;
@@ -564,7 +555,6 @@ int main(void)
         //Since the application demands that CPU wakes up
         hal_wdt_feed();
 #endif
-//        data_process_pattern_gen(true);
         device_tick_process();
         irq_msg_process();
         slumber();

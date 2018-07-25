@@ -75,6 +75,7 @@
  */
 #define LIGHT_THRESHOLD_MULTIPLY_FACTOR 32
 
+#define SENSEPI_CAM_TRIGGER_MS_TIMER_USED MS_TIMER2
 /*Data_Process module MACROS*/
 
 #define SIZE_OF_BYTE 8
@@ -115,6 +116,7 @@ volatile bool pir_oper_flag = false;
 static bool pir_on_flag = false;
 /**Flag to keep status of TIMER's current state*/
 static bool timer_on_flag = false;
+
 /**Time remain in video length*/
 static uint32_t time_remain = 0;
 /***/
@@ -316,10 +318,14 @@ void pir_disable()
 void pir_handler(int32_t adc_val)
 {
     log_printf("PIR Handler\n");
-    out_gen_stop((bool *) out_gen_end_all_on);
     log_printf("Sensed %d\n", adc_val);
+//    while(out_gen_is_on() == true)
+    {
+//        do_nothing
+    }
     pir_disable();
     pir_oper_flag = true;
+    out_gen_stop((bool *) out_gen_end_all_on);
     if(video_on_flag == true && time_remain > 0)
     {
         time_remain -= out_gen_get_ticks();
@@ -349,7 +355,7 @@ void timer_enable()
     if(timer_on_flag == false)
     {
         timer_on_flag = true;
-        ms_timer_start(MS_TIMER2,
+        ms_timer_start(SENSEPI_CAM_TRIGGER_MS_TIMER_USED,
             MS_REPEATED_CALL, LFCLK_TICKS_MS(timer_interval_in), timer_handler);
     }
 }
@@ -358,13 +364,13 @@ void timer_disable()
 {
     log_printf("TIMER_Disabled\n");
     timer_on_flag = false;
-    ms_timer_stop(MS_TIMER2);
+    ms_timer_stop(SENSEPI_CAM_TRIGGER_MS_TIMER_USED);
 }
 
 void timer_handler(void)
 {
     log_printf("Timer Handler\n");
-    if(pir_oper_flag == false)
+    if(((pir_oper_flag == false) && (out_gen_is_on() == false)) == true)
     {
         data_process_pattern_gen(TIMER_DATA_PROCESS_MODE);    
     }
@@ -406,6 +412,10 @@ bool light_check(oper_time_t oper_time_temp)
 
 void start_sense()
 {
+    pir_on_flag = false;
+    pir_oper_flag = false;
+    video_on_flag = false;
+    timer_on_flag = false;
     uint32_t working_mode = 0;
     working_mode = config.config_sensepi->trig_conf;
     switch(working_mode)
@@ -419,6 +429,7 @@ void start_sense()
             else
             {
                 pir_disable();
+                out_gen_stop((bool *) out_gen_end_all_on);
             }
             break;
         }
@@ -432,6 +443,7 @@ void start_sense()
             else
             {
                 timer_disable();
+                out_gen_stop((bool *) out_gen_end_all_on);
             }
             break;
         }
@@ -445,6 +457,7 @@ void start_sense()
             else
             {
                 pir_disable();
+                out_gen_stop((bool *) out_gen_end_all_on);
             }
             if(light_check(config.config_sensepi->timer_conf.oper_time) == true)
             {
@@ -452,6 +465,7 @@ void start_sense()
             }
             else
             {
+                out_gen_stop((bool *) out_gen_end_all_on);
                 timer_disable();
             }
             break;
@@ -467,11 +481,6 @@ void sensepi_cam_trigger_start()
     led_sense_cfg_input(true);
     hal_nop_delay_ms(LED_WAIT_TIME_MS);
     
-    pir_on_flag = false;
-    pir_oper_flag = false;
-    video_on_flag = false;
-    timer_on_flag = false;
-    
     //This if will check if module is already working or not.
 
     start_sense();
@@ -484,7 +493,6 @@ void sensepi_cam_trigger_stop()
     pir_disable();
     timer_disable();
     out_gen_stop((bool *) out_gen_end_all_on);
-    return;
 }
 
 void sensepi_cam_trigger_init(sensepi_cam_trigger_init_config_t * config_sensepi_cam_trigger)
@@ -541,7 +549,6 @@ void sensepi_cam_trigger_init(sensepi_cam_trigger_init_config_t * config_sensepi
 
     out_gen_init(NUM_PIN_OUT, config.signal_out_pin_array, (bool *) out_gen_end_all_on);
     out_gen_stop((bool *) out_gen_end_all_on);
-    return;
 }
 
 void sensepi_cam_trigger_update(sensepi_config_t * update_config)
@@ -601,7 +608,7 @@ void pattern_out_done_handler(uint32_t out_gen_state)
     {
         case IDLE:
         {
-            if((config.config_sensepi->trig_conf == TIMER_ONLY) == false)
+            if((bool)(config.config_sensepi->trig_conf == TIMER_ONLY) == false)
             {
                 pir_enable();
                 if(pir_oper_flag == true)
@@ -642,7 +649,6 @@ void pattern_out_done_handler(uint32_t out_gen_state)
             break;
         }
     }
-    return;
 }
 
 sensepi_config_t * sensepi_cam_trigger_get_sensepi_config_t()
@@ -867,15 +873,17 @@ void data_process_pattern_gen(bool data_process_mode)
     log_printf("Pattern_Generation\n");
     uint32_t config_mode;
 
-    out_gen_done_ptr = pattern_out_done_handler;
+//    out_gen_done_ptr = pattern_out_done_handler;
     
     if((data_process_mode_t)data_process_mode == PIR_DATA_PROCESS_MODE)
     {
         config_mode = config.config_sensepi->pir_conf.mode;
+        out_gen_done_ptr = pattern_out_done_handler;
     }
     else
     {
         config_mode = config.config_sensepi->timer_conf.mode;
+        out_gen_done_ptr = NULL;
     }
 //    log_printf("Out_Gen_Done_Ptr = %x\n",out_gen_done_ptr);
     out_gen_stop((bool *) out_gen_end_all_on);
@@ -921,5 +929,5 @@ void data_process_pattern_gen(bool data_process_mode)
             break;
         }
     }   
-    return;        
+      
 }
