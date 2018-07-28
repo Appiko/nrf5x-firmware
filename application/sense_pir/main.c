@@ -175,13 +175,13 @@ static sensepi_config_t sensepi_ble_default_config = {
     .pir_conf.oper_time.threshold = 0b0000000,
     .pir_conf.amplification = 31,
     .pir_conf.threshold = 100,
-    .pir_conf.mode = 0x03000800,
+    .pir_conf.mode = 0x00000000,
     .pir_conf.intr_trig_timer = 50,
     
     .timer_conf.oper_time.day_or_night = 1,
     .timer_conf.oper_time.threshold = 0b0000000,
     .timer_conf.mode = 0x00000000,
-    .timer_conf.timer_interval = 5000,
+    .timer_conf.timer_interval = 50,
     
     .trig_conf = PIR_ONLY,
 };
@@ -350,7 +350,7 @@ void next_interval_handler(uint32_t interval)
         {
             sense_feedback = false;
         }
-        sensepi_cam_trigger_add_tick(interval);
+        sensepi_cam_trigger_add_tick(interval);        
     }
         break;
     case ADVERTISING:
@@ -398,15 +398,6 @@ void state_change_handler(uint32_t new_state)
                 DEVICE_TICK_SLOW
             };
             device_tick_init(&tick_cfg);
-#if 0
-            pir_sense_cfg pir_cfg =
-            {
-                PIR_SENSE_INTERVAL_MS, PIN_TO_ANALOG_INPUT(PIR_AMP_SIGNAL_PIN),
-                PIN_TO_ANALOG_INPUT(PIR_AMP_OFFSET_PIN),
-                PIR_SENSE_THRESHOLD, APP_IRQ_PRIORITY_HIGH, pir_handler
-            };
-            pir_sense_start(&pir_cfg);
-#endif
             sensepi_cam_trigger_start();
         }
         break;
@@ -638,8 +629,6 @@ int main(void)
         //Since the application demands that CPU wakes up
         hal_wdt_feed();
 #endif
-//        log_printf("FW Ver = %d", FW_VER);
-//        hal_nop_delay_ms(2500);
         device_tick_process();
         irq_msg_process();
         slumber();
