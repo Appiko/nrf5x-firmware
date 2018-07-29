@@ -70,7 +70,7 @@
 #include "nrf_sdm.h"
 #include "app_error.h"
 #include "out_pattern_gen.h"
-
+#include "led_ui.h"
 #include "sensepi_ble.h"
 #include "sensepi_cam_trigger.h"
 
@@ -136,9 +136,6 @@ uint8_t app_scan_rsp_data[] = APP_SCAN_RSP_DATA;
 
 /** The time in ms (min*sec*ms) to timeout of the Connected mode*/
 #define CONN_TIMEOUT_MS             (10*60*1000)
-/** The time in ms (min*sec*ms) to show feedback with the LED
- *  pulsing in the Sense mode */
-#define SENSE_FEEDBACK_TIMEOUT_MS   (15*60*1000)
 
 /** Defines the states possible in the SensePi device */
 typedef enum
@@ -160,12 +157,6 @@ static uint32_t light_val;
 
 /** To keep track of the amount of time in the connected state */
 static uint32_t conn_count;
-
-/** The amount of time since starting the SENSING state */
-static uint32_t sense_count;
-
-/** Boolen to indicate if PIR sensing feedback is required for user  */
-static bool sense_feedback = false;
 
 /** Advertisment data which is to be sent to BLE module */
 sensepi_ble_adv_data_t app_adv_data_struct = {0, 0, 0, 0};
@@ -215,15 +206,6 @@ void wdt_prior_reset_callback(void){
 bool get_batt_low_state(void)
 {
     return false;
-}
-
-void led_set_state(bool red, bool green)
-{
-    hal_gpio_pin_write(LED_RED,
-            (red?LEDS_ACTIVE_STATE:!LEDS_ACTIVE_STATE));
-    led_sense_cfg_input(!green);
-    hal_gpio_pin_write(LED_GREEN,
-                (green?LEDS_ACTIVE_STATE:!LEDS_ACTIVE_STATE));
 }
 
 device_id_t get_device_id(void)
@@ -345,11 +327,6 @@ void next_interval_handler(uint32_t interval)
     case SENSING:
     {
         log_printf("Nxt Evt Hndlr : SENSING\n");
-        sense_count += interval;
-        if(sense_count > SENSE_FEEDBACK_TIMEOUT_MS)
-        {
-            sense_feedback = false;
-        }
         sensepi_cam_trigger_add_tick(interval);        
     }
         break;
@@ -388,9 +365,6 @@ void state_change_handler(uint32_t new_state)
         {
             sd_softdevice_disable();
             log_printf("State Change : SENSING\n");
-            sense_count = 0;
-            sense_feedback = true;
-            led_set_state(false, false);
             device_tick_cfg tick_cfg =
             {
                 LFCLK_TICKS_MS(SENSE_FAST_TICK_INTERVAL_MS),
@@ -398,6 +372,8 @@ void state_change_handler(uint32_t new_state)
                 DEVICE_TICK_SLOW
             };
             device_tick_init(&tick_cfg);
+
+            led_ui_type_stop_all(LED_UI_LOOP_SEQ);
             sensepi_cam_trigger_start();
         }
         break;
@@ -406,7 +382,6 @@ void state_change_handler(uint32_t new_state)
             sensepi_cam_trigger_stop();
             conn_count = 0;
             light_val = led_sense_get();
-            led_set_state(true, true);
 
             device_tick_cfg tick_cfg =
             {
@@ -415,6 +390,7 @@ void state_change_handler(uint32_t new_state)
                 DEVICE_TICK_SAME
             };
             device_tick_init(&tick_cfg);
+
 
             uint8_t is_sd_enabled;
             sd_softdevice_is_enabled(&is_sd_enabled);
@@ -439,11 +415,13 @@ void state_change_handler(uint32_t new_state)
                 ///TODO get config from sensepi_cam_trigger
             }
             sensepi_ble_adv_start();
+
+            led_ui_type_stop_all(LED_UI_LOOP_SEQ);
+            led_ui_loop_start(LED_SEQ_ADV_MODE, LED_UI_MID_PRIORITY);
         }
         break;
     case CONNECTED:
         {
-            led_set_state(true, false);
             device_tick_cfg tick_cfg =
             {
                 LFCLK_TICKS_MS(CONN_FAST_TICK_INTERVAL_MS),
@@ -451,6 +429,9 @@ void state_change_handler(uint32_t new_state)
                 DEVICE_TICK_SAME
             };
             device_tick_init(&tick_cfg);
+
+            led_ui_type_stop_all(LED_UI_LOOP_SEQ);
+            led_ui_loop_start(LED_SEQ_CONN_MODE, LED_UI_MID_PRIORITY);
             break;
         }
     }
@@ -610,7 +591,6 @@ int main(void)
             button_handler);
     led_sense_init(LED_GREEN,
             PIN_TO_ANALOG_INPUT(LED_LIGHT_SENSE), !LEDS_ACTIVE_STATE);
-    led_sense_cfg_input(true);
 
     {
         irq_msg_callbacks cb =
