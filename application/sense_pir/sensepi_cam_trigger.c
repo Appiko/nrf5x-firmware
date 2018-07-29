@@ -50,6 +50,7 @@
 #include "hal_gpio.h"
 #include "nrf_util.h"
 #include "common_util.h"
+#include "led_ui.h"
 
 #include "stdint.h"
 #include "stdbool.h"
@@ -74,6 +75,10 @@
  *  appropriate for module
  */
 #define LIGHT_THRESHOLD_MULTIPLY_FACTOR 32
+
+/** The time in ms (min*sec*ms) to show feedback with the LED
+ *  pulsing in the Sense mode */
+#define SENSE_FEEDBACK_TIMEOUT_MS   (15*60*1000)
 
 #define SENSEPI_CAM_TRIGGER_MS_TIMER_USED MS_TIMER2
 /*Data_Process module MACROS*/
@@ -116,6 +121,10 @@ volatile bool pir_oper_flag = false;
 static bool pir_on_flag = false;
 /**Flag to keep status of TIMER's current state*/
 static bool timer_on_flag = false;
+/** The amount of time since starting the SENSING state */
+static uint32_t sense_count;
+/** Boolen to indicate if PIR sensing feedback is required for user  */
+static bool sense_feedback = false;
 
 /**Time remain in video length*/
 static uint32_t time_remain = 0;
@@ -345,6 +354,10 @@ void pir_handler(int32_t adc_val)
     }
     else
     {
+        if(sense_feedback == true)
+        {
+            led_ui_single_start(LED_SEQ_PIR_PULSE, LED_UI_HIGH_PRIORITY, true);
+        }
         data_process_pattern_gen(PIR_DATA_PROCESS_MODE);        
     }
 }
@@ -484,6 +497,9 @@ void sensepi_cam_trigger_start()
     //This if will check if module is already working or not.
 
     start_sense();
+
+    sense_count = 0;
+    sense_feedback = true;
 }
 
 void sensepi_cam_trigger_stop()
@@ -493,6 +509,7 @@ void sensepi_cam_trigger_stop()
     pir_disable();
     timer_disable();
     out_gen_stop((bool *) out_gen_end_all_on);
+    led_ui_type_stop_all(LED_UI_SINGLE_SEQ);
 }
 
 void sensepi_cam_trigger_init(sensepi_cam_trigger_init_config_t * config_sensepi_cam_trigger)
@@ -589,12 +606,14 @@ void sensepi_cam_trigger_update(sensepi_config_t * update_config)
 void sensepi_cam_trigger_add_tick(uint32_t interval)
 {
     log_printf("SensePi Add ticks : %d\n", interval);
-    //TODO Take care of this if
-    //NOTE if this if() removed then state switching does not happen
-//    if(interval > 1000)
-//    {
-        start_sense();
-//    }
+
+    start_sense();
+
+    sense_count += interval;
+    if(sense_count > SENSE_FEEDBACK_TIMEOUT_MS)
+    {
+        sense_feedback = false;
+    }
 }
 
 /*Data_Process module*/
