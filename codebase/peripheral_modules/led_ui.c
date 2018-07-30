@@ -47,6 +47,7 @@
 #include "nrf_util.h"
 #include "log.h"
 #include "boards.h"
+#include "stddef.h"
 
 #define MAX_COUNT_PWM           1000
 #define MAX_SEQ_LEN_SEC         20
