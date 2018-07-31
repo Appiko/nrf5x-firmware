@@ -120,7 +120,7 @@ void hal_pwm_init(hal_pwm_init_t * init_config)
     switch(init_config->pin_num)
     {
     case 1:
-        hal_gpio_cfg_output(init_config->pins[0], init_config->pin_idle_state[0]);
+        hal_gpio_cfg_high_output(init_config->pins[0], init_config->pin_idle_state[0]);
         NRF_PWM0->PSEL.OUT[0] = (init_config->pins[0] << PWM_PSEL_OUT_PIN_Pos) |
                 (PWM_PSEL_OUT_CONNECT_Connected << PWM_PSEL_OUT_CONNECT_Pos);
         NRF_PWM0->PSEL.OUT[1] = (0 << PWM_PSEL_OUT_PIN_Pos) |
@@ -131,10 +131,10 @@ void hal_pwm_init(hal_pwm_init_t * init_config)
                 (PWM_PSEL_OUT_CONNECT_Disconnected << PWM_PSEL_OUT_CONNECT_Pos);
         break;
     case 2: //2 pin would be used with grouped decoder loading
-        hal_gpio_cfg_output(init_config->pins[0], init_config->pin_idle_state[0]);
+        hal_gpio_cfg_high_output(init_config->pins[0], init_config->pin_idle_state[0]);
         NRF_PWM0->PSEL.OUT[0] = (init_config->pins[0] << PWM_PSEL_OUT_PIN_Pos) |
                 (PWM_PSEL_OUT_CONNECT_Connected << PWM_PSEL_OUT_CONNECT_Pos);
-        hal_gpio_cfg_output(init_config->pins[1], init_config->pin_idle_state[1]);
+        hal_gpio_cfg_high_output(init_config->pins[1], init_config->pin_idle_state[1]);
         NRF_PWM0->PSEL.OUT[2] = (init_config->pins[1] << PWM_PSEL_OUT_PIN_Pos) |
                 (PWM_PSEL_OUT_CONNECT_Connected << PWM_PSEL_OUT_CONNECT_Pos);
         NRF_PWM0->PSEL.OUT[1] = (0 << PWM_PSEL_OUT_PIN_Pos) |
@@ -147,7 +147,7 @@ void hal_pwm_init(hal_pwm_init_t * init_config)
         //Configure the pins as output with the appropriate idle state
         for(uint32_t i = 0; i < init_config->pin_num; i++)
         {
-            hal_gpio_cfg_output(init_config->pins[i], init_config->pin_idle_state[i]);
+            hal_gpio_cfg_high_output(init_config->pins[i], init_config->pin_idle_state[i]);
             NRF_PWM0->PSEL.OUT[i] = (init_config->pins[i] << PWM_PSEL_OUT_PIN_Pos) |
                     (PWM_PSEL_OUT_CONNECT_Connected << PWM_PSEL_OUT_CONNECT_Pos);
         }

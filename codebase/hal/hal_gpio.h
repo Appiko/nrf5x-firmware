@@ -83,6 +83,14 @@ static inline void hal_gpio_cfg(  uint32_t pin_num,
 static inline void hal_gpio_cfg_output(uint32_t pin_num, uint32_t init_val);
 
 /**
+ * @brief Function for configuring the given GPIO pin number as output with a high drive for 1 and 0 levels.
+ * @param pin_num specifies the pin number (allowed values 0-31) to set as output
+ * @param init_val specifies the output state of the pin configured
+ * @note  Sense capability on the pin is disabled, and input is disconnected from the buffer as the pins are configured as output
+ */
+static inline void hal_gpio_cfg_high_output(uint32_t pin_num, uint32_t init_val);
+
+/**
  * @brief Function for configuring the given GPIO pin number as input with the specified pull up-down or no pull.
  * @param pin_num Specifies the pin number (allowed values 0-31) to set as input
  * @param pull_config State of the pin's pull resistor (no pull, pulled down or pulled high).
@@ -145,6 +153,23 @@ static inline void hal_gpio_cfg_output(uint32_t pin_num, uint32_t init_val)
         GPIO_PIN_CNF_INPUT_Disconnect,
         GPIO_PIN_CNF_PULL_Disabled,
         GPIO_PIN_CNF_DRIVE_S0S1,
+        GPIO_PIN_CNF_SENSE_Disabled);
+}
+
+static inline void hal_gpio_cfg_high_output(uint32_t pin_num, uint32_t init_val)
+{
+    hal_gpio_cfg(pin_num,
+        GPIO_PIN_CNF_DIR_Input,
+        GPIO_PIN_CNF_INPUT_Disconnect,
+        GPIO_PIN_CNF_PULL_Disabled,
+        GPIO_PIN_CNF_DRIVE_S0S1,
+        GPIO_PIN_CNF_SENSE_Disabled);
+    hal_gpio_pin_write(pin_num, init_val);
+    hal_gpio_cfg(pin_num,
+        GPIO_PIN_CNF_DIR_Output,
+        GPIO_PIN_CNF_INPUT_Disconnect,
+        GPIO_PIN_CNF_PULL_Disabled,
+        GPIO_PIN_CNF_DRIVE_H0H1,
         GPIO_PIN_CNF_SENSE_Disabled);
 }
 

@@ -87,9 +87,9 @@ typedef enum
 #elif __CORTEX_M == (0x04U)
 typedef enum
 {
-    APP_IRQ_PRIORITY_HIGHEST = 0,
-    APP_IRQ_PRIORITY_HIGH    = 2,
-    APP_IRQ_PRIORITY_MID     = 4,
+    APP_IRQ_PRIORITY_HIGHEST = 2,
+    APP_IRQ_PRIORITY_HIGH    = 3,
+    APP_IRQ_PRIORITY_MID     = 5,
     APP_IRQ_PRIORITY_LOW     = 6,
     APP_IRQ_PRIORITY_LOWEST  = 7,
     APP_IRQ_PRIORITY_THREAD  = 15
