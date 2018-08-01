@@ -369,11 +369,12 @@ void state_change_handler(uint32_t new_state)
             {
                 LFCLK_TICKS_MS(SENSE_FAST_TICK_INTERVAL_MS),
                 LFCLK_TICKS_MS(SENSE_SLOW_TICK_INTERVAL_MS),
-                DEVICE_TICK_SLOW
+                DEVICE_TICK_SAME
             };
             device_tick_init(&tick_cfg);
 
             led_ui_type_stop_all(LED_UI_LOOP_SEQ);
+            
             sensepi_cam_trigger_start();
         }
         break;
