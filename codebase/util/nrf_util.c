@@ -43,7 +43,17 @@ nrf_nvic_state_t nrf_nvic_state = {0};
 void nrf_util_critical_region_enter(uint8_t * is_critical_entered)
 {
 #if defined(SOFTDEVICE_PRESENT)
-    (void) sd_nvic_critical_region_enter(is_critical_entered);
+    uint8_t is_sd_enabled;
+    sd_softdevice_is_enabled(&is_sd_enabled);
+    // Would be coming from the SENSING mode
+    if(is_sd_enabled)
+    {
+        (void) sd_nvic_critical_region_enter(is_critical_entered);
+    }
+    else
+    {
+        __disable_irq();
+    }
 #else
     __disable_irq();
 #endif
@@ -52,7 +62,17 @@ void nrf_util_critical_region_enter(uint8_t * is_critical_entered)
 void nrf_util_critical_region_exit(uint8_t critical_entered)
 {
 #if defined(SOFTDEVICE_PRESENT)
-    (void) sd_nvic_critical_region_exit(critical_entered);
+    uint8_t is_sd_enabled;
+    sd_softdevice_is_enabled(&is_sd_enabled);
+    // Would be coming from the SENSING mode
+    if(is_sd_enabled)
+    {
+        (void) sd_nvic_critical_region_exit(critical_entered);
+    }
+    else
+    {
+        __enable_irq();
+    }
 #else
     __enable_irq();
 #endif
