@@ -91,7 +91,7 @@ uint32_t simple_adc_get_value(simple_adc_gain_t gain, simple_adc_input_t pin)
     //when the signal to the ADC is close to 0V
     if(saadc_result[0] < 0)
     {
-        saadc_result = 0;
+        saadc_result[0] = 0;
     }
 
     return  (uint32_t) saadc_result[0];
