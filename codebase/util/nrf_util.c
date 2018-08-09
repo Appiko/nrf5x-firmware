@@ -36,6 +36,7 @@
 #include "nrf.h"
 #if defined(SOFTDEVICE_PRESENT)
 #include "nrf_nvic.h"
+#include "nrf_sdm.h"
 /** The variable referenced by nrf_nvic.h header file */
 nrf_nvic_state_t nrf_nvic_state = {0};
 #endif
