@@ -92,6 +92,7 @@ void pir_sense_start(pir_sense_cfg * init)
     NVIC_EnableIRQ(SAADC_IRQn);
     NVIC_ClearPendingIRQ(SAADC_IRQn);
 
+    NRF_SAADC->INTENCLR = 0xFFFFFFFF;
     NRF_SAADC->INTENSET = (SAADC_INTENSET_CH0LIMITH_Msk | SAADC_INTENSET_CH0LIMITL_Msk );
 
     //On ADC start event, trigger the ADC sampling
@@ -130,6 +131,8 @@ void pir_sense_stop(void)
 {
     NRF_SAADC->ENABLE = (SAADC_ENABLE_ENABLE_Disabled << SAADC_ENABLE_ENABLE_Pos);
     NVIC_DisableIRQ(SAADC_IRQn);
+
+    NRF_SAADC->INTENCLR = 0xFFFFFFFF;
 
     NRF_PPI->CHENCLR = (PPI_CHENCLR_CH0_Clear << PPI_CHEN_CH0_Pos) |
                 (PPI_CHENCLR_CH1_Clear << PPI_CHEN_CH1_Pos) |
