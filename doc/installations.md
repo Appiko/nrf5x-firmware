@@ -67,4 +67,24 @@ Installing nrfutil
 nrfutil is a Python package and command-line utility that supports Device Firmware Updates (DFU) and cryptographic functionality.
 \n Follow these [instructions](http://infocenter.nordicsemi.com/index.jsp?topic=%2Fcom.nordic.infocenter.tools%2Fdita%2Ftools%2Fnrfutil%2Fnrfutil_installing.html&cp=5_5_1) to install this utility.
 
+Setting up IDE
+------
+IDE(Integrated Development Environment) is useful for fast development of project. User can setup any IDE for project development.
+\n User can also choose not to use any IDE at all. Two major IDEs which are used widely are:
+
+- Eclipse IDE
+- NetBeans IDE
+
+\n It is advised to use the versions which comes with C/C++ plugins by default.
+\n Follow the instructions given in following link to setup your IDE
+
+- Eclipse
+    + [Eclipse Download](https://www.eclipse.org/cdt/)
+    + [ARM ToolChain installation in Eclipse](https://gnu-mcu-eclipse.github.io/toolchain/arm/install/)
+
+- NetBeans IDE : 
+    + [NetBeans Download](https://netbeans.org/downloads/) Select the one for C/C++.
+    + [ARM ToolChain installation in NetBeans](http://www.dalbert.net/?p=239)
+
+> NOTE : Use IDE only for development of application. While compiling and uploading of program use "make " utilities in terminal.
 
