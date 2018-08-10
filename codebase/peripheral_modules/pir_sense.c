@@ -85,8 +85,8 @@ void pir_sense_start(pir_sense_cfg * init)
                 | ((SAADC_CH_CONFIG_BURST_Disabled   << SAADC_CH_CONFIG_BURST_Pos)  & SAADC_CH_CONFIG_BURST_Msk);
 
     NRF_SAADC->CH[SAADC_CHANNEL].LIMIT = (
-                (((-1*((int32_t) init->threshold)) << SAADC_CH_LIMIT_LOW_Pos) & SAADC_CH_LIMIT_LOW_Msk)
-              | (((uint32_t) init->threshold << SAADC_CH_LIMIT_HIGH_Pos) & SAADC_CH_LIMIT_HIGH_Msk));
+                (((-1*((int16_t) init->threshold)) << SAADC_CH_LIMIT_LOW_Pos) & SAADC_CH_LIMIT_LOW_Msk)
+              | (((uint16_t) init->threshold << SAADC_CH_LIMIT_HIGH_Pos) & SAADC_CH_LIMIT_HIGH_Msk));
 
     NVIC_SetPriority(SAADC_IRQn, init->irq_priority);
     NVIC_EnableIRQ(SAADC_IRQn);
