@@ -93,6 +93,8 @@ uint32_t simple_adc_get_value(simple_adc_gain_t gain, simple_adc_input_t pin)
     {
         saadc_result[0] = 0;
     }
+    NRF_SAADC->ENABLE = (SAADC_ENABLE_ENABLE_Disabled << SAADC_ENABLE_ENABLE_Pos);
+    NRF_SAADC->CH[CHANNEL_USED].PSELP = SAADC_CH_PSELP_PSELP_NC;
 
     return  (uint32_t) saadc_result[0];
 }

@@ -133,6 +133,7 @@ void pir_sense_stop(void)
     NVIC_DisableIRQ(SAADC_IRQn);
 
     NRF_SAADC->INTENCLR = 0xFFFFFFFF;
+    NRF_SAADC->CH[SAADC_CHANNEL].PSELP = SAADC_CH_PSELP_PSELP_NC;
 
     NRF_PPI->CHENCLR = (PPI_CHENCLR_CH0_Clear << PPI_CHEN_CH0_Pos) |
                 (PPI_CHENCLR_CH1_Clear << PPI_CHEN_CH1_Pos) |
