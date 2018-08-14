@@ -69,6 +69,8 @@
 #include "ms_timer.h"
 #include "nrf_util.h"
 
+#define SS_TIME_MS     5052
+
 /** @brief The three states of the state machine */
 typedef enum
 {
@@ -101,7 +103,7 @@ void repeat_handler(void)
         hal_gpio_pin_write(LED_RED, LEDS_ACTIVE_STATE);
         hal_gpio_pin_write(LED_GREEN, !LEDS_ACTIVE_STATE);
         hal_gpio_pin_write(LED_BLUE, !LEDS_ACTIVE_STATE);
-        ms_timer_start(MS_TIMER0, MS_SINGLE_CALL, RTC_TICKS_MS(5000), repeat_handler);
+        ms_timer_start(MS_TIMER0, MS_SINGLE_CALL, MS_TIMER_TICKS_MS(SS_TIME_MS), repeat_handler);
         tfp_printf("GREEN to RED\n");
         break;
     case OFF_STATE:
@@ -138,7 +140,7 @@ void green_process(void)
     bool btn_check = button_check();
     if (btn_check)
     {
-        ms_timer_start(MS_TIMER0, MS_SINGLE_CALL, RTC_TICKS_MS(5000), repeat_handler);
+        ms_timer_start(MS_TIMER0, MS_SINGLE_CALL, MS_TIMER_TICKS_MS(SS_TIME_MS), repeat_handler);
     }
 }
 
@@ -152,7 +154,7 @@ void off_process(void)
         hal_gpio_pin_write(LED_GREEN, !LEDS_ACTIVE_STATE);
         hal_gpio_pin_write(LED_BLUE, !LEDS_ACTIVE_STATE);
         state = RED_STATE;
-        ms_timer_start(MS_TIMER0, MS_SINGLE_CALL, RTC_TICKS_MS(5000), repeat_handler);
+        ms_timer_start(MS_TIMER0, MS_SINGLE_CALL, MS_TIMER_TICKS_MS(SS_TIME_MS), repeat_handler);
         tfp_printf("OFF to RED\n");
     }
 }
@@ -167,7 +169,7 @@ void red_process(void)
         hal_gpio_pin_write(LED_GREEN, LEDS_ACTIVE_STATE);
         hal_gpio_pin_write(LED_BLUE, !LEDS_ACTIVE_STATE);
         state = GREEN_STATE;
-        ms_timer_start(MS_TIMER0, MS_SINGLE_CALL, RTC_TICKS_MS(5000), repeat_handler);
+        ms_timer_start(MS_TIMER0, MS_SINGLE_CALL, MS_TIMER_TICKS_MS(SS_TIME_MS), repeat_handler);
         tfp_printf("RED to GREEN\n");
     }
 }
@@ -208,7 +210,7 @@ int main(void)
     rgb_led_init();
     rgb_led_cycle();
     /* Initial printf */
-    uart_printf_init(UART_PRINTF_BAUD_9600);
+    uart_printf_init(UART_PRINTF_BAUD_1M);
     tfp_printf("Hello World %d!\n", 1);
 
     hfclk_xtal_init_blocking();
@@ -216,7 +218,7 @@ int main(void)
 
     ms_timer_init(APP_IRQ_PRIORITY_MID);
 
-    hal_gpio_cfg_input(BUTTON_1, HAL_GPIO_PULL_DISABLED);
+    hal_gpio_cfg_input(BUTTON_1, HAL_GPIO_PULL_UP);
 
     state_process process[3] =
     { &off_process, &red_process, &green_process };

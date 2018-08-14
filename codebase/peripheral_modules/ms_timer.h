@@ -60,11 +60,17 @@
 #define MS_TIMER_CC_COUNT           CONCAT_3(RTC, MS_TIMER_RTC_USED, _CC_NUM)
 
 /** The frequency used by the RTC running the ms timer. Must be a power of 2 and at max 32768 Hz */
-#define MS_TIMER_FREQ				32768
-/* Check if MS_TIMER_FREQ is power of 2 and less than or equal to 32.768 kHz */
-#if (((IS_POWER_OF_TWO(MS_TIMER_FREQ)) && (MS_TIMER_FREQ<=LFCLK_FREQ))==false)
-#error MS_TIMER_FREQ must be a power of 2 with a maximum frequency of 32768 Hz
+#ifndef MS_TIMER_FREQ
+#define MS_TIMER_FREQ               32768
 #endif
+
+/* Check if MS_TIMER_FREQ is between 8 Hz and 32768 Hz as these are valid RTC prescalar values */
+#if ((MS_TIMER_FREQ < 8) || (MS_TIMER_FREQ > LFCLK_FREQ))
+#error MS_TIMER_FREQ value should be between 8 and 32768
+#endif
+
+/** Macro to find out the rounded number of MS_TIMER ticks for the passed time in milli-seconds */
+#define MS_TIMER_TICKS_MS(ms)                ((uint32_t) ROUNDED_DIV( (MS_TIMER_FREQ*(uint64_t)ms) , 1000) )
 
 /** @brief Enumeration used for specifying the timers that can be used with a RTC peripheral
  */
@@ -99,7 +105,7 @@ void ms_timer_init(uint32_t irq_priority);
  * Start a milli-second timer
  * @param id		ID of the timer to be used from @ref ms_timer_num
  * @param mode  	Mode of the timer as specified in @ref ms_timer_mode
- * @param ticks 	The number of ticks of the RTC after which the timer expires
+ * @param ticks 	The number of ticks at @ref MS_TIMER_FREQ after which the timer expires
  * @param handler 	Pointer to a function which needs to be called when the timer expires
  *
  * @note Starting an already started will restart the timer with the current number of ticks passed.
