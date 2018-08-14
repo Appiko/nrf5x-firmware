@@ -84,7 +84,9 @@ bl_hex_name="$(awk -v bl_used="$bl_ver" '$1 ~ bl_used {print $2}' ../../release/
 bl_ver_int=$( extract_ver_int $bl_ver "." )
 echo "BL_VER_INT = "$bl_ver_int
 
-make_release="$(make FW_VER_VAL=$fw_ver_int clean all V=1)"
+make_release="$(make FW_VER_VAL=$fw_ver_int LOGGER=LOG_NONE clean_all)"
+
+echo $make_release
 
 ls ../../release/${pwd} || mkdir ../../release/${pwd}
 
