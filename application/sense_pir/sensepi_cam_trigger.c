@@ -79,6 +79,8 @@
 /** MS_TIMER used in this module */
 #define SENSEPI_CAM_TRIGGER_MS_TIMER_USED MS_TIMER2
 /*Data_Process module MACROS*/
+/** Number of output pins used */
+#define NUM_PIN_OUT 2
 /** Size of 1 byte in bits */
 #define SIZE_OF_BYTE 8
 /** Byte position of MODE in 32 bit uint variable */
@@ -97,11 +99,11 @@
 /** Number of transitions required for single shot operation */
 #define SINGLE_SHOT_TRANSITIONS 2
 /** Ticks duration required for single shot operation */
-#define SINGLE_SHOT_DURATION LFCLK_TICKS_MS(250)
+#define SINGLE_SHOT_DURATION MS_TIMER_TICKS_MS(250)
 /** Number of transitions required for bulb operation */
 #define BULB_SHOT_TRANSITIONS 3
 /** Ticks duration of trigger pulse at the end of operation */
-#define BULB_TRIGGER_PULSE LFCLK_TICKS_MS(250)
+#define BULB_TRIGGER_PULSE MS_TIMER_TICKS_MS(250)
 /** Number of transitions required for focus operation */
 #define FOCUS_TRANSITIONS 2
 
@@ -183,6 +185,10 @@ void pir_is_on(bool state);
  * @brief IRQ Handler for PIR interrupt
  */
 void pir_handler(int32_t adc_val);
+/**
+ * @brief Function to update the out_gen_configs for PIR.
+ */
+void pir_out_gen_config_updater(void);
 
 /*Timer related functions*/
 /**
@@ -194,6 +200,10 @@ void timer_is_on(bool state);
  * @brief IRQ Handler for periodic TIMER interrupt
  */
 void timer_handler(void);
+/**
+ * @brief Function to update the out_gen_configs for Timer.
+ */
+void timer_out_gen_config_updater(void);
 
 /*out_pattern_gen related functions*/
 /**
@@ -272,6 +282,7 @@ void none_mode(data_process_mode_t data_process_mode);
 /**
  * @}
  */
+
 //function definitions
 /**
  * @brief Function to print expected pattern output from out_gen_pattern
@@ -320,6 +331,47 @@ void pir_handler(int32_t adc_val)
     }
 }
 
+void pir_out_gen_config_updater()
+{
+    uint32_t config_mode = config.config_sensepi->pir_conf.mode;
+    uint32_t mode = ((config_mode & MODE_MSK) 
+            >> (MODE_POS * SIZE_OF_BYTE));
+    uint32_t input1 = ((config_mode & INPUT1_MSK) 
+            >> (INPUT1_POS * SIZE_OF_BYTE));
+    uint32_t input2 = ((config_mode & INPUT2_MSK) 
+            >> (INPUT2_POS * SIZE_OF_BYTE));
+    uint32_t single_input = config_mode>> (INPUT1_POS * SIZE_OF_BYTE);
+    switch((operational_mode_t)mode)
+    {
+        case MODE_SINGLE_SHOT:
+        {
+            single_shot_mode(PIR_DATA_PROCESS_MODE);
+            break;
+        }
+        case MODE_MULTISHOT:
+        {
+            multi_shot_mode(PIR_DATA_PROCESS_MODE, input1, input2);
+            break;
+        }
+        case MODE_BULB :
+        {
+            //Using both input 1 and input 2
+            bulb_mode(PIR_DATA_PROCESS_MODE, single_input);
+            break;
+        }
+        case MODE_VIDEO :
+        {
+            //Using both input 1 and input 2
+            break;
+        }
+        case MODE_FOCUS :
+        {
+            focus_mode(PIR_DATA_PROCESS_MODE);
+            break;
+        }
+    }   
+}
+
 void timer_is_on(bool state)
 {
     if(state == true)
@@ -328,7 +380,7 @@ void timer_is_on(bool state)
         {
             ms_timer_start(SENSEPI_CAM_TRIGGER_MS_TIMER_USED,
                            MS_REPEATED_CALL, 
-                           LFCLK_TICKS_MS(config.config_sensepi->timer_conf.timer_interval),
+                           MS_TIMER_TICKS_MS(config.config_sensepi->timer_conf.timer_interval * 100),
                            timer_handler);
         }
     }
@@ -343,6 +395,47 @@ void timer_handler()
     {
         out_gen_start(&out_gen_config[TIMER_DATA_PROCESS_MODE]);
     }
+}
+
+void timer_out_gen_config_updater(void)
+{
+    uint32_t config_mode = config.config_sensepi->timer_conf.mode;
+    uint32_t mode = ((config_mode & MODE_MSK) 
+            >> (MODE_POS * SIZE_OF_BYTE));
+    uint32_t input1 = ((config_mode & INPUT1_MSK) 
+            >> (INPUT1_POS * SIZE_OF_BYTE));
+    uint32_t input2 = ((config_mode & INPUT2_MSK) 
+            >> (INPUT2_POS * SIZE_OF_BYTE));
+    uint32_t single_input = config_mode>> (INPUT1_POS * SIZE_OF_BYTE);
+    switch((operational_mode_t)mode)
+    {
+        case MODE_SINGLE_SHOT:
+        {
+            single_shot_mode(TIMER_DATA_PROCESS_MODE);
+            break;
+        }
+        case MODE_MULTISHOT:
+        {
+            multi_shot_mode(TIMER_DATA_PROCESS_MODE, input1, input2);
+            break;
+        }
+        case MODE_BULB :
+        {
+            //Using both input 1 and input 2
+            bulb_mode(TIMER_DATA_PROCESS_MODE, single_input);
+            break;
+        }
+        case MODE_VIDEO :
+        {
+            //Using both input 1 and input 2
+            break;
+        }
+        case MODE_FOCUS :
+        {
+            focus_mode(TIMER_DATA_PROCESS_MODE);
+            break;
+        }
+    }   
 }
 
 void pattern_out_done_handler (uint32_t out_gen_state)
@@ -449,4 +542,221 @@ void module_manager_disable_all(void)
     pir_is_on(false);
     timer_is_on(false);
     light_sense_is_on(false);
+}
+
+void single_shot_mode(data_process_mode_t data_process_mode)
+{
+    log_printf("%s\n", __func__);
+    uint32_t number_of_transition = SINGLE_SHOT_TRANSITIONS;
+    uint32_t local_out_gen_state;
+    if(data_process_mode == PIR_DATA_PROCESS_MODE)
+    {
+        time_remain = MS_TIMER_TICKS_MS(config.config_sensepi->pir_conf.intr_trig_timer * 100) 
+            - (SINGLE_SHOT_DURATION); 
+        local_out_gen_state = PIR_IDLE;
+    }
+    else
+    {
+        local_out_gen_state = TIMER_IDLE;
+        time_remain = MS_TIMER_TICKS_MS(1);
+    }
+
+    out_gen_config_t local_out_gen_config = 
+    {
+        .num_transitions = number_of_transition,
+        .out_gen_done_handler = pattern_out_done_handler,
+        .out_gen_state = local_out_gen_state,
+        .transitions_durations = { SINGLE_SHOT_DURATION, time_remain },
+        .next_out = {{0, 1, 1},
+                     {0, 1, 1}},
+    };
+
+    debug_print_bool_array(local_out_gen_config.next_out, "single shot");
+    memcpy(&out_gen_config[data_process_mode],&local_out_gen_config,
+           sizeof(out_gen_config_t));
+}
+
+void multi_shot_mode(data_process_mode_t data_process_mode, 
+                     uint32_t burst_duration, uint32_t burst_num)
+{
+    log_printf("%s\n", __func__);
+    uint32_t local_out_gen_state;
+    uint32_t number_of_transition = SINGLE_SHOT_TRANSITIONS * burst_num;
+    //Time for trigger pulse and time till next trigger for each burst
+    uint32_t repeat_delay_array[SINGLE_SHOT_TRANSITIONS] = {SINGLE_SHOT_DURATION,
+            MS_TIMER_TICKS_MS(burst_duration * 100) - SINGLE_SHOT_DURATION};
+    out_gen_config_t local_out_gen_config = 
+    {
+        .num_transitions = number_of_transition,
+        .out_gen_done_handler = pattern_out_done_handler,
+    };
+
+    for(uint32_t i = 0; i< burst_num; i++)
+    {
+        memcpy(local_out_gen_config.transitions_durations + i*SINGLE_SHOT_TRANSITIONS,
+                repeat_delay_array, SINGLE_SHOT_TRANSITIONS*sizeof(uint32_t));
+
+        for(uint32_t j = 0; j < NUM_PIN_OUT; j++)
+        {
+            memcpy(*(local_out_gen_config.next_out +j),*(multishot_generic + j),
+                    burst_num* SINGLE_SHOT_TRANSITIONS*sizeof(bool));
+            //An extra '1' at the end for the remaining of the inter-trigger time
+            local_out_gen_config.next_out[j][burst_num* SINGLE_SHOT_TRANSITIONS] = 1;
+        }
+    }
+
+    if(data_process_mode == PIR_DATA_PROCESS_MODE)
+    {
+        time_remain = MS_TIMER_TICKS_MS(config.config_sensepi->pir_conf.intr_trig_timer * 100)
+            - SINGLE_SHOT_DURATION*burst_num -
+            (MS_TIMER_TICKS_MS(burst_duration * 100) - SINGLE_SHOT_DURATION)*(burst_num - 1);  
+        local_out_gen_state = PIR_IDLE;
+   }
+    else
+    {
+        time_remain = MS_TIMER_TICKS_MS(1);
+        local_out_gen_state = TIMER_IDLE;
+    }
+    local_out_gen_config.out_gen_state = local_out_gen_state;
+    // Last interval for the '1' signal till 'time till next trigger' elapses
+    local_out_gen_config.transitions_durations[number_of_transition-1] = time_remain;
+            
+
+    debug_print_bool_array(local_out_gen_config.next_out, "multi shot");
+    memcpy(&out_gen_config[data_process_mode], &local_out_gen_config,
+           sizeof(out_gen_config_t));
+}
+
+void bulb_mode(data_process_mode_t data_process_mode, uint32_t bulb_time)
+{
+    log_printf("%s\n", __func__);
+    uint32_t local_out_gen_state;
+    uint32_t number_of_transition = BULB_SHOT_TRANSITIONS;
+    uint32_t bulb_time_ticks = MS_TIMER_TICKS_MS((bulb_time*100));
+
+    if(data_process_mode == PIR_DATA_PROCESS_MODE)
+    {
+        time_remain = MS_TIMER_TICKS_MS(config.config_sensepi->pir_conf.intr_trig_timer * 100)
+            - bulb_time_ticks ;
+        local_out_gen_state = PIR_IDLE;
+    }
+    else
+    {
+        time_remain = MS_TIMER_TICKS_MS(1);
+        local_out_gen_state = TIMER_IDLE;
+    }
+
+    out_gen_config_t local_out_gen_config = 
+    {
+        .num_transitions = number_of_transition,
+        .out_gen_done_handler = pattern_out_done_handler,
+        .out_gen_state = local_out_gen_state,
+        .transitions_durations = 
+            {bulb_time_ticks - BULB_TRIGGER_PULSE, BULB_TRIGGER_PULSE
+              , time_remain},
+        .next_out = { {0, 0, 1, 1},
+                      {1, 0, 1, 1} },
+    };
+
+    debug_print_bool_array(local_out_gen_config.next_out, "bulb mode");
+    memcpy(&out_gen_config[data_process_mode],&local_out_gen_config,
+           sizeof(out_gen_config_t));
+}
+void focus_mode(data_process_mode_t data_process_mode)
+{
+    log_printf("%s\n", __func__);
+    uint32_t local_out_gen_state;
+    uint32_t number_of_transition = FOCUS_TRANSITIONS;
+
+    if(data_process_mode == PIR_DATA_PROCESS_MODE)
+    {
+        time_remain =  MS_TIMER_TICKS_MS(config.config_sensepi->pir_conf.intr_trig_timer * 100)
+            - SINGLE_SHOT_DURATION ;
+        local_out_gen_state = PIR_IDLE;
+    }
+    else
+    {
+        time_remain = MS_TIMER_TICKS_MS(1);
+        local_out_gen_state = TIMER_IDLE;
+    }
+
+    out_gen_config_t local_out_gen_config = 
+    {
+        .num_transitions = number_of_transition,
+        .out_gen_done_handler = pattern_out_done_handler,
+        .out_gen_state = local_out_gen_state,
+        .transitions_durations =
+        {SINGLE_SHOT_DURATION ,time_remain},
+        .next_out = { {0, 1, 1},
+                      {1, 1, 1} },
+    };
+    
+    debug_print_bool_array(local_out_gen_config.next_out, "focus mode");
+    memcpy(&out_gen_config[data_process_mode],&local_out_gen_config,
+           sizeof(out_gen_config_t));
+}
+
+
+void sensepi_cam_trigger_init(sensepi_cam_trigger_init_config_t * config_sensepi_cam_trigger)
+{
+    log_printf("%s\n", __func__);
+    ASSERT(config_sensepi_cam_trigger->signal_pin_num == NUM_PIN_OUT);
+    memcpy(&config, config_sensepi_cam_trigger, sizeof(config));
+    light_sense_init();
+    mcp4012_init(config.amp_cs_pin, config.amp_ud_pin, config.amp_spi_sck_pin);
+    pir_sense_cfg local_config_pir = 
+    {
+        PIR_SENSE_INTERVAL_MS, config.pir_sense_signal_input,
+        config.pir_sense_offset_input,
+        ((uint32_t)local_sensepi_config_t.pir_conf.threshold)*PIR_THRESHOLD_MULTIPLY_FACTOR,
+        APP_IRQ_PRIORITY_HIGH, pir_handler, 
+    };
+    memcpy(&config_pir, &local_config_pir, sizeof(pir_sense_cfg));
+    out_gen_init(NUM_PIN_OUT, config.signal_out_pin_array, 
+                 (bool *) out_gen_end_all_on);
+}
+
+void sensepi_cam_trigger_update(sensepi_config_t * update_config)
+{
+    log_printf("%s\n", __func__);
+    memcpy(config.config_sensepi, update_config, sizeof(sensepi_config_t));
+}
+
+void sensepi_cam_trigger_start()
+{
+    log_printf("%s\n", __func__);
+    config_pir.threshold = ((uint32_t) config.config_sensepi->pir_conf.threshold)
+            *PIR_THRESHOLD_MULTIPLY_FACTOR;
+    mcp4012_set_value(config.config_sensepi->pir_conf.amplification);
+    module_manager_condition_check();
+    pir_out_gen_config_updater();
+    timer_out_gen_config_updater();
+
+}
+
+void sensepi_cam_trigger_add_tick(uint32_t interval)
+{
+    log_printf("%s\n", __func__);
+    log_printf("SensePi Add ticks : %d\n", interval);
+    module_manager_condition_check();
+    sense_count += interval;
+    if(sense_count > SENSE_FEEDBACK_TIMEOUT_MS)
+    {
+        sense_feedback = false;
+    }
+
+}
+
+void sensepi_cam_trigger_stop()
+{
+    log_printf("%s\n",__func__);
+    module_manager_disable_all();
+    out_gen_stop((bool *) out_gen_end_all_on);
+    led_ui_type_stop_all(LED_UI_SINGLE_SEQ);
+}
+
+sensepi_config_t * sensepi_cam_trigger_get_sensepi_config()
+{
+    log_printf("%s\n", __func__);
+    return (config.config_sensepi);
 }
