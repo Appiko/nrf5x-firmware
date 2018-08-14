@@ -71,7 +71,6 @@ void pwm_irq_handler(hal_pwm_irq_mask_t irq_source)
 {
     if(HAL_PWM_IRQ_STOPPED_MASK == irq_source)
     {
-        log_printf("stopped pwm\n");
         led_ui_context[LED_UI_SINGLE_SEQ].is_on = false;
         if(led_ui_context[LED_UI_LOOP_SEQ].is_on == true)
         {
@@ -162,14 +161,12 @@ static void start_seq_pwm(led_sequences seq, led_ui_seq_t type, led_ui_priority_
         seq_ptr[k] = led_seq_get_seq_color_ptr(seq, k);
         pin_arr[k] = led_seq_get_pin_ptr()[k];
         pin_idle[k] = (!LEDS_ACTIVE_STATE);
-        log_printf("yes %d\n", pin_arr[k]);
     }
     for(uint32_t k = led_num; k < LED_COLOR_MAX; k++)
     {
         seq_ptr[k] = (uint16_t *)zero_val_arr;
         pin_arr[k] = led_seq_get_pin_ptr()[0];
         pin_idle[k] = (!LEDS_ACTIVE_STATE);
-        log_printf("no %d\n", pin_arr[k]);
     }
 
     uint32_t overflow = 0; //To store the overflow from one segment to another
@@ -179,7 +176,6 @@ static void start_seq_pwm(led_sequences seq, led_ui_seq_t type, led_ui_priority_
     {
         uint32_t curr_seg_dur = dur_ptr[i] - overflow;
         uint32_t seg_updates_num = 1 + curr_seg_dur/PWM_UPDATE_PERIOD_MS;
-        log_printf("i %d, overflow %d curr_seg_dur %d, seg_updates_num %d, buff_cnt %d\n", i, overflow, curr_seg_dur, seg_updates_num, buff_cnt);
 
         for(uint32_t j = 0; j < seg_updates_num; j++)
         {
@@ -194,7 +190,6 @@ static void start_seq_pwm(led_sequences seq, led_ui_seq_t type, led_ui_priority_
                         (seq_buffer[buff_cnt].color[k] | (1<<15)):
                         (seq_buffer[buff_cnt].color[k]);
             }
-            log_printf("val[%d] %d %d\n", buff_cnt, seq_buffer[buff_cnt].color[0]&0x7FFF, seq_buffer[buff_cnt].color[1]&0x7FFF);
             buff_cnt++;
         }
 
@@ -202,7 +197,6 @@ static void start_seq_pwm(led_sequences seq, led_ui_seq_t type, led_ui_priority_
         overflow = (curr_dur_mod)?(PWM_UPDATE_PERIOD_MS - curr_dur_mod):0;
     }
     buff_cnt--;
-    log_printf("overflow %d, buff_cnt %d\n", overflow, buff_cnt);
 
     hal_pwm_init_t init_config =
     {

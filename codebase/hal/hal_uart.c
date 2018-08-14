@@ -132,7 +132,10 @@ void printf_callback(void* str_end, char ch)
 {
     if((uint32_t) str_end != START_TX)
     {
+        //Since putchar is not re-entrant
+        CRITICAL_REGION_ENTER();
         hal_uart_putchar(ch);
+        CRITICAL_REGION_EXIT();
     }
 }
 
@@ -165,6 +168,8 @@ void hal_uart_init(hal_uart_baud_t baud, void (*handler)(uint8_t * ptr))
 
     //Enable UART
     UART_PERI->ENABLE = (0x04);
+
+    UART_PERI->INTENCLR = 0xFFFFFFFF;
 
     init_printf((void *) !(START_TX), printf_callback);
 
