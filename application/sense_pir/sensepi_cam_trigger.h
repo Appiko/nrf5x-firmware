@@ -104,9 +104,9 @@ sensepi_config_t * sensepi_cam_trigger_get_sensepi_config();
 
 /**
  * @brief Function to decide what to decide at current tick
- * @param intervel Duration since last tick in ms
+ * @param interval Duration since last tick in ms
  */
-void sensepi_cam_trigger_add_tick(uint32_t intervel);
+void sensepi_cam_trigger_add_tick(uint32_t interval);
 
 #ifdef __cplusplus
 }
