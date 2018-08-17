@@ -53,9 +53,8 @@
 #include <stdbool.h>
 #include "nrf.h"
 
-/** @brief The interval timing passed in the next interval handler. With
- * 32 LFCLK ticks for a device tick, it'll be 0.977 ms per device tick. */
-#define DEVICE_TICK_LFCLK_DIV_FACTOR        (32)
+/** @brief The number of MS timer ticks elapsed for one device tick */
+#define DEVICE_TICK_MSTIMER_DIV_FACTOR        (1)
 
 /**
  * @brief The two different modes at which the device ticks, fast & slow
