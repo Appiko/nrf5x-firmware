@@ -49,22 +49,13 @@
 #include "stdint.h"
 #include "stdbool.h"
 #include "ble.h"
+#include "dev_id_fw_ver.h"
 
 typedef struct
 {
-    uint8_t prod_code[2];
-    uint8_t prod_rev[2];
-    uint8_t factory_code[2];
-    uint8_t year[2];
-    uint8_t month[2];
-    uint8_t day[2];
-    uint8_t serial_no[4];
-}__attribute__ ((packed)) device_id_t ;
-
-typedef struct
-{
-    device_id_t id;
+    dev_id_t id;
     bool is_battery_low;
+    fw_ver_t fw_ver;
 }__attribute__ ((packed)) sensepi_sysinfo ;
 /**
  * @brief Enum of all posiible modes of operation.
@@ -83,12 +74,12 @@ typedef struct
 {
     /**
      * @note 
-     * If LSB is 1 then SensePi is operational above the threshold light intensity\n
-     * If LSB is 0 then SensePi is operational below the threshold light intensity\n
+     * If LSB is 1 then SensePi is operational above the threshold light intensity.
+     * If LSB is 0 then SensePi is operational below the threshold light intensity.
+     * This one bit value is used to decide when SensePi should operate.
      */
-    /** In Oper_Time: To decide operation range.\n */
     uint8_t day_or_night: 1;
-    /** In Oper_Time: Threshold for light intensity.\n */
+    /** In Oper_Time: Threshold for light intensity. */
     uint8_t threshold: 7;
 }__attribute__ ((packed)) oper_time_t;
 
@@ -181,6 +172,12 @@ void sensepi_ble_init(void (*ble_sd_evt)(ble_evt_t * evt),
  * @param sysinfo A pointer to the Sense Pi info for the updation
  */
 void sensepi_ble_update_sysinfo(sensepi_sysinfo * sysinfo);
+
+/**
+ * @brief Updates the characteristic that stores the SensePi config
+ * @param config A pointer to the new Sense Pi configuration
+ */
+void sensepi_ble_update_config(sensepi_config_t * config);
 
 /**
  * @brief Disconnect the current active connection, if already connected
