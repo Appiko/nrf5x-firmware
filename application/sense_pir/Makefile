@@ -61,7 +61,7 @@ C_SRC += led_seq.c
 C_SRC += sensepi_cam_trigger.c
 C_SRC += out_pattern_gen.c
 C_SRC += mcp4012_x.c
-
+C_SRC += dev_id_fw_ver.c
 
 #Gets the name of the application folder
 APPLN = $(shell basename $(PWD))
