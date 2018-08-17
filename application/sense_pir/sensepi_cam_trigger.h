@@ -84,7 +84,7 @@ void sensepi_cam_trigger_stop();
 
 /**
  * @brief Function to initiate SensePi_PIR module
- * @param config strcture pointer of configuration for which we need to
+ * @param config_sensepi_cam_trigger structure pointer of configuration for which we need to
  * configure the SensePi_PIR module
  */
 void sensepi_cam_trigger_init(sensepi_cam_trigger_init_config_t * config_sensepi_cam_trigger);
