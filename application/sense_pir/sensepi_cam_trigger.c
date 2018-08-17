@@ -65,17 +65,21 @@
 /**Minimum time required to enable PIR sensing*/
 #define PIR_SENSE_INTERVAL_MS 50
 /** Multiplying factor to convert PIR threshold value received from app to one 
- *  appropriate for module
- */
+ *  appropriate for module  */
 #define PIR_THRESHOLD_MULTIPLY_FACTOR 8
 /** Multiplying factor to convert Light threshold value received from app to one 
- *  appropriate for module
- */
+ *  appropriate for module  */
 #define LIGHT_THRESHOLD_MULTIPLY_FACTOR 32
-
+/** The time in ms (min*sec*ms) after which light sensing is to be done */
+#define LIGHT_SENSE_INTERVAL_MS   (5*60*1000)
+/** The time in ms timer ticks after which light sensing is to be done */
+#define LIGHT_SENSE_INTERVAL_TICKS (MS_TIMER_TICKS_MS(LIGHT_SENSE_INTERVAL_MS))
 /** The time in ms (min*sec*ms) to show feedback with the LED
  *  pulsing in the Sense mode */
-#define SENSE_FEEDBACK_TIMEOUT_MS   (15*60*1000)
+#define SENSE_FEEDBACK_TIMEOUT_MS   (9.8*60*1000)
+/** The time in ms timer ticks to show feedback with the LED
+ *  pulsing in the Sense mode */
+#define SENSE_FEEDBACK_TIMEOUT_TICKS (MS_TIMER_TICKS_MS(SENSE_FEEDBACK_TIMEOUT_MS))
 /** MS_TIMER used in this module */
 #define SENSEPI_CAM_TRIGGER_MS_TIMER_USED MS_TIMER2
 /*Data_Process module MACROS*/
@@ -120,8 +124,6 @@ static uint32_t sense_count;
 /** Boolen to indicate if PIR sensing feedback is required for user  */
 static bool sense_feedback = false;
 
-/** Time remain in video length */
-static uint32_t time_remain = 0;
 /***/
 static const bool out_gen_end_all_on[OUT_GEN_MAX_NUM_OUT] = {1,1,1,1};
 /***/
@@ -154,10 +156,10 @@ typedef enum
     MODE_SINGLE_SHOT,
     /** Click multiple shot per trigger */
     MODE_MULTISHOT,
-    /** Shoot video with start and stop pulse */
-    MODE_VIDEO,
     /** Click shot in bulb mode */
     MODE_BULB,
+    /** Shoot video with start and stop pulse */
+    MODE_VIDEO,
     /** Focus only */
     MODE_FOCUS,
     /** Mode dedicated to do nothing */
@@ -180,7 +182,7 @@ cam_trig_state_t;
  * @brief Function to enable or disable PIR according to conditions
  * @param state if true enable the PIR if false disable the PIR
  */
-void pir_is_on(bool state);
+void pir_set_state(bool state);
 /**
  * @brief IRQ Handler for PIR interrupt
  */
@@ -195,7 +197,7 @@ void pir_out_gen_config_updater(void);
  * @brief Function to enable or disable timer according to conditions
  * @param state if true enable the timer if false disable the timer
  */
-void timer_is_on(bool state);
+void timer_set_state(bool state);
 /**
  * @brief IRQ Handler for periodic TIMER interrupt
  */
@@ -221,7 +223,7 @@ void light_sense_init(void);
  * @brief Function to enable or disable light_sense according to conditions
  * @param state if true enable the light_sense if false disable the light_sense
  */
-void light_sense_is_on(bool state);
+void light_sense_set_state(bool state);
 /**
  * @brief Function which will check light intensity and compare it to 
  * current operational mode sent as parameter.
@@ -239,7 +241,7 @@ bool light_sense_light_check(oper_time_t oper_time);
  * according to conditions respective peripheral device will be
  * enabled or disabled.
  */
-void module_manager_condition_check(void);
+void module_manager_start_check(void);
 /**
  * @brief Function to disable all peripheral device used in this module.
  */
@@ -279,9 +281,6 @@ void focus_mode(data_process_mode_t data_process_mode);
  * @param data_process_mode mode for which we have to generate the out_gen_config
  */
 void none_mode(data_process_mode_t data_process_mode);
-/**
- * @}
- */
 
 //function definitions
 /**
@@ -305,7 +304,7 @@ void debug_print_bool_array(bool (* next)[OUT_GEN_MAX_TRANSITIONS], char * str)
 #endif
 }
 
-void pir_is_on(bool state)
+void pir_set_state(bool state)
 {
     if(state == true)
     {
@@ -319,8 +318,8 @@ void pir_is_on(bool state)
 
 void pir_handler(int32_t adc_val)
 {
-    log_printf("%s\n", __func__);
-    log_printf("Sensed : %d\n", adc_val);
+    log_printf("%s", __func__);
+    log_printf(" %d\n", adc_val);
     if(out_gen_is_on() == false)
     {
         if(sense_feedback == true)
@@ -369,19 +368,22 @@ void pir_out_gen_config_updater()
             focus_mode(PIR_DATA_PROCESS_MODE);
             break;
         }
+        case MODE_NONE:
+        {
+            none_mode(PIR_DATA_PROCESS_MODE);
+        }
     }   
 }
 
-void timer_is_on(bool state)
+void timer_set_state(bool state)
 {
     if(state == true)
     {
         if(ms_timer_get_on_status (SENSEPI_CAM_TRIGGER_MS_TIMER_USED) == false)
         {
-            ms_timer_start(SENSEPI_CAM_TRIGGER_MS_TIMER_USED,
-                           MS_REPEATED_CALL, 
-                           MS_TIMER_TICKS_MS(config.config_sensepi->timer_conf.timer_interval * 100),
-                           timer_handler);
+            ms_timer_start(SENSEPI_CAM_TRIGGER_MS_TIMER_USED, MS_REPEATED_CALL,
+               MS_TIMER_TICKS_MS(config.config_sensepi->timer_conf.timer_interval * 100),
+               timer_handler);
         }
     }
     else
@@ -389,6 +391,7 @@ void timer_is_on(bool state)
         ms_timer_stop(SENSEPI_CAM_TRIGGER_MS_TIMER_USED);
     }
 }
+
 void timer_handler()
 {
     if(out_gen_is_on () == false)
@@ -435,18 +438,22 @@ void timer_out_gen_config_updater(void)
             focus_mode(TIMER_DATA_PROCESS_MODE);
             break;
         }
+        case MODE_NONE:
+        {
+            none_mode(PIR_DATA_PROCESS_MODE);
+        }
     }   
 }
 
 void pattern_out_done_handler (uint32_t out_gen_state)
 {
-    log_printf("%s\n",__func__);
-    log_printf("State : %d\n", out_gen_state);
+    log_printf("%s",__func__);
+    log_printf(" %d\n", out_gen_state);
     switch((cam_trig_state_t)out_gen_state)
     {
         case PIR_IDLE :
         {
-            pir_is_on(pir_on_flag);
+            pir_set_state(pir_on_flag);
             break;
         }
         case TIMER_IDLE : 
@@ -464,11 +471,12 @@ void light_sense_init(void)
                     config.led_sense_off_val);
 }
 
-void light_sense_is_on(bool state)
+void light_sense_set_state(bool state)
 {
     if(state == true)
     {
         led_sense_cfg_input(true);
+        //To make sure that the green LED is ready to sense light
         hal_nop_delay_ms(LED_WAIT_TIME_MS);
     }
     else
@@ -476,22 +484,23 @@ void light_sense_is_on(bool state)
         led_sense_cfg_input(false);
     }
 }
-bool light_sense_light_check (oper_time_t oper_time)
+
+bool light_sense_light_check(oper_time_t oper_time)
 {
     log_printf("%d\n", __func__);
-    static uint8_t light_sense_config = 1;
-    static uint32_t light_threshold = 0;
-    static uint32_t light_intensity = 0;
-    light_intensity = led_sense_get();
+
+    uint8_t light_sense_config = oper_time.day_or_night;
+    uint32_t light_threshold =
+            (uint32_t)((oper_time.threshold) * LIGHT_THRESHOLD_MULTIPLY_FACTOR);
+
+    uint32_t light_intensity = led_sense_get();
     log_printf("Light Intensity : %d\n", light_intensity);
+
     static bool light_check_flag = 0;
-    light_sense_config = oper_time.day_or_night;
-    light_threshold = (uint32_t)((oper_time.threshold) * LIGHT_THRESHOLD_MULTIPLY_FACTOR);
-    if(light_sense_config == 1 && light_intensity >= light_threshold)
-    {
-        light_check_flag = 1;
-    }
-    else if(light_sense_config == 0 && light_intensity <= light_threshold)
+    //Day and its brighter than the threshold
+    if(((light_sense_config == 1) && (light_intensity >= light_threshold))
+            ||  //Night and its dimmer than the threshold
+       ((light_sense_config == 0) && (light_intensity <= light_threshold)))
     {
         light_check_flag = 1;
     }
@@ -501,54 +510,58 @@ bool light_sense_light_check (oper_time_t oper_time)
     }
     return light_check_flag;
 }
-void module_manager_condition_check(void)
+
+void module_manager_start_check(void)
 {
     log_printf("%s\n", __func__);
-    pir_is_on(false);
-    bool local_flag;
+    //Switch off PIR module so that light sensing can happen
+    pir_set_state(false);
+    bool light_flag;
     switch(config.config_sensepi->trig_conf)
     {
         case PIR_ONLY : 
         {
-            local_flag = light_sense_light_check(config.config_sensepi->pir_conf.oper_time);
-            pir_on_flag = local_flag;
-            pir_is_on(local_flag);
+            light_flag = light_sense_light_check(config.config_sensepi->pir_conf.oper_time);
+            pir_on_flag = light_flag;
+            pir_set_state(light_flag);
             
             break;
         }
         case TIMER_ONLY : 
         {
-            local_flag = light_sense_light_check (config.config_sensepi->timer_conf.oper_time);
-            timer_is_on(local_flag);
+            light_flag = light_sense_light_check(config.config_sensepi->timer_conf.oper_time);
+            timer_set_state(light_flag);
                     
             break;
         }
         case PIR_AND_TIMER :
         {
-            local_flag = light_sense_light_check(config.config_sensepi->pir_conf.oper_time);
-            pir_on_flag = local_flag;
-            pir_is_on(local_flag);
+            light_flag = light_sense_light_check(config.config_sensepi->pir_conf.oper_time);
+            pir_on_flag = light_flag;
+            pir_set_state(light_flag);
 
-            local_flag = light_sense_light_check (config.config_sensepi->timer_conf.oper_time);
-            timer_is_on(local_flag);
+            light_flag = light_sense_light_check(config.config_sensepi->timer_conf.oper_time);
+            timer_set_state(light_flag);
 
             break;
         }
     }
 
 }
+
 void module_manager_disable_all(void)
 {
-    pir_is_on(false);
-    timer_is_on(false);
-    light_sense_is_on(false);
+    pir_set_state(false);
+    timer_set_state(false);
+    light_sense_set_state(false);
 }
 
 void single_shot_mode(data_process_mode_t data_process_mode)
 {
     log_printf("%s\n", __func__);
     uint32_t number_of_transition = SINGLE_SHOT_TRANSITIONS;
-    uint32_t local_out_gen_state;
+    uint32_t local_out_gen_state, time_remain;
+
     if(data_process_mode == PIR_DATA_PROCESS_MODE)
     {
         time_remain = MS_TIMER_TICKS_MS(config.config_sensepi->pir_conf.intr_trig_timer * 100) 
@@ -580,7 +593,7 @@ void multi_shot_mode(data_process_mode_t data_process_mode,
                      uint32_t burst_duration, uint32_t burst_num)
 {
     log_printf("%s\n", __func__);
-    uint32_t local_out_gen_state;
+    uint32_t local_out_gen_state, time_remain;
     uint32_t number_of_transition = SINGLE_SHOT_TRANSITIONS * burst_num;
     //Time for trigger pulse and time till next trigger for each burst
     uint32_t repeat_delay_array[SINGLE_SHOT_TRANSITIONS] = {SINGLE_SHOT_DURATION,
@@ -630,7 +643,7 @@ void multi_shot_mode(data_process_mode_t data_process_mode,
 void bulb_mode(data_process_mode_t data_process_mode, uint32_t bulb_time)
 {
     log_printf("%s\n", __func__);
-    uint32_t local_out_gen_state;
+    uint32_t local_out_gen_state, time_remain;
     uint32_t number_of_transition = BULB_SHOT_TRANSITIONS;
     uint32_t bulb_time_ticks = MS_TIMER_TICKS_MS((bulb_time*100));
 
@@ -662,10 +675,11 @@ void bulb_mode(data_process_mode_t data_process_mode, uint32_t bulb_time)
     memcpy(&out_gen_config[data_process_mode],&local_out_gen_config,
            sizeof(out_gen_config_t));
 }
+
 void focus_mode(data_process_mode_t data_process_mode)
 {
     log_printf("%s\n", __func__);
-    uint32_t local_out_gen_state;
+    uint32_t local_out_gen_state, time_remain;
     uint32_t number_of_transition = FOCUS_TRANSITIONS;
 
     if(data_process_mode == PIR_DATA_PROCESS_MODE)
@@ -696,6 +710,21 @@ void focus_mode(data_process_mode_t data_process_mode)
            sizeof(out_gen_config_t));
 }
 
+void none_mode(data_process_mode_t data_process_mode)
+{
+    out_gen_config_t local_out_gen_config =
+    {
+        .num_transitions = 1,
+        .out_gen_done_handler = pattern_out_done_handler,
+        .out_gen_state = data_process_mode,
+        .transitions_durations = {MS_TIMER_TICKS_MS(1)},
+        .next_out = { {1},
+                      {1} },
+    };
+
+    memcpy(&out_gen_config[data_process_mode],&local_out_gen_config,
+           sizeof(out_gen_config_t));
+}
 
 void sensepi_cam_trigger_init(sensepi_cam_trigger_init_config_t * config_sensepi_cam_trigger)
 {
@@ -708,7 +737,7 @@ void sensepi_cam_trigger_init(sensepi_cam_trigger_init_config_t * config_sensepi
     {
         PIR_SENSE_INTERVAL_MS, config.pir_sense_signal_input,
         config.pir_sense_offset_input,
-        ((uint32_t)local_sensepi_config_t.pir_conf.threshold)*PIR_THRESHOLD_MULTIPLY_FACTOR,
+        ((uint32_t)config.config_sensepi->pir_conf.threshold)*PIR_THRESHOLD_MULTIPLY_FACTOR,
         APP_IRQ_PRIORITY_HIGH, pir_handler, 
     };
     memcpy(&config_pir, &local_config_pir, sizeof(pir_sense_cfg));
@@ -725,26 +754,41 @@ void sensepi_cam_trigger_update(sensepi_config_t * update_config)
 void sensepi_cam_trigger_start()
 {
     log_printf("%s\n", __func__);
+
+    sense_count = 0;
+    sense_feedback = true;
+
     config_pir.threshold = ((uint32_t) config.config_sensepi->pir_conf.threshold)
             *PIR_THRESHOLD_MULTIPLY_FACTOR;
+
     mcp4012_set_value(config.config_sensepi->pir_conf.amplification);
-    module_manager_condition_check();
+
     pir_out_gen_config_updater();
     timer_out_gen_config_updater();
 
+    light_sense_set_state(true);
+    module_manager_start_check();
 }
 
 void sensepi_cam_trigger_add_tick(uint32_t interval)
 {
+    static uint32_t light_sense_count = 0;
+
     log_printf("%s\n", __func__);
     log_printf("SensePi Add ticks : %d\n", interval);
-    module_manager_condition_check();
+
     sense_count += interval;
-    if(sense_count > SENSE_FEEDBACK_TIMEOUT_MS)
+    if(sense_count > SENSE_FEEDBACK_TIMEOUT_TICKS)
     {
         sense_feedback = false;
     }
 
+    light_sense_count += interval;
+    if(light_sense_count > LIGHT_SENSE_INTERVAL_TICKS)
+    {
+        module_manager_start_check();
+        light_sense_count = (light_sense_count - LIGHT_SENSE_INTERVAL_TICKS);
+    }
 }
 
 void sensepi_cam_trigger_stop()
