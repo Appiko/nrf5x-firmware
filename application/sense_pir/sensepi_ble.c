@@ -187,6 +187,21 @@ void sensepi_ble_update_sysinfo(sensepi_sysinfo * sysinfo)
     APP_ERROR_CHECK(err_code);
 }
 
+void sensepi_ble_update_config(sensepi_config_t * config)
+{
+    uint32_t err_code;
+    ble_gatts_value_t val =
+    {
+        .len = sizeof(sensepi_config_t),
+        .offset = 0,
+        .p_value = (uint8_t *) config
+    };
+    err_code = sd_ble_gatts_value_set(h_conn,
+            h_config_char.value_handle, &val);
+    APP_ERROR_CHECK(err_code);
+}
+
+
 void sensepi_ble_stack_init(void)
 {
     uint32_t err_code;
