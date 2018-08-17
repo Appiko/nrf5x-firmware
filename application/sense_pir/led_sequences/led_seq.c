@@ -2,7 +2,7 @@
  * @file led_seq.c Contains the PWM values for the one or more color LED(s)
  *                 for the different sequences 
  *
- * Automagically created on: 29-07-2018 at 16:20 */
+ * Automagically created on: 17-08-2018 at 12:03 */
 
 #include "led_seq.h"
 #include "boards.h"
