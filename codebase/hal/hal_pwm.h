@@ -52,6 +52,7 @@
 #error "nRF51 series SoCs don't have a PWM peripheral"
 #endif
 
+/** The maximum number of pins supported by this module */
 #define HAL_PWM_MAX_PIN_NUM     4
 
 /** @brief Select the PWM frequency to operate at. */
