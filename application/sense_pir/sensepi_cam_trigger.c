@@ -566,12 +566,16 @@ void single_shot_mode(data_process_mode_t data_process_mode)
     {
         time_remain = MS_TIMER_TICKS_MS(config.config_sensepi->pir_conf.intr_trig_timer * 100) 
             - (SINGLE_SHOT_DURATION); 
+        if((int32_t)time_remain <= 0)
+        {
+            time_remain = 1;
+        }
         local_out_gen_state = PIR_IDLE;
     }
     else
     {
         local_out_gen_state = TIMER_IDLE;
-        time_remain = MS_TIMER_TICKS_MS(1);
+        time_remain = 1;
     }
 
     out_gen_config_t local_out_gen_config = 
@@ -623,11 +627,15 @@ void multi_shot_mode(data_process_mode_t data_process_mode,
         time_remain = MS_TIMER_TICKS_MS(config.config_sensepi->pir_conf.intr_trig_timer * 100)
             - SINGLE_SHOT_DURATION*burst_num -
             (MS_TIMER_TICKS_MS(burst_duration * 100) - SINGLE_SHOT_DURATION)*(burst_num - 1);  
+        if((int32_t)time_remain <= 0)
+        {
+            time_remain = 1;
+        }
         local_out_gen_state = PIR_IDLE;
    }
     else
     {
-        time_remain = MS_TIMER_TICKS_MS(1);
+        time_remain = 1;
         local_out_gen_state = TIMER_IDLE;
     }
     local_out_gen_config.out_gen_state = local_out_gen_state;
@@ -651,11 +659,15 @@ void bulb_mode(data_process_mode_t data_process_mode, uint32_t bulb_time)
     {
         time_remain = MS_TIMER_TICKS_MS(config.config_sensepi->pir_conf.intr_trig_timer * 100)
             - bulb_time_ticks ;
+        if((int32_t)time_remain <= 0)
+        {
+            time_remain = 1;
+        }
         local_out_gen_state = PIR_IDLE;
     }
     else
     {
-        time_remain = MS_TIMER_TICKS_MS(1);
+        time_remain = 1;
         local_out_gen_state = TIMER_IDLE;
     }
 
@@ -686,11 +698,15 @@ void focus_mode(data_process_mode_t data_process_mode)
     {
         time_remain =  MS_TIMER_TICKS_MS(config.config_sensepi->pir_conf.intr_trig_timer * 100)
             - SINGLE_SHOT_DURATION ;
+        if((int32_t)time_remain <= 0)
+        {
+            time_remain = 1;
+        }
         local_out_gen_state = PIR_IDLE;
     }
     else
     {
-        time_remain = MS_TIMER_TICKS_MS(1);
+        time_remain = 1;
         local_out_gen_state = TIMER_IDLE;
     }
 
@@ -717,7 +733,7 @@ void none_mode(data_process_mode_t data_process_mode)
         .num_transitions = 1,
         .out_gen_done_handler = pattern_out_done_handler,
         .out_gen_state = data_process_mode,
-        .transitions_durations = {MS_TIMER_TICKS_MS(1)},
+        .transitions_durations = {1},
         .next_out = { {1},
                       {1} },
     };
