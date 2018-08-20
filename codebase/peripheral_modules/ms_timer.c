@@ -29,6 +29,7 @@
 
 #include "ms_timer.h"
 #include "stddef.h"
+#include "nrf_assert.h"
 
 /** @anchor rtc_defines
  * @name Defines for the specific RTC peripheral used for ms timer
@@ -77,6 +78,18 @@ void ms_timer_start(ms_timer_num id, ms_timer_mode mode, uint32_t ticks, void (*
 
     /* make sure the number of ticks to interrupt is less than 2^24 */
     ticks = (ticks & RTC_COUNTER_COUNTER_Msk);
+    if(ticks == 0)
+    {
+        if(mode == MS_SINGLE_CALL)
+        {
+            handler();
+            return;
+        }
+        else 
+        {
+            ASSERT(ticks != 0 && mode == MS_REPEATED_CALL);
+        }
+    }
 
     ms_timer[id].timer_handler = handler;
     if (mode == MS_SINGLE_CALL)
