@@ -78,16 +78,14 @@ void ms_timer_start(ms_timer_num id, ms_timer_mode mode, uint32_t ticks, void (*
 
     /* make sure the number of ticks to interrupt is less than 2^24 */
     ticks = (ticks & RTC_COUNTER_COUNTER_Msk);
+    ASSERT((ticks == 0 && mode == MS_REPEATED_CALL) == false);
     if(ticks == 0)
     {
+        ms_timer_stop(id);
         if(mode == MS_SINGLE_CALL)
         {
             handler();
             return;
-        }
-        else 
-        {
-            ASSERT(ticks != 0 && mode == MS_REPEATED_CALL);
         }
     }
 
