@@ -147,5 +147,5 @@ bool out_gen_is_on(void)
 inline uint32_t out_gen_get_ticks(void)
 {
     return ((ms_timer_get_current_count() + (1<<24) - timer_start_ticks_value)
-            && 0x00FFFFFF);
+            & 0x00FFFFFF);
 }
