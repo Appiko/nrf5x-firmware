@@ -110,10 +110,16 @@
 #define BULB_TRIGGER_PULSE MS_TIMER_TICKS_MS(250)
 /** Number of transitions required for focus operation */
 #define FOCUS_TRANSITIONS 2
+/** Number of transitions required for Video operation triggered by Timer */
 #define TIMER_VIDEO_TRANSITIONS 3
+/** Ticks duration of trigger pulse to start a video */
 #define VIDEO_START_PULSE MS_TIMER_TICKS_MS(250)
+/** Ticks duration of trigger pulse to end a video */
 #define VIDEO_END_PULSE MS_TIMER_TICKS_MS(300)
+/** Number of maximum extensions for Video */
 #define NO_OF_VIDEO_EXTN_ALLOWED 3
+/** Duration for which PIR will be active for video extension */
+#define VIDEO_PIR_ON 2000
 
 /**
  * @brief Enum of different types of camera triggering.
@@ -377,7 +383,7 @@ void pir_handler_video(int32_t adc_val)
     else if(no_of_extn_remain > 0)
     {
         video_ext_config.transitions_durations[0] = 
-            (((video_extn_ticks) + (1<<24)) - out_gen_get_ticks ())
+            (video_extn_ticks  - out_gen_get_ticks())
             & 0xFFFFFF;
         out_gen_start(&video_ext_config);
         no_of_extn_remain--;
@@ -760,8 +766,9 @@ void timer_video_mode(uint32_t video_len)
             .num_transitions = TIMER_VIDEO_TRANSITIONS,
             .next_out = {{0,1,0,1},
                 {1,1,1,1}},
-            .transitions_durations = {VIDEO_START_PULSE, MS_TIMER_TICKS_MS(video_len*100),
-                                        VIDEO_END_PULSE},
+            .transitions_durations = {VIDEO_START_PULSE,
+                        (MS_TIMER_TICKS_MS(video_len*100) - VIDEO_START_PULSE),
+                        VIDEO_END_PULSE},
             .out_gen_done_handler = pattern_out_done_handler,
             .out_gen_state = TIMER_IDLE,
            
@@ -777,7 +784,7 @@ void timer_video_mode(uint32_t video_len)
 void pir_video_mode(uint32_t video_len)
 {
     config_pir.handler = pir_handler_video;
-    video_len = (video_len * 1000) - 2000;
+    video_len = (video_len * 1000) - VIDEO_PIR_ON;
     out_gen_config_t local_out_gen_config =
     {
         .num_transitions = SINGLE_SHOT_TRANSITIONS,
@@ -817,7 +824,7 @@ void pir_video_end()
         .num_transitions = SINGLE_SHOT_TRANSITIONS,
         .next_out = {{1,0,1},
             {1,1,1}},
-        .transitions_durations = {(MS_TIMER_TICKS_MS(2000) - VIDEO_END_PULSE), VIDEO_END_PULSE,},
+        .transitions_durations = {MS_TIMER_TICKS_MS(VIDEO_PIR_ON), VIDEO_END_PULSE,},
         .out_gen_done_handler = pattern_out_done_handler,
         .out_gen_state = PIR_IDLE,
     };
@@ -912,6 +919,7 @@ void sensepi_cam_trigger_start()
 
     config_pir.threshold = ((uint32_t) config.config_sensepi->pir_conf.threshold)
             *PIR_THRESHOLD_MULTIPLY_FACTOR;
+    config_pir.handler = pir_handler;
 
     mcp4012_set_value(config.config_sensepi->pir_conf.amplification);
 
