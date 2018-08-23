@@ -161,6 +161,7 @@ static pir_sense_cfg config_pir;
 static out_gen_config_t out_gen_config[MAX_STATES];
 /***/
 static out_gen_config_t video_ext_config;
+/** Video Extension time in ticks */
 static uint32_t video_extn_ticks;
 /** Flag to keep status of PIR's expected state */
 static bool pir_on_flag = false;
@@ -294,7 +295,7 @@ void none_mode(cam_trig_state_t data_process_mode);
  * PIR will be enabled.
  * @param ext_mode
  */
-void pir_video_end();
+void pir_video_end(int32_t extn_len);
 /**
  * @brief Function to generate out_gen_config required for extension length
  * @param extn_len
@@ -422,7 +423,7 @@ void pir_out_gen_config_updater()
         {
             pir_video_mode(input1);
             pir_video_extn(input2);
-            pir_video_end();
+            pir_video_end(input2);
             break;
         }
         case MODE_FOCUS :
@@ -784,7 +785,9 @@ void timer_video_mode(uint32_t video_len)
 void pir_video_mode(uint32_t video_len)
 {
     config_pir.handler = pir_handler_video;
-    video_len = (video_len * 1000) - VIDEO_PIR_ON;
+    video_len = video_len * 1000;
+    int video_len_check = video_len  - VIDEO_PIR_ON;
+    video_len = (video_len_check <= 0) ? video_len : video_len_check;
     out_gen_config_t local_out_gen_config =
     {
         .num_transitions = SINGLE_SHOT_TRANSITIONS,
@@ -817,14 +820,17 @@ void pir_video_extn (uint32_t extn_len)
     
 }
 
-void pir_video_end()
+void pir_video_end(int32_t extn_len)
 {
+    extn_len = extn_len * 1000;
+    uint32_t pir_on_time = ((extn_len - VIDEO_PIR_ON) < 0) ? 
+                                        (uint32_t)extn_len : VIDEO_PIR_ON;
     out_gen_config_t local_out_gen_config = 
     {
         .num_transitions = SINGLE_SHOT_TRANSITIONS,
         .next_out = {{1,0,1},
             {1,1,1}},
-        .transitions_durations = {MS_TIMER_TICKS_MS(VIDEO_PIR_ON), VIDEO_END_PULSE,},
+        .transitions_durations = {MS_TIMER_TICKS_MS(pir_on_time), VIDEO_END_PULSE,},
         .out_gen_done_handler = pattern_out_done_handler,
         .out_gen_state = PIR_IDLE,
     };
