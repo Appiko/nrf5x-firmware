@@ -311,10 +311,10 @@ void pir_video_extn(uint32_t extn_len);
 void pir_video_mode(uint32_t video_len);
 /**
  * @brief Function to record video of fix length on Timer Triggering
- * @param timer_video_mode
+ * @param complete_video_mode
  * @param video_len
  */
-void timer_video_mode(uint32_t video_len);
+void complete_video_mode(cam_trig_state_t data_process_mode, uint32_t video_len);
 
 //function definitions
 /**
@@ -421,9 +421,16 @@ void pir_out_gen_config_updater()
         }
         case MODE_VIDEO :
         {
-            pir_video_mode(input1);
-            pir_video_extn(input2);
-            pir_video_end(input2);
+            if(input2 == 0)
+            {
+                complete_video_mode (PIR_IDLE, input1);
+            }
+            else
+            {
+                pir_video_mode(input1);
+                pir_video_extn(input2);
+                pir_video_end(input2);
+            }
             break;
         }
         case MODE_FOCUS :
@@ -493,7 +500,7 @@ void timer_out_gen_config_updater(void)
         }
         case MODE_VIDEO :
         {
-            timer_video_mode(input1);
+            complete_video_mode(TIMER_IDLE,input1);
             break;
         }
         case MODE_FOCUS :
@@ -756,10 +763,19 @@ void bulb_mode(cam_trig_state_t data_process_mode, uint32_t bulb_time)
            sizeof(out_gen_config_t));
 }
 
-void timer_video_mode(uint32_t video_len)
+void complete_video_mode(cam_trig_state_t data_process_mode, uint32_t video_len)
 {
-    int32_t time_remain = config.config_sensepi->timer_conf.timer_interval*100 -
-        video_len*100 - 500;
+    int32_t time_remain;
+    video_len = video_len*1000;
+    if(data_process_mode == TIMER_IDLE)
+    {
+        time_remain = config.config_sensepi->timer_conf.timer_interval*100 -
+            video_len - VIDEO_START_PULSE -VIDEO_END_PULSE;
+    }
+    else if(data_process_mode == PIR_IDLE)
+    {
+        time_remain = 1;
+    }
     if(time_remain > 0)
     {
         out_gen_config_t local_out_gen_config =
@@ -768,14 +784,14 @@ void timer_video_mode(uint32_t video_len)
             .next_out = {{0,1,0,1},
                 {1,1,1,1}},
             .transitions_durations = {VIDEO_START_PULSE,
-                        (MS_TIMER_TICKS_MS(video_len*100) - VIDEO_START_PULSE),
+                        MS_TIMER_TICKS_MS(video_len),
                         VIDEO_END_PULSE},
             .out_gen_done_handler = pattern_out_done_handler,
-            .out_gen_state = TIMER_IDLE,
+            .out_gen_state = data_process_mode,
            
         };
         debug_print_bool_array(local_out_gen_config.next_out, "Timer video mode");
-        memcpy(&out_gen_config[TIMER_IDLE],&local_out_gen_config,
+        memcpy(&out_gen_config[data_process_mode],&local_out_gen_config,
                sizeof(out_gen_config_t));
 
     }
@@ -787,14 +803,14 @@ void pir_video_mode(uint32_t video_len)
     config_pir.handler = pir_handler_video;
     video_len = video_len * 1000;
     int video_len_check = video_len  - VIDEO_PIR_ON;
-    video_len = (video_len_check <= 0) ? video_len : video_len_check;
+    video_len = (video_len_check <= 0) ? 0 : video_len_check;
     out_gen_config_t local_out_gen_config =
     {
         .num_transitions = SINGLE_SHOT_TRANSITIONS,
         .next_out = {{0,1,1}
         ,{1,1,1}},
         .transitions_durations = {VIDEO_START_PULSE, 
-                                    (MS_TIMER_TICKS_MS(video_len) - VIDEO_START_PULSE)},
+                                    (MS_TIMER_TICKS_MS(video_len))},
         .out_gen_done_handler = pattern_out_done_handler,
         .out_gen_state = VIDEO_IDLE,
     };
