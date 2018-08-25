@@ -295,7 +295,7 @@ void none_mode(cam_trig_state_t data_process_mode);
  * PIR will be enabled.
  * @param ext_mode
  */
-void pir_video_end(int32_t extn_len);
+void pir_video_end();
 /**
  * @brief Function to generate out_gen_config required for extension length
  * @param extn_len
@@ -383,9 +383,16 @@ void pir_handler_video(int32_t adc_val)
     }
     else if(no_of_extn_remain > 0)
     {
-        video_ext_config.transitions_durations[0] = 
-            (video_extn_ticks  - out_gen_get_ticks())
-            & 0xFFFFFF;
+        uint32_t ticks_done = out_gen_get_ticks ();
+        if(ticks_done < video_extn_ticks)
+        {
+            video_ext_config.transitions_durations[0] = 
+                (video_extn_ticks  - ticks_done);
+        }
+        else
+        {
+            video_ext_config.transitions_durations[0] = video_extn_ticks;
+        }
         out_gen_start(&video_ext_config);
         no_of_extn_remain--;
     }
@@ -772,29 +779,25 @@ void complete_video_mode(cam_trig_state_t data_process_mode, uint32_t video_len)
         time_remain = config.config_sensepi->timer_conf.timer_interval*100 -
             video_len - VIDEO_START_PULSE -VIDEO_END_PULSE;
     }
-    else if(data_process_mode == PIR_IDLE)
+    video_len = (time_remain < 0) ?
+        (config.config_sensepi->timer_conf.timer_interval*100 - 1000) :
+        video_len;
+    out_gen_config_t local_out_gen_config =
     {
-        time_remain = 1;
-    }
-    if(time_remain > 0)
-    {
-        out_gen_config_t local_out_gen_config =
-        {
-            .num_transitions = TIMER_VIDEO_TRANSITIONS,
-            .next_out = {{0,1,0,1},
-                {1,1,1,1}},
-            .transitions_durations = {VIDEO_START_PULSE,
-                        MS_TIMER_TICKS_MS(video_len),
-                        VIDEO_END_PULSE},
-            .out_gen_done_handler = pattern_out_done_handler,
-            .out_gen_state = data_process_mode,
-           
-        };
-        debug_print_bool_array(local_out_gen_config.next_out, "Timer video mode");
-        memcpy(&out_gen_config[data_process_mode],&local_out_gen_config,
-               sizeof(out_gen_config_t));
+        .num_transitions = TIMER_VIDEO_TRANSITIONS,
+        .next_out = {{0,1,0,1},
+            {1,1,1,1}},
+        .transitions_durations = {VIDEO_START_PULSE,
+                    MS_TIMER_TICKS_MS(video_len),
+                    VIDEO_END_PULSE},
+        .out_gen_done_handler = pattern_out_done_handler,
+        .out_gen_state = data_process_mode,
 
-    }
+    };
+    debug_print_bool_array(local_out_gen_config.next_out, "Timer video mode");
+    memcpy(&out_gen_config[data_process_mode],&local_out_gen_config,
+           sizeof(out_gen_config_t));
+
    
 }
 
@@ -836,17 +839,14 @@ void pir_video_extn (uint32_t extn_len)
     
 }
 
-void pir_video_end(int32_t extn_len)
+void pir_video_end()
 {
-    extn_len = extn_len * 1000;
-    uint32_t pir_on_time = ((extn_len - VIDEO_PIR_ON) < 0) ? 
-                                        (uint32_t)extn_len : VIDEO_PIR_ON;
     out_gen_config_t local_out_gen_config = 
     {
         .num_transitions = SINGLE_SHOT_TRANSITIONS,
         .next_out = {{1,0,1},
             {1,1,1}},
-        .transitions_durations = {MS_TIMER_TICKS_MS(pir_on_time), VIDEO_END_PULSE,},
+        .transitions_durations = {MS_TIMER_TICKS_MS(VIDEO_PIR_ON), VIDEO_END_PULSE,},
         .out_gen_done_handler = pattern_out_done_handler,
         .out_gen_state = PIR_IDLE,
     };
@@ -966,7 +966,7 @@ void sensepi_cam_trigger_add_tick(uint32_t interval)
     }
 
     light_sense_count += interval;
-    if(light_sense_count > LIGHT_SENSE_INTERVAL_TICKS)
+    if(light_sense_count > LIGHT_SENSE_INTERVAL_TICKS && sense_feedback == false)
     {
         module_manager_start_check();
         light_sense_count = (light_sense_count - LIGHT_SENSE_INTERVAL_TICKS);
