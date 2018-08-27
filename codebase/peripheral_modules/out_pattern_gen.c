@@ -57,7 +57,7 @@ static struct
     uint32_t end_context;
 }context;
 
-void (*out_gen_done_handler)(uint32_t out_gen_state);
+void (*done_handler)(uint32_t out_gen_state);
 
 static uint32_t timer_start_ticks_value;
 
@@ -74,9 +74,9 @@ static void timer_handler(void)
     if(context.current_transition == context.num_transitions)
     {
         context.is_on = false;
-        if(out_gen_done_handler != NULL)
+        if(done_handler != NULL)
         {
-            out_gen_done_handler(context.end_context);
+            done_handler(context.end_context);
         }
     }
     else
@@ -122,7 +122,7 @@ void out_gen_start(out_gen_config_t * out_gen_config)
     }
     context.is_on = true;
     context.end_context = out_gen_config->out_gen_state;
-    out_gen_done_handler = out_gen_config->out_gen_done_handler;
+    done_handler = out_gen_config->done_handler;
 
     ms_timer_start(OUT_GEN_MS_TIMER_USED, MS_SINGLE_CALL,
             out_gen_config->transitions_durations[context.current_transition],timer_handler);
