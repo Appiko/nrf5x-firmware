@@ -152,6 +152,10 @@ typedef enum
     MAX_STATES,
 }
 cam_trig_state_t;
+/** Renaming to use memory location for out_gen_config[TIMER_IDLE] to store a
+ *  config for extension as both extension and timer cannot be operated
+ *  simultaneously. Renaming is done to avoid confusion.  */
+#define VIDEO_ETXN_CONFIG TIMER_IDLE
 
 /** Copy of configuration to be shared across module */
 static sensepi_cam_trigger_init_config_t config;
@@ -159,8 +163,6 @@ static sensepi_cam_trigger_init_config_t config;
 static pir_sense_cfg config_pir;
 /** Array of out_gen_config_t to store pre-calculated configs */
 static out_gen_config_t out_gen_config[MAX_STATES];
-/***/
-static out_gen_config_t video_ext_config;
 /** Video Extension time in ticks */
 static uint32_t video_extn_ticks;
 /** Flag to keep status of PIR's expected state */
@@ -169,9 +171,9 @@ static bool pir_on_flag = false;
 static uint32_t sense_count;
 /** Boolen to indicate if PIR sensing feedback is required for user  */
 static bool sense_feedback = false;
-/***/
+/** Array which is to be passed while stopping out_gen module */
 static const bool out_gen_end_all_on[OUT_GEN_MAX_NUM_OUT] = {1,1,1,1};
-/***/
+/** Array which is partially copied while generating out_gen_config for multi-shot */
 static const bool multishot_generic[OUT_GEN_MAX_NUM_OUT][OUT_GEN_MAX_TRANSITIONS] =
     {
             {0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1},
@@ -198,7 +200,7 @@ void pir_handler_video(int32_t adc_val);
 /**
  * @brief Function to update the out_gen_configs for PIR.
  */
-void pir_out_gen_config_updater(void);
+void out_gen_config_updater_pir(void);
 
 /*Timer related functions*/
 /**
@@ -213,14 +215,14 @@ void timer_handler(void);
 /**
  * @brief Function to update the out_gen_configs for Timer.
  */
-void timer_out_gen_config_updater(void);
+void out_gen_config_updater_timer(void);
 
 /*out_pattern_gen related functions*/
 /**
  * @brief Handler for out pattern generation done.
  * @param out_gen_state State from which handler is called.
  */
-void pattern_out_done_handler(uint32_t out_gen_state);
+void out_gen_done_handler(uint32_t out_gen_state);
 
 /*Light Sense related functions*/
 /**
@@ -264,57 +266,55 @@ void module_manager_disable_all(void);
  * @brief Function to click one shot per trigger
  * @param data_process_mode mode for which we have to generate the out_gen_config
  */
-void single_shot_mode(cam_trig_state_t data_process_mode);
+void out_gen_config_single_shot(cam_trig_state_t data_process_mode);
 /**
  * @brief Function to click multiple shots per trigger
  * @param data_process_mode mode for which we have to generate the out_gen_config
  * @param burst_duration Time duration between two shots
  * @param burst_num Number of shots per trigger
  */
-void multi_shot_mode(cam_trig_state_t data_process_mode, 
+void out_gen_config_multi_shot(cam_trig_state_t data_process_mode, 
                      uint32_t burst_duration, uint32_t burst_num);
 /**
  * @brief Function to take photo in bulb mode.
  * @param data_process_mode mode for which we have to generate the out_gen_config
  * @param bulb_time Time duration for half press signal
  */
-void bulb_mode(cam_trig_state_t data_process_mode, uint32_t bulb_time);
+void out_gen_config_bulb_expo(cam_trig_state_t data_process_mode, uint32_t bulb_time);
 /**
  * @brief Function to do focus only
  * @param data_process_mode mode for which we have to generate the out_gen_config
  */
-void focus_mode(cam_trig_state_t data_process_mode);
+void out_gen_config_focus_only(cam_trig_state_t data_process_mode);
 /**
  * @brief Dummy mode which will do nothing i.e keep the signals high
  * @param data_process_mode mode for which we have to generate the out_gen_config
  */
-void none_mode(cam_trig_state_t data_process_mode);
+void out_gen_config_none(cam_trig_state_t data_process_mode);
 //Suggest some good name for this function.
 /**
  * @brief Function to create out_gen_config for the video length for which
- * PIR will be enabled.
- * @param ext_mode
+ * PIR will be enabled and if no motion is detected during this time video will
+ * end
  */
-void pir_video_end();
+void out_gen_config_part_video_end();
 /**
  * @brief Function to generate out_gen_config required for extension length
- * @param extn_len
+ * @param extn_len Extension length provided by application in sec.
  */
-void pir_video_extn(uint32_t extn_len);
+void out_gen_config_part_video_extn(uint32_t extn_len);
 /**
- * @brief Function to start the video on PIR triggering
- * @param pir_video_mode
- * @param ext_mode
- * @param video_len
- * @param ext_len
+ * @brief Function to generate out_gen_config required to start a video after PIR
+ * triggering with length=video_len-@ref VIDEO_PIR_ON.
+ * @param video_len Length of the video without any extensions
  */
-void pir_video_mode(uint32_t video_len);
+void out_gen_config_part_video_start(uint32_t video_len);
 /**
  * @brief Function to record video of fix length on Timer Triggering
- * @param complete_video_mode
- * @param video_len
+ * @param data_process_mode mode for which we have to generate the out_gen_config
+ * @param video_len Video Length in sec.
  */
-void complete_video_mode(cam_trig_state_t data_process_mode, uint32_t video_len);
+void out_gen_config_full_video(cam_trig_state_t data_process_mode, uint32_t video_len);
 
 //function definitions
 /**
@@ -386,19 +386,20 @@ void pir_handler_video(int32_t adc_val)
         uint32_t ticks_done = out_gen_get_ticks ();
         if(ticks_done < video_extn_ticks)
         {
-            video_ext_config.transitions_durations[0] = 
+            out_gen_config[VIDEO_ETXN_CONFIG].transitions_durations[0] = 
                 (video_extn_ticks  - ticks_done);
         }
         else
         {
-            video_ext_config.transitions_durations[0] = video_extn_ticks;
+            out_gen_config[VIDEO_ETXN_CONFIG].transitions_durations[0] = 
+                video_extn_ticks;
         }
-        out_gen_start(&video_ext_config);
+        out_gen_start(&out_gen_config[VIDEO_ETXN_CONFIG]);
         no_of_extn_remain--;
     }
 }
 
-void pir_out_gen_config_updater()
+void out_gen_config_updater_pir()
 {
     uint32_t config_mode = config.config_sensepi->pir_conf.mode;
     uint32_t mode = ((config_mode & MODE_MSK) 
@@ -412,42 +413,42 @@ void pir_out_gen_config_updater()
     {
         case MODE_SINGLE_SHOT:
         {
-            single_shot_mode(PIR_IDLE);
+            out_gen_config_single_shot(PIR_IDLE);
             break;
         }
         case MODE_MULTISHOT:
         {
-            multi_shot_mode(PIR_IDLE, input1, input2);
+            out_gen_config_multi_shot(PIR_IDLE, input1, input2);
             break;
         }
         case MODE_BULB :
         {
             //Using both input 1 and input 2
-            bulb_mode(PIR_IDLE, single_input);
+            out_gen_config_bulb_expo(PIR_IDLE, single_input);
             break;
         }
         case MODE_VIDEO :
         {
             if(input2 == 0)
             {
-                complete_video_mode (PIR_IDLE, input1);
+                out_gen_config_full_video (PIR_IDLE, input1);
             }
             else
             {
-                pir_video_mode(input1);
-                pir_video_extn(input2);
-                pir_video_end(input2);
+                out_gen_config_part_video_start(input1);
+                out_gen_config_part_video_extn(input2);
+                out_gen_config_part_video_end(input2);
             }
             break;
         }
         case MODE_FOCUS :
         {
-            focus_mode(PIR_IDLE);
+            out_gen_config_focus_only(PIR_IDLE);
             break;
         }
         case MODE_NONE:
         {
-            none_mode(PIR_IDLE);
+            out_gen_config_none(PIR_IDLE);
         }
     }   
 }
@@ -477,7 +478,7 @@ void timer_handler()
     }
 }
 
-void timer_out_gen_config_updater(void)
+void out_gen_config_updater_timer(void)
 {
     uint32_t config_mode = config.config_sensepi->timer_conf.mode;
     uint32_t mode = ((config_mode & MODE_MSK) 
@@ -491,38 +492,38 @@ void timer_out_gen_config_updater(void)
     {
         case MODE_SINGLE_SHOT:
         {
-            single_shot_mode(TIMER_IDLE);
+            out_gen_config_single_shot(TIMER_IDLE);
             break;
         }
         case MODE_MULTISHOT:
         {
-            multi_shot_mode(TIMER_IDLE, input1, input2);
+            out_gen_config_multi_shot(TIMER_IDLE, input1, input2);
             break;
         }
         case MODE_BULB :
         {
             //Using both input 1 and input 2
-            bulb_mode(TIMER_IDLE, single_input);
+            out_gen_config_bulb_expo(TIMER_IDLE, single_input);
             break;
         }
         case MODE_VIDEO :
         {
-            complete_video_mode(TIMER_IDLE,input1);
+            out_gen_config_full_video(TIMER_IDLE,input1);
             break;
         }
         case MODE_FOCUS :
         {
-            focus_mode(TIMER_IDLE);
+            out_gen_config_focus_only(TIMER_IDLE);
             break;
         }
         case MODE_NONE:
         {
-            none_mode(PIR_IDLE);
+            out_gen_config_none(PIR_IDLE);
         }
     }   
 }
 
-void pattern_out_done_handler (uint32_t out_gen_state)
+void out_gen_done_handler (uint32_t out_gen_state)
 {
     log_printf("%s",__func__);
     log_printf(" %d\n", out_gen_state);
@@ -648,7 +649,7 @@ void module_manager_disable_all(void)
     light_sense_set_state(false);
 }
 
-void single_shot_mode(cam_trig_state_t data_process_mode)
+void out_gen_config_single_shot(cam_trig_state_t data_process_mode)
 {
     log_printf("%s\n", __func__);
     uint32_t number_of_transition = SINGLE_SHOT_TRANSITIONS;
@@ -671,7 +672,7 @@ void single_shot_mode(cam_trig_state_t data_process_mode)
     out_gen_config_t local_out_gen_config = 
     {
         .num_transitions = number_of_transition,
-        .out_gen_done_handler = pattern_out_done_handler,
+        .done_handler = out_gen_done_handler,
         .out_gen_state = data_process_mode,
         .transitions_durations = { SINGLE_SHOT_DURATION, time_remain },
         .next_out = {{0, 1, 1},
@@ -683,7 +684,7 @@ void single_shot_mode(cam_trig_state_t data_process_mode)
            sizeof(out_gen_config_t));
 }
 
-void multi_shot_mode(cam_trig_state_t data_process_mode, 
+void out_gen_config_multi_shot(cam_trig_state_t data_process_mode, 
                      uint32_t burst_duration, uint32_t burst_num)
 {
     log_printf("%s\n", __func__);
@@ -695,7 +696,7 @@ void multi_shot_mode(cam_trig_state_t data_process_mode,
     out_gen_config_t local_out_gen_config = 
     {
         .num_transitions = number_of_transition,
-        .out_gen_done_handler = pattern_out_done_handler,
+        .done_handler = out_gen_done_handler,
         .out_gen_state = data_process_mode,
     };
 
@@ -736,7 +737,7 @@ void multi_shot_mode(cam_trig_state_t data_process_mode,
            sizeof(out_gen_config_t));
 }
 
-void bulb_mode(cam_trig_state_t data_process_mode, uint32_t bulb_time)
+void out_gen_config_bulb_expo(cam_trig_state_t data_process_mode, uint32_t bulb_time)
 {
     log_printf("%s\n", __func__);
     int32_t time_remain;
@@ -760,7 +761,7 @@ void bulb_mode(cam_trig_state_t data_process_mode, uint32_t bulb_time)
     out_gen_config_t local_out_gen_config = 
     {
         .num_transitions = number_of_transition,
-        .out_gen_done_handler = pattern_out_done_handler,
+        .done_handler = out_gen_done_handler,
         .out_gen_state = data_process_mode,
         .transitions_durations = 
             {bulb_time_ticks - BULB_TRIGGER_PULSE, BULB_TRIGGER_PULSE
@@ -774,7 +775,7 @@ void bulb_mode(cam_trig_state_t data_process_mode, uint32_t bulb_time)
            sizeof(out_gen_config_t));
 }
 
-void complete_video_mode(cam_trig_state_t data_process_mode, uint32_t video_len)
+void out_gen_config_full_video(cam_trig_state_t data_process_mode, uint32_t video_len)
 {
     int32_t time_remain;
     video_len = video_len*1000;
@@ -794,7 +795,7 @@ void complete_video_mode(cam_trig_state_t data_process_mode, uint32_t video_len)
         .transitions_durations = {VIDEO_START_PULSE,
                     MS_TIMER_TICKS_MS(video_len),
                     VIDEO_END_PULSE},
-        .out_gen_done_handler = pattern_out_done_handler,
+        .done_handler = out_gen_done_handler,
         .out_gen_state = data_process_mode,
 
     };
@@ -805,7 +806,7 @@ void complete_video_mode(cam_trig_state_t data_process_mode, uint32_t video_len)
    
 }
 
-void pir_video_mode(uint32_t video_len)
+void out_gen_config_part_video_start(uint32_t video_len)
 {
     config_pir.handler = pir_handler_video;
     video_len = video_len * 1000;
@@ -818,7 +819,7 @@ void pir_video_mode(uint32_t video_len)
         ,{1,1,1}},
         .transitions_durations = {VIDEO_START_PULSE, 
                                     (MS_TIMER_TICKS_MS(video_len))},
-        .out_gen_done_handler = pattern_out_done_handler,
+        .done_handler = out_gen_done_handler,
         .out_gen_state = VIDEO_IDLE,
     };
     debug_print_bool_array(local_out_gen_config.next_out, "PIR video mode");
@@ -826,7 +827,7 @@ void pir_video_mode(uint32_t video_len)
            sizeof(out_gen_config_t));    
 }
 
-void pir_video_extn (uint32_t extn_len)
+void out_gen_config_part_video_extn (uint32_t extn_len)
 {
     video_extn_ticks = MS_TIMER_TICKS_MS(extn_len * 1000);
     out_gen_config_t local_out_gen_config = 
@@ -834,16 +835,16 @@ void pir_video_extn (uint32_t extn_len)
         .num_transitions = 1,
         .next_out = {{1,1}, {1,1}},
         .transitions_durations = {video_extn_ticks},
-        .out_gen_done_handler = pattern_out_done_handler,
+        .done_handler = out_gen_done_handler,
         .out_gen_state = VIDEO_IDLE,
     };
     debug_print_bool_array(local_out_gen_config.next_out, "PIR video extension");
-    memcpy(&video_ext_config,&local_out_gen_config,
+    memcpy(&out_gen_config[VIDEO_ETXN_CONFIG],&local_out_gen_config,
            sizeof(out_gen_config_t));    
     
 }
 
-void pir_video_end()
+void out_gen_config_part_video_end()
 {
     out_gen_config_t local_out_gen_config = 
     {
@@ -851,7 +852,7 @@ void pir_video_end()
         .next_out = {{1,0,1},
             {1,1,1}},
         .transitions_durations = {MS_TIMER_TICKS_MS(VIDEO_PIR_ON), VIDEO_END_PULSE,},
-        .out_gen_done_handler = pattern_out_done_handler,
+        .done_handler = out_gen_done_handler,
         .out_gen_state = PIR_IDLE,
     };
     debug_print_bool_array(local_out_gen_config.next_out, "PIR video mode");
@@ -859,7 +860,7 @@ void pir_video_end()
            sizeof(out_gen_config_t)); 
 }
 
-void focus_mode(cam_trig_state_t data_process_mode)
+void out_gen_config_focus_only(cam_trig_state_t data_process_mode)
 {
     log_printf("%s\n", __func__);
     int32_t time_remain;
@@ -882,7 +883,7 @@ void focus_mode(cam_trig_state_t data_process_mode)
     out_gen_config_t local_out_gen_config = 
     {
         .num_transitions = number_of_transition,
-        .out_gen_done_handler = pattern_out_done_handler,
+        .done_handler = out_gen_done_handler,
         .out_gen_state = data_process_mode,
         .transitions_durations =
         {SINGLE_SHOT_DURATION ,time_remain},
@@ -895,12 +896,12 @@ void focus_mode(cam_trig_state_t data_process_mode)
            sizeof(out_gen_config_t));
 }
 
-void none_mode(cam_trig_state_t data_process_mode)
+void out_gen_config_none(cam_trig_state_t data_process_mode)
 {
     out_gen_config_t local_out_gen_config =
     {
         .num_transitions = 1,
-        .out_gen_done_handler = pattern_out_done_handler,
+        .done_handler = out_gen_done_handler,
         .out_gen_state = data_process_mode,
         .transitions_durations = {1},
         .next_out = { {1},
@@ -949,8 +950,8 @@ void sensepi_cam_trigger_start()
 
     mcp4012_set_value(config.config_sensepi->pir_conf.amplification);
 
-    pir_out_gen_config_updater();
-    timer_out_gen_config_updater();
+    out_gen_config_updater_pir();
+    out_gen_config_updater_timer();
 
     light_sense_set_state(true);
     module_manager_start_check();
