@@ -535,6 +535,10 @@ void pattern_out_done_handler (uint32_t out_gen_state)
         }
         case TIMER_IDLE : 
         {
+            if(config.config_sensepi->trig_conf == PIR_AND_TIMER)
+            {
+                pir_set_state(pir_on_flag);
+            }
             break;
         }
         case VIDEO_IDLE :
