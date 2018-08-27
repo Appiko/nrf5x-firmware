@@ -64,6 +64,7 @@
 #include "device_tick.h"
 #include "pir_sense.h"
 #include "hal_pin_analog_input.h"
+#include "aa_aaa_battery_check.h"
 #include "button_ui.h"
 #include "nrf_nvic.h"
 #include "ble.h"
@@ -193,11 +194,6 @@ static sensepi_cam_trigger_init_config_t sensepi_cam_trigger_default_config =
 /** Function called just before reset due to WDT */
 void wdt_prior_reset_callback(void){
     log_printf("WDT reset\n");
-}
-
-bool get_batt_low_state(void)
-{
-    return false;
 }
 
 void prepare_init_ble_adv()
@@ -357,7 +353,7 @@ void state_change_handler(uint32_t new_state)
 
                 sensepi_sysinfo sysinfo;
                 memcpy(&sysinfo.id, dev_id_get(), sizeof(dev_id_t));
-                sysinfo.is_battery_low = get_batt_low_state();
+                sysinfo.battery_is_charged = aa_aaa_battery_is_charged();
                 memcpy(&sysinfo.fw_ver, fw_ver_get(), sizeof(fw_ver_t));
                 sensepi_ble_update_sysinfo(&sysinfo);
 
