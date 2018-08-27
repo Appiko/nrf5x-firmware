@@ -36,8 +36,6 @@
 #include "common_util.h"
 #include "hal_pin_analog_input.h"
 
-#define CHANNEL_USED    1
-
 int16_t saadc_result[1];
 
 uint32_t simple_adc_get_value(simple_adc_gain_t gain, simple_adc_input_t pin)
@@ -57,10 +55,10 @@ uint32_t simple_adc_get_value(simple_adc_gain_t gain, simple_adc_input_t pin)
     NRF_SAADC->RESULT.PTR = (uint32_t) saadc_result;
     NRF_SAADC->RESULT.MAXCNT = 1;
 
-    NRF_SAADC->CH[CHANNEL_USED].PSELP = pin;
-    NRF_SAADC->CH[CHANNEL_USED].PSELN = SAADC_CH_PSELN_PSELN_NC;
+    NRF_SAADC->CH[SIMPLE_ADC_CHANNEL_USED].PSELP = pin;
+    NRF_SAADC->CH[SIMPLE_ADC_CHANNEL_USED].PSELN = SAADC_CH_PSELN_PSELN_NC;
 
-    NRF_SAADC->CH[CHANNEL_USED].CONFIG = ((SAADC_CH_CONFIG_RESP_Bypass << SAADC_CH_CONFIG_RESP_Pos)
+    NRF_SAADC->CH[SIMPLE_ADC_CHANNEL_USED].CONFIG = ((SAADC_CH_CONFIG_RESP_Bypass << SAADC_CH_CONFIG_RESP_Pos)
             & SAADC_CH_CONFIG_RESP_Msk)
             | ((SAADC_CH_CONFIG_RESN_Bypass << SAADC_CH_CONFIG_RESN_Pos) & SAADC_CH_CONFIG_RESN_Msk)
             | ((gain << SAADC_CH_CONFIG_GAIN_Pos) & SAADC_CH_CONFIG_GAIN_Msk)
@@ -84,8 +82,8 @@ uint32_t simple_adc_get_value(simple_adc_gain_t gain, simple_adc_input_t pin)
     NRF_SAADC->EVENTS_END = 0;
     NRF_SAADC->EVENTS_STARTED = 0;
 
-    NRF_SAADC->EVENTS_CH[CHANNEL_USED].LIMITH = 0;
-    NRF_SAADC->EVENTS_CH[CHANNEL_USED].LIMITL = 0;
+    NRF_SAADC->EVENTS_CH[SIMPLE_ADC_CHANNEL_USED].LIMITH = 0;
+    NRF_SAADC->EVENTS_CH[SIMPLE_ADC_CHANNEL_USED].LIMITL = 0;
 
     //An issue with the nRF52's SAADC where it'll give negative values
     //when the signal to the ADC is close to 0V
@@ -94,7 +92,7 @@ uint32_t simple_adc_get_value(simple_adc_gain_t gain, simple_adc_input_t pin)
         saadc_result[0] = 0;
     }
     NRF_SAADC->ENABLE = (SAADC_ENABLE_ENABLE_Disabled << SAADC_ENABLE_ENABLE_Pos);
-    NRF_SAADC->CH[CHANNEL_USED].PSELP = SAADC_CH_PSELP_PSELP_NC;
+    NRF_SAADC->CH[SIMPLE_ADC_CHANNEL_USED].PSELP = SAADC_CH_PSELP_PSELP_NC;
 
     return  (uint32_t) saadc_result[0];
 }
