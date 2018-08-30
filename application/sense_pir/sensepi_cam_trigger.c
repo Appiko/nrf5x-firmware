@@ -171,6 +171,8 @@ static bool pir_on_flag = false;
 static uint32_t sense_count;
 /** Boolen to indicate if PIR sensing feedback is required for user  */
 static bool sense_feedback = false;
+/** Flag to check if light sensing is required or not */
+static bool is_light_sense_on = false;
 /** Array which is to be passed while stopping out_gen module */
 static const bool out_gen_end_all_on[OUT_GEN_MAX_NUM_OUT] = {1,1,1,1};
 /** Array which is partially copied while generating out_gen_config for multi-shot */
@@ -943,6 +945,43 @@ void sensepi_cam_trigger_start()
 
     sense_count = 0;
     sense_feedback = true;
+    oper_time_t pir_oper_time = config.config_sensepi->pir_conf.oper_time;
+    oper_time_t timer_oper_time = config.config_sensepi->timer_conf.oper_time;
+    bool pir_light_flag = true;
+    bool timer_light_flag = true;
+    if(config.config_sensepi->trig_conf != PIR_ONLY)
+    {
+        if((timer_oper_time.day_or_night == 1 && timer_oper_time.threshold == 0b0000000)||
+        (timer_oper_time.day_or_night == 0 && timer_oper_time.threshold == 0b1111111))
+        {
+            timer_light_flag = false;
+        }
+        else
+        {
+            timer_light_flag = true;
+        }      
+    }
+    else
+    {
+        timer_light_flag = false;
+    }
+    if(config.config_sensepi->trig_conf != TIMER_ONLY)
+    {
+        if((pir_oper_time.day_or_night == 1 && pir_oper_time.threshold == 0b0000000)||
+        (pir_oper_time.day_or_night == 0 && pir_oper_time.threshold == 0b1111111))
+        {
+            pir_light_flag = false;
+        }
+        else
+        {
+            pir_light_flag = true;
+        }      
+    }
+    else
+    {
+        pir_light_flag = false;
+    }
+    is_light_sense_on = pir_light_flag || timer_light_flag; 
 
     config_pir.threshold = ((uint32_t) config.config_sensepi->pir_conf.threshold)
             *PIR_THRESHOLD_MULTIPLY_FACTOR;
@@ -971,7 +1010,8 @@ void sensepi_cam_trigger_add_tick(uint32_t interval)
     }
 
     light_sense_count += interval;
-    if(light_sense_count > LIGHT_SENSE_INTERVAL_TICKS && sense_feedback == false)
+    if(light_sense_count > LIGHT_SENSE_INTERVAL_TICKS && sense_feedback == false
+       && is_light_sense_on == true)
     {
         module_manager_start_check();
         light_sense_count = (light_sense_count - LIGHT_SENSE_INTERVAL_TICKS);
