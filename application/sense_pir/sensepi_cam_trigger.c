@@ -768,8 +768,8 @@ void out_gen_config_bulb_expo(cam_trig_state_t data_process_mode, uint32_t bulb_
         .transitions_durations = 
             {bulb_time_ticks - BULB_TRIGGER_PULSE, BULB_TRIGGER_PULSE
               , time_remain},
-        .next_out = { {0, 0, 1, 1},
-                      {1, 0, 1, 1} },
+        .next_out = { {1, 0, 1, 1},
+                      {0, 0, 1, 1} },
     };
 
     debug_print_bool_array(local_out_gen_config.next_out, "bulb mode");
