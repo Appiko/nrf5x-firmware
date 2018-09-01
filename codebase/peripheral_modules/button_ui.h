@@ -50,6 +50,7 @@
 
 #include "stdint.h"
 #include "stdbool.h"
+#include "ms_timer.h"
 
 /**
  * Enum defining the type of actions possible with buttons
@@ -77,8 +78,8 @@ typedef enum
  * @note @ref BUTTON_UI_STEP_WAKE does not have a duration
  */
 const static uint32_t press_duration[] = {
-    100,
-    5000,
+    MS_TIMER_TICKS_MS(100),
+    MS_TIMER_TICKS_MS(5000),
     0xFFFFFFFF  ///This should never be reached
 };
 

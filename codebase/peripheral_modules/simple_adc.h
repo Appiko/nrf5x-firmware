@@ -50,6 +50,10 @@
 #include "stdint.h"
 #include "nrf.h"
 
+/** To assign default SAADC channel to this module if nothing is mentioned  */
+#ifndef SIMPLE_ADC_CHANNEL_USED 
+#define SIMPLE_ADC_CHANNEL_USED    1
+#endif
 /**
  * @brief Input selection for the analog-to-digital converter.
  */

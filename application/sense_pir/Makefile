@@ -4,8 +4,9 @@ SLNO            := 682073614
 BLE_REQD        := BLE_STACK_SUPPORT_REQD
 PINRESET_REQD   := CONFIG_GPIO_AS_PINRESET
 DEBUGGER        := BMP
-LOGGER			:= LOG_UART_PRINTF
-FW_VER_VAL          := 0
+LOGGER          := LOG_UART_PRINTF
+FW_VER_VAL      := 0
+MS_TIMER_FREQ   := 100
 
 SD_USED         := s112
 SD_VER          := 6.0.0
@@ -60,7 +61,7 @@ C_SRC += led_seq.c
 C_SRC += sensepi_cam_trigger.c
 C_SRC += out_pattern_gen.c
 C_SRC += mcp4012_x.c
-
+C_SRC += dev_id_fw_ver.c
 
 #Gets the name of the application folder
 APPLN = $(shell basename $(PWD))
@@ -69,7 +70,8 @@ CFLAGS_APP = -DDEBUG
 CFLAGS_APP += -D$(BLE_REQD)
 CFLAGS_APP += -D$(PINRESET_REQD)
 CFLAGS_APP += -D$(LOGGER)
-CFLAGS_APP  += -DFW_VER=$(FW_VER_VAL)
+CFLAGS_APP += -DFW_VER=$(FW_VER_VAL)
+CFLAGS_APP += -DMS_TIMER_FREQ=$(MS_TIMER_FREQ)
 
 #Lower case of BOARD
 BOARD_HEADER  = $(shell echo $(BOARD) | tr A-Z a-z)

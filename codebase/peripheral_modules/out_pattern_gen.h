@@ -70,9 +70,9 @@ typedef struct
         value for the various transitions across the initialized pins. */
     bool next_out[OUT_GEN_MAX_NUM_OUT][OUT_GEN_MAX_TRANSITIONS];
     /** @brief A pointer to a handler called after a pattern is generated */
-    void (*out_gen_done_handler)(uint32_t out_gen_state);
+    void (*done_handler)(uint32_t out_gen_state);
     /** @brief State which is to be started with this configuration,
-         passed as an argument with the @p out_gen_done_handler */
+         passed as an argument with the @p done_handler */
     uint32_t out_gen_state;
 } out_gen_config_t;
 

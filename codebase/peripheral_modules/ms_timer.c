@@ -29,6 +29,7 @@
 
 #include "ms_timer.h"
 #include "stddef.h"
+#include "nrf_assert.h"
 
 /** @anchor rtc_defines
  * @name Defines for the specific RTC peripheral used for ms timer
@@ -61,7 +62,7 @@ void ms_timer_init(uint32_t irq_priority)
     }
 
     ms_timers_status = 0;
-    RTC_ID->PRESCALER = (LFCLK_FREQ/MS_TIMER_FREQ) - 1;
+    RTC_ID->PRESCALER = (ROUNDED_DIV(LFCLK_FREQ, MS_TIMER_FREQ)) - 1;
 
     NVIC_SetPriority(RTC_IRQN, irq_priority);
     NVIC_EnableIRQ(RTC_IRQN);
@@ -70,13 +71,23 @@ void ms_timer_init(uint32_t irq_priority)
 /**@todo Take care of values of ticks passed which are greater than 2^24, now it is
  *  suppressed to 2^24 when greater.
  * @warning Works only for input less than 512000 milli-seconds or 8.5 min when
- *  @ref MS_TIMER_FREQ is 32768
+ *  @ref MS_TIMER_FREQ is 32768. In other cases the max time must be calculated.
  */
 void ms_timer_start(ms_timer_num id, ms_timer_mode mode, uint32_t ticks, void (*handler)(void))
 {
 
     /* make sure the number of ticks to interrupt is less than 2^24 */
     ticks = (ticks & RTC_COUNTER_COUNTER_Msk);
+    ASSERT((ticks == 0 && mode == MS_REPEATED_CALL) == false);
+    if(ticks == 0)
+    {
+        ms_timer_stop(id);
+        if(mode == MS_SINGLE_CALL)
+        {
+            handler();
+            return;
+        }
+    }
 
     ms_timer[id].timer_handler = handler;
     if (mode == MS_SINGLE_CALL)

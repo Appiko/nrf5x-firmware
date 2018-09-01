@@ -37,8 +37,10 @@
 #include "ms_timer.h"
 #include "nrf_assert.h"
 
-#define LFCLK_TICKS_TO_DEV_TICKS(lfclk_ticks)  (lfclk_ticks/DEVICE_TICK_LFCLK_DIV_FACTOR)
-#define DEV_TICKS_TO_LFCLK_TICKS(dev_ticks)    (dev_ticks*DEVICE_TICK_LFCLK_DIV_FACTOR)
+#define DEV_TICK_MSTIMER    MS_TIMER0
+
+#define MSTIMER_TICKS_TO_DEV_TICKS(lfclk_ticks)  (lfclk_ticks/DEVICE_TICK_MSTIMER_DIV_FACTOR)
+#define DEV_TICKS_TO_MSTIMER_TICKS(dev_ticks)    (dev_ticks*DEVICE_TICK_MSTIMER_DIV_FACTOR)
 
 struct {
   device_tick_mode current_mode;
@@ -54,7 +56,7 @@ static void add_tick(void){
   current_count = ms_timer_get_current_count();
   duration = (current_count + (1<<24) - device_tick_ctx.last_tick_count) & 0xFFFFFF;
   device_tick_ctx.last_tick_count = current_count;
-  irq_msg_push(MSG_NEXT_INTERVAL,(void *) (uint32_t) LFCLK_TICKS_TO_DEV_TICKS(duration));
+  irq_msg_push(MSG_NEXT_INTERVAL,(void *) (uint32_t) MSTIMER_TICKS_TO_DEV_TICKS(duration));
 }
 
 void tick_timer_handler(void)
@@ -77,7 +79,7 @@ void device_tick_init(device_tick_cfg * cfg)
             ((device_tick_ctx.current_mode == DEVICE_TICK_SLOW)?
             cfg->slow_mode_ticks:cfg->fast_mode_ticks)/2;
 
-    ms_timer_start(MS_TIMER0, MS_REPEATED_CALL,
+    ms_timer_start(DEV_TICK_MSTIMER, MS_REPEATED_CALL,
             2*device_tick_ctx.half_current_interval,
             tick_timer_handler);
     add_tick();
@@ -93,7 +95,7 @@ void device_tick_switch_mode(device_tick_mode mode)
                 device_tick_ctx.slow_tick_interval:
                 device_tick_ctx.fast_tick_interval)/2;
 
-        ms_timer_start(MS_TIMER0, MS_REPEATED_CALL,
+        ms_timer_start(DEV_TICK_MSTIMER, MS_REPEATED_CALL,
                 2*device_tick_ctx.half_current_interval, tick_timer_handler);
         add_tick();
     }
@@ -108,11 +110,11 @@ void device_tick_process(void)
 
     if(duration > device_tick_ctx.half_current_interval)
     {
-        ms_timer_start(MS_TIMER0, MS_REPEATED_CALL,
+        ms_timer_start(DEV_TICK_MSTIMER, MS_REPEATED_CALL,
                 2*device_tick_ctx.half_current_interval, tick_timer_handler);
 
         device_tick_ctx.last_tick_count = current_count;
         irq_msg_push(MSG_NEXT_INTERVAL,
-                (void *) (uint32_t) LFCLK_TICKS_TO_DEV_TICKS(duration));
+                (void *) (uint32_t) MSTIMER_TICKS_TO_DEV_TICKS(duration));
     }
 }

@@ -2,7 +2,7 @@
  * @file led_seq.h Header to access the PWM values for the
  *                 one or more color LED(s) for the different sequences 
  *
- * Automagically created on: 29-07-2018 at 16:20
+ * Automagically created on: 17-08-2018 at 12:03
  */
 
 #ifndef _LED_SEQ_H_
@@ -10,6 +10,7 @@
 
 #include <stdint.h>
 
+/** Specify the different LED patterns possible */
 typedef enum {
   LED_SEQ_RAMP_OFFSET = 0,
   LED_SEQ_PIR_PULSE = 1,
@@ -20,9 +21,11 @@ typedef enum {
   LED_SEQ_NULL = 255,
 } led_sequences;
 
+/** @brief The different color LEDs present in this instance */
 typedef enum {
   LED_COLOR_RED,
   LED_COLOR_GREEN,
+  /// To specify the number of LEDs presents
   LED_COLOR_MAX
 }led_seq_color;
 

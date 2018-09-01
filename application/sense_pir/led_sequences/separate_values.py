@@ -58,7 +58,7 @@ uint16_t * led_seq_get_seq_duration_ptr(led_sequences seq)
 
 """
 
-header2 = "\n */\n\n#ifndef _LED_SEQ_H_\n#define _LED_SEQ_H_\n\n#include <stdint.h>\n\n"
+header2 = "\n */\n\n#ifndef _LED_SEQ_H_\n#define _LED_SEQ_H_\n\n#include <stdint.h>\n"
 rgb_strut = """#define LED_STRUCT1(name, count)       const struct {            \\
                                         uint16_t red[count];    \\
                                       } __attribute__((packed)) name
@@ -69,14 +69,18 @@ rgb_strut = """#define LED_STRUCT1(name, count)       const struct {            
                                       } __attribute__((packed)) name
 """
 
-enum_def = "typedef enum {\n"
+enum_def = """
+/** Specify the different LED patterns possible */
+typedef enum {\n"""
 
 enum_end = """  LED_SEQ_NULL = 255,
 } led_sequences;
 
+/** @brief The different color LEDs present in this instance */
 typedef enum {
   LED_COLOR_RED,
   LED_COLOR_GREEN,
+  /// To specify the number of LEDs presents
   LED_COLOR_MAX
 }led_seq_color;
 

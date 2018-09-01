@@ -84,7 +84,7 @@ void sensepi_cam_trigger_stop();
 
 /**
  * @brief Function to initiate SensePi_PIR module
- * @param config strcture pointer of configuration for which we need to
+ * @param config_sensepi_cam_trigger structure pointer of configuration for which we need to
  * configure the SensePi_PIR module
  */
 void sensepi_cam_trigger_init(sensepi_cam_trigger_init_config_t * config_sensepi_cam_trigger);
@@ -104,9 +104,9 @@ sensepi_config_t * sensepi_cam_trigger_get_sensepi_config();
 
 /**
  * @brief Function to decide what to decide at current tick
- * @param intervel Duration since last tick in ms
+ * @param interval Duration since last tick in ms
  */
-void sensepi_cam_trigger_add_tick(uint32_t intervel);
+void sensepi_cam_trigger_add_tick(uint32_t interval);
 
 #ifdef __cplusplus
 }

@@ -64,6 +64,7 @@
 #include "device_tick.h"
 #include "pir_sense.h"
 #include "hal_pin_analog_input.h"
+#include "aa_aaa_battery_check.h"
 #include "button_ui.h"
 #include "nrf_nvic.h"
 #include "ble.h"
@@ -73,6 +74,7 @@
 #include "led_ui.h"
 #include "sensepi_ble.h"
 #include "sensepi_cam_trigger.h"
+#include "dev_id_fw_ver.h"
 
 /* ----- Defines ----- */
 
@@ -93,20 +95,17 @@ const uint8_t app_device_name[] = { APP_DEVICE_NAME_CHAR };
                        0x11, BLE_GAP_AD_TYPE_128BIT_SERVICE_UUID_COMPLETE, APP_UUID_COMPLETE     \
                    }
 
-uint8_t app_adv_data[] = APP_ADV_DATA;
-
 /** The data to be sent in the scan response payload. It is of the format
  *  of a sequence of {Len, type, data} */
-///TODO Dynamically update the device ID in the scan response data
 #define APP_SCAN_RSP_DATA  {                                        \
                            0x02, BLE_GAP_AD_TYPE_TX_POWER_LEVEL, 0   ,     \
                            0x11, BLE_GAP_AD_TYPE_SHORT_LOCAL_NAME,  \
                            'x', 'x','x', 'x', 'x', 'x' , 'x', 'x', 'x', 'x', 'x', 'x', 'x', 'x', 'x', 'x',   \
                            0x04, BLE_GAP_AD_TYPE_MANUFACTURER_SPECIFIC_DATA, 0 ,  0 , 0 \
                        }
-uint8_t app_scan_rsp_data[] = APP_SCAN_RSP_DATA;
 
-/** The WDT bites if not fed every 301 sec (5 min) */
+/** The WDT bites if not fed every 301 sec (5 min)
+ * @warning All the tick intervals must be lower than this*/
 #define WDT_PERIOD_MS              301000
 
 /** Flag to specify if the Watchdog timer is used or not */
@@ -120,17 +119,17 @@ uint8_t app_scan_rsp_data[] = APP_SCAN_RSP_DATA;
 #define PIR_SENSE_THRESHOLD        600
 
 /** The fast tick interval in ms in the Sense mode */
-#define SENSE_FAST_TICK_INTERVAL_MS      50
+#define SENSE_FAST_TICK_INTERVAL_MS      60
 /** The slow tick interval in ms in the Sense mode */
 #define SENSE_SLOW_TICK_INTERVAL_MS      300000
 
 /** The fast tick interval in ms in the Advertising mode */
-#define ADV_FAST_TICK_INTERVAL_MS  50
+#define ADV_FAST_TICK_INTERVAL_MS  60
 /** The slow tick interval in ms in the Advertising mode */
 #define ADV_SLOW_TICK_INTERVAL_MS  1100
 
 /** The fast tick interval in ms in the Connected mode */
-#define CONN_FAST_TICK_INTERVAL_MS  50
+#define CONN_FAST_TICK_INTERVAL_MS  60
 /** The slow tick interval in ms in the Connected mode */
 #define CONN_SLOW_TICK_INTERVAL_MS  1100
 
@@ -148,18 +147,12 @@ typedef enum
 
 /* ----- Global constants in flash ----- */
 
-/* ----- Global variables in flash ----- */
+/* ----- Global variables in RAM ----- */
 /** Stores the current state of the device */
 sense_states current_state;
 
-/** The latest value from the LED light sensor */
-static uint32_t light_val;
-
 /** To keep track of the amount of time in the connected state */
 static uint32_t conn_count;
-
-/** Advertisment data which is to be sent to BLE module */
-sensepi_ble_adv_data_t app_adv_data_struct = {0, 0, 0, 0};
 
 static sensepi_config_t sensepi_ble_default_config = {
     .pir_conf.oper_time.day_or_night = 1,
@@ -178,7 +171,7 @@ static sensepi_config_t sensepi_ble_default_config = {
 };
 
 static uint32_t out_pin_array[] = {JACK_FOCUS_PIN, JACK_TRIGGER_PIN};
-#if 1
+
 static sensepi_cam_trigger_init_config_t sensepi_cam_trigger_default_config = 
 {
     .config_sensepi = &sensepi_ble_default_config,
@@ -193,7 +186,7 @@ static sensepi_cam_trigger_init_config_t sensepi_cam_trigger_default_config =
     .signal_out_pin_array = out_pin_array,
     .signal_pin_num = ARRAY_SIZE(out_pin_array),
 };
-#endif
+
 
 /* ----- Function declarations ----- */
 
@@ -203,63 +196,27 @@ void wdt_prior_reset_callback(void){
     log_printf("WDT reset\n");
 }
 
-bool get_batt_low_state(void)
+void prepare_init_ble_adv()
 {
-    return false;
-}
+    uint8_t app_adv_data[] = APP_ADV_DATA;
+    uint8_t app_scan_rsp_data[] = APP_SCAN_RSP_DATA;
 
-device_id_t get_device_id(void)
-{
-#if 0
-    device_id_t id = {
-        .prod_code = {'S', 'P'},
-        .prod_rev = {'0', '4'},
-        .factory_code = {'0', '0'},
-        .year = {'1', '8'},
-        .month = {'0', '5'},
-        .day = {'1', '0'},
-        .serial_no = {'0', '0', '0', '7' }
+    //Add in the firmware version
+    memcpy(&app_scan_rsp_data[23], fw_ver_get(), sizeof(fw_ver_t));
+
+    //Add the device ID
+    memcpy(&app_scan_rsp_data[5], dev_id_get(), sizeof(dev_id_t));
+    
+    sensepi_ble_adv_data_t app_adv_data_struct =
+    {
+        .adv_data = app_adv_data,
+        .scan_rsp_data = app_scan_rsp_data,
+        .adv_len = ARRAY_SIZE(app_adv_data),
+        .scan_rsp_len = ARRAY_SIZE(app_scan_rsp_data)
     };
-#endif
-    device_id_t id;
-    memcpy(&id, (uint8_t *)&NRF_UICR->CUSTOMER[0], sizeof(NRF_UICR->CUSTOMER[0]) * 4);
-    return id;
+
+    sensepi_ble_adv_init(&app_adv_data_struct);
 }
-
-void get_adv_data()
-{
-
-    uint8_t fw_ver_arr[3];
-    fw_ver_arr[0] = (uint8_t) (FW_VER/10000);
-    fw_ver_arr[1] = (uint8_t) ((FW_VER%10000)/100);
-    fw_ver_arr[2] = (uint8_t) (FW_VER%100);
-    memcpy(&app_scan_rsp_data[5],(uint8_t *) &NRF_UICR->CUSTOMER[0], 
-            sizeof(uint32_t) * 4);
-
-    memcpy(&app_scan_rsp_data[23], fw_ver_arr, sizeof(fw_ver_arr));
-    
-    app_adv_data_struct.adv_data = app_adv_data;
-    app_adv_data_struct.scan_rsp_data = app_scan_rsp_data;
-    app_adv_data_struct.adv_len = ARRAY_SIZE(app_adv_data);
-    app_adv_data_struct.scan_rsp_len = ARRAY_SIZE(app_scan_rsp_data);
-
-    log_printf("APP_ADV_DATA_STRUCT : \n");
-    for(uint32_t arr = 0; arr < app_adv_data_struct.adv_len; arr++)
-    {
-        log_printf("%2x ", app_adv_data_struct.adv_data[arr]);
-    }
-    log_printf("\n");
-    log_printf("ADV_LEN_STRUCT : %d\n",app_adv_data_struct.adv_len);
-    log_printf("APP_SCAN_RSP_DATA_STRUCT : \n");
-    for(uint32_t arr = 0; arr < app_adv_data_struct.scan_rsp_len; arr++)
-    {
-        log_printf("%2x ",app_adv_data_struct.scan_rsp_data[arr]);
-    }
-    log_printf("\n");    
-    log_printf("SCAN_RSP_LEN_STRUCT : %d\n",app_adv_data_struct.scan_rsp_len);
-    
-}
-
 
 /**
  * @brief Handler which will address all BLE related events
@@ -297,13 +254,6 @@ static void ble_evt_handler(ble_evt_t * evt)
  */
 static void get_sensepi_config_t(sensepi_config_t *config)
 {
-#if 0
-    log_printf("dn %x, mode %x, amp %x, thr %x, tt %x, focus %x, cam %x %x\n",
-            config->oper_time, config->mode, config->amplification,
-            config->threshold, config->inter_trig_time, config->pre_focus,
-            config->cam_comp, config->cam_model);
-#endif
-
     log_printf("Trig mode %d, PIR ope time %08x, PIR mode %08x, PIR amp %d, PIR thres %d, \
              PIR int trig time %04d, Timer oper %x, Timer mode %x, timer interval %04d \n",
             config->trig_conf, config->pir_conf.oper_time, config->pir_conf.mode,
@@ -367,8 +317,8 @@ void state_change_handler(uint32_t new_state)
             log_printf("State Change : SENSING\n");
             device_tick_cfg tick_cfg =
             {
-                LFCLK_TICKS_MS(SENSE_FAST_TICK_INTERVAL_MS),
-                LFCLK_TICKS_MS(SENSE_SLOW_TICK_INTERVAL_MS),
+                MS_TIMER_TICKS_MS(SENSE_FAST_TICK_INTERVAL_MS),
+                MS_TIMER_TICKS_MS(SENSE_SLOW_TICK_INTERVAL_MS),
                 DEVICE_TICK_SAME
             };
             device_tick_init(&tick_cfg);
@@ -382,38 +332,34 @@ void state_change_handler(uint32_t new_state)
         {
             sensepi_cam_trigger_stop();
             conn_count = 0;
-            light_val = led_sense_get();
 
             device_tick_cfg tick_cfg =
             {
-                LFCLK_TICKS_MS(ADV_FAST_TICK_INTERVAL_MS),
-                LFCLK_TICKS_MS(ADV_SLOW_TICK_INTERVAL_MS),
+                MS_TIMER_TICKS_MS(ADV_FAST_TICK_INTERVAL_MS),
+                MS_TIMER_TICKS_MS(ADV_SLOW_TICK_INTERVAL_MS),
                 DEVICE_TICK_SAME
             };
             device_tick_init(&tick_cfg);
-
 
             uint8_t is_sd_enabled;
             sd_softdevice_is_enabled(&is_sd_enabled);
             // Would be coming from the SENSING mode
             if(is_sd_enabled == 0)
             {
-                pir_sense_stop();
                 sensepi_ble_stack_init();
                 sensepi_ble_gap_params_init();
                 sensepi_ble_service_init();
-                get_adv_data();
-                sensepi_ble_adv_init(&app_adv_data_struct);
+                prepare_init_ble_adv();
 
-                device_id_t dev_id = get_device_id();
-                bool batt_low = get_batt_low_state();
-                sensepi_sysinfo sysinfo = {
-                        .id = dev_id,
-                        .is_battery_low = batt_low
-                };
+                sensepi_sysinfo sysinfo;
+                memcpy(&sysinfo.id, dev_id_get(), sizeof(dev_id_t));
+                sysinfo.battery_is_charged = aa_aaa_battery_is_charged();
+                memcpy(&sysinfo.fw_ver, fw_ver_get(), sizeof(fw_ver_t));
                 sensepi_ble_update_sysinfo(&sysinfo);
 
-                ///TODO get config from sensepi_cam_trigger
+                ///Get config from sensepi_cam_trigger and send to the BLE module
+                sensepi_config_t * config = sensepi_cam_trigger_get_sensepi_config();
+                sensepi_ble_update_config(config);
             }
             sensepi_ble_adv_start();
 
@@ -425,8 +371,8 @@ void state_change_handler(uint32_t new_state)
         {
             device_tick_cfg tick_cfg =
             {
-                LFCLK_TICKS_MS(CONN_FAST_TICK_INTERVAL_MS),
-                LFCLK_TICKS_MS(CONN_SLOW_TICK_INTERVAL_MS),
+                MS_TIMER_TICKS_MS(CONN_FAST_TICK_INTERVAL_MS),
+                MS_TIMER_TICKS_MS(CONN_SLOW_TICK_INTERVAL_MS),
                 DEVICE_TICK_SAME
             };
             device_tick_init(&tick_cfg);
