@@ -285,7 +285,7 @@ void next_interval_handler(uint32_t interval)
     case CONNECTED:
     {
         conn_count += interval;
-        if(conn_count > CONN_TIMEOUT_MS)
+        if(conn_count > MS_TIMER_TICKS_MS(CONN_TIMEOUT_MS))
         {
             sensepi_ble_disconn();
         }
