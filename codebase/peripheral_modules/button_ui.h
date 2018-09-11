@@ -79,7 +79,7 @@ typedef enum
  */
 const static uint32_t press_duration[] = {
     MS_TIMER_TICKS_MS(100),
-    MS_TIMER_TICKS_MS(5000),
+    MS_TIMER_TICKS_MS(15000),
     0xFFFFFFFF  ///This should never be reached
 };
 
