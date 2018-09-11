@@ -633,10 +633,10 @@ void module_manager_start_check(void)
         {
             light_flag = light_sense_light_check(config.config_sensepi->pir_conf.oper_time);
             pir_on_flag = light_flag;
-            pir_set_state(light_flag);
 
             light_flag = light_sense_light_check(config.config_sensepi->timer_conf.oper_time);
             timer_set_state(light_flag);
+            pir_set_state(pir_on_flag);
 
             break;
         }
