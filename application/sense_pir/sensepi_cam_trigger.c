@@ -63,7 +63,7 @@
 /**Delay required when LED is to be used as INPUT*/
 #define LED_WAIT_TIME_MS 301
 /**Minimum time required to enable PIR sensing*/
-#define PIR_SENSE_INTERVAL_MS 50
+#define PIR_SENSE_INTERVAL_MS 40
 /** Multiplying factor to convert PIR threshold value received from app to one 
  *  appropriate for module  */
 #define PIR_THRESHOLD_MULTIPLY_FACTOR 8
