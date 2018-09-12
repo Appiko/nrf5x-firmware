@@ -353,7 +353,7 @@ void state_change_handler(uint32_t new_state)
 
                 sensepi_sysinfo sysinfo;
                 memcpy(&sysinfo.id, dev_id_get(), sizeof(dev_id_t));
-                sysinfo.battery_is_charged = aa_aaa_battery_is_charged();
+                sysinfo.battery_status = aa_aaa_battery_status();
                 memcpy(&sysinfo.fw_ver, fw_ver_get(), sizeof(fw_ver_t));
                 sensepi_ble_update_sysinfo(&sysinfo);
 

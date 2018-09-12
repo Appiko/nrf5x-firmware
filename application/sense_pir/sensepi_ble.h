@@ -54,7 +54,7 @@
 typedef struct
 {
     dev_id_t id;
-    bool battery_is_charged;
+    uint8_t battery_status;
     fw_ver_t fw_ver;
 }__attribute__ ((packed)) sensepi_sysinfo ;
 /**
