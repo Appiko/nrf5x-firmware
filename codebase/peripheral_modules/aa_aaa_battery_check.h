@@ -52,19 +52,13 @@
 extern "C" {
 #endif
 
-///Threshold that defines the 20% capacity of rechargable AA/AAA batteries.
-/// This is the 12 bit ADC value of two 1.2V batteries in series with 1/6 gain and
-/// 0.6V internal reference. For a non-rechargable battery 1.2V indicates ite empty
-#define AA_AAA_BATTERY_LOW_THRESHOLD    2730
-
 /**
- * @brief Function to get battery status. It'll check if battery % is greater than 20%
- * @return false if battery is below 20%
+ * @brief Function to get battery status. It'll convert battery ADC value to 8bit
+ * @return 8bit ADC value corresponding to battery voltage
  */
-inline bool aa_aaa_battery_is_charged()
+inline uint8_t aa_aaa_battery_status()
 {
-    return (simple_adc_get_value(SIMPLE_ADC_GAIN1_6,ANALOG_VDD)
-            >= AA_AAA_BATTERY_LOW_THRESHOLD) ? true : false;
+    return ((simple_adc_get_value(SIMPLE_ADC_GAIN1_6,ANALOG_VDD) >> 4) && 0xFF);
 }
 
 
