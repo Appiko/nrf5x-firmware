@@ -58,7 +58,7 @@ extern "C" {
  */
 inline uint8_t aa_aaa_battery_status()
 {
-    return ((simple_adc_get_value(SIMPLE_ADC_GAIN1_6,ANALOG_VDD) >> 4) && 0xFF);
+    return ((simple_adc_get_value(SIMPLE_ADC_GAIN1_6,ANALOG_VDD) >> 4) & 0xFF);
 }
 
 
