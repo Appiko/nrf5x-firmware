@@ -105,9 +105,7 @@
 /** Ticks duration required for single shot operation */
 #define SINGLE_SHOT_DURATION MS_TIMER_TICKS_MS(250)
 /** Number of transitions required for bulb operation */
-#define BULB_SHOT_TRANSITIONS 3
-/** Ticks duration of trigger pulse at the end of operation */
-#define BULB_TRIGGER_PULSE MS_TIMER_TICKS_MS(250)
+#define BULB_SHOT_TRANSITIONS 2
 /** Number of transitions required for focus operation */
 #define FOCUS_TRANSITIONS 2
 /** Number of transitions required for Video operation triggered by Timer */
@@ -766,10 +764,9 @@ void out_gen_config_bulb_expo(cam_trig_state_t data_process_mode, uint32_t bulb_
         .done_handler = out_gen_done_handler,
         .out_gen_state = data_process_mode,
         .transitions_durations = 
-            {bulb_time_ticks - BULB_TRIGGER_PULSE, BULB_TRIGGER_PULSE
-              , time_remain},
-        .next_out = { {1, 0, 1, 1},
-                      {0, 0, 1, 1} },
+            {bulb_time_ticks, time_remain},
+        .next_out = { {0, 1, 1},
+                      {0, 1, 1} },
     };
 
     debug_print_bool_array(local_out_gen_config.next_out, "bulb mode");
