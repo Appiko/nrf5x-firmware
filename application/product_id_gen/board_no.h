@@ -35,9 +35,9 @@
 #ifndef BOARD_NO_H
 #define BOARD_NO_H
 
-#define BOARD_NO_1 0x34305053
-#define BOARD_NO_2 0x38313030
-#define BOARD_NO_3 0x30393137
-#define BOARD_NO_4 0x30303030
+#define BOARD_NO_1 0x53503034
+#define BOARD_NO_2 0x30313138
+#define BOARD_NO_3 0x30353331
+#define BOARD_NO_4 0x30303138
 
 #endif  //BOARD_NO_H
