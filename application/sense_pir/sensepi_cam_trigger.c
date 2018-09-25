@@ -986,8 +986,8 @@ void sensepi_cam_trigger_start()
 
     mcp4012_set_value(config.config_sensepi->pir_conf.amplification);
 
-    out_gen_config_updater_pir();
     out_gen_config_updater_timer();
+    out_gen_config_updater_pir();
 
     light_sense_set_state(true);
     module_manager_start_check();
