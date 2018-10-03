@@ -408,6 +408,20 @@ void button_handler(button_ui_steps step, button_ui_action act)
             }
             break;
         case BUTTON_UI_STEP_LONG:
+            {
+                NRF_POWER->GPREGRET = 0xB1;
+                log_printf("Trying to do system reset..!!");
+                uint8_t is_sd_enabled;
+                sd_softdevice_is_enabled(&is_sd_enabled);
+                if(is_sd_enabled == 0)
+                {
+                    sd_nvic_SystemReset();
+                }
+                else
+                {
+                    NVIC_SystemReset ();
+                }
+            }
             break;
         }
     }
@@ -423,20 +437,6 @@ void button_handler(button_ui_steps step, button_ui_action act)
         case BUTTON_UI_STEP_PRESS:
             break;
         case BUTTON_UI_STEP_LONG:
-        {
-            NRF_POWER->GPREGRET = 0xB1;
-            log_printf("Trying to do system reset..!!");
-            uint8_t is_sd_enabled;
-            sd_softdevice_is_enabled(&is_sd_enabled);
-            if(is_sd_enabled == 0)
-            {
-                sd_nvic_SystemReset();
-            }
-            else
-            {
-                NVIC_SystemReset ();
-            }
-        }
             break;
         }
     }
