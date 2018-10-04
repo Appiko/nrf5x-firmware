@@ -58,6 +58,7 @@ C_SRC += sensepi_ble.c
 C_SRC += hal_pwm.c
 C_SRC += led_ui.c
 C_SRC += led_seq.c
+C_SRC += sensepi_store_config.c
 C_SRC += sensepi_cam_trigger.c
 C_SRC += out_pattern_gen.c
 C_SRC += mcp4012_x.c
