@@ -348,93 +348,6 @@ void debug_print_bool_array(bool (* next)[OUT_GEN_MAX_TRANSITIONS], char * str)
 #endif
 }
 
-uint32_t mem_get_config_page(void)
-{
-    uint32_t *p_mem_loc;
-    p_mem_loc = (uint32_t *) LAST_APP_PAGE_ADDR;
-    uint32_t loc_no = 0;
-    while(p_mem_loc <= (uint32_t *)LAST_CONFIG_ADDR)
-    {
-        log_printf("Location number : %d\n", ++loc_no);
-        log_printf("Addr being compared : %x\n", p_mem_loc);
-        if(*p_mem_loc == COMP_RESET_VALUE)
-        {
-            //write sensepi_config_t
-            log_printf("Addr of blank location : %x\n", p_mem_loc);
-            return (uint32_t)p_mem_loc;
-        }
-        p_mem_loc += 5;
-        hal_nop_delay_us(700);
-    }
-    return COMP_RESET_VALUE;
-}
-
-
-void aapend_config_page(sensepi_config_t* new_config)
-{
-    uint32_t * p_mem_loc = (uint32_t *) mem_get_config_page();
-    uint32_t * p_config_cast = (uint32_t *) new_config;
-    if(p_mem_loc == (uint32_t *)COMP_RESET_VALUE)
-    {
-        log_printf("Reset Module will come here..!!\n");
-    }
-    else
-    {
-        log_printf("Blank Add : %x\n", p_mem_loc);
-        NRF_NVMC->CONFIG = NVMC_CONFIG_WEN_Wen;
-        for(uint32_t i =0 ; i < 5; i++)
-        {
-            *p_mem_loc++ = *p_config_cast++;
-        }
-    	NRF_NVMC->CONFIG = NVMC_CONFIG_WEN_Ren;
-        while(NRF_NVMC->READY != NVMC_READY_READY_Ready);
-    }
-    
-}
-
-sensepi_config_t* get_last_config(void)
-{
-    log_printf("%s\n", __func__);
-//    uint32_t * temp_config;
-    uint32_t *p_mem_loc = (uint32_t*)mem_get_config_page();
-    if(p_mem_loc != (uint32_t*)LAST_APP_PAGE_ADDR && 
-       p_mem_loc != (uint32_t*)LAST_CONFIG_ADDR)
-    {
-        p_mem_loc -= 5;
-    }
-    for(uint32_t i=0; i< 5; i++)
-    {
-//        *temp_config = *p_mem_loc;
-        log_printf("%08x  ", *p_mem_loc++);
-    }
-    log_printf("\n");
-    p_mem_loc -= 5;
-
-
-//    memcpy(&temp_config,p_mem_loc,sizeof(sensepi_config_t));
-    return (sensepi_config_t*) p_mem_loc;
-}
-
-void clear_config_page()
-{
-    NRF_NVMC->CONFIG = NVMC_CONFIG_WEN_Een;
-    while(NRF_NVMC->READY != NVMC_READY_READY_Ready);
-
-    NRF_NVMC->ERASEPAGE = (uint32_t)LAST_APP_PAGE_ADDR;
-    NRF_NVMC->CONFIG = NVMC_CONFIG_WEN_Ren;
-    while(NRF_NVMC->READY != NVMC_READY_READY_Ready);
-
-}
-
-void MemoryManagement_Handler(void)
-{
-    log_printf("MemoryManagement_Handler\n");
-}
-
-void HardFault_Handler(void)
-{
-    log_printf("%s\n", __func__);
-}
 void pir_set_state(bool state)
 {
     log_printf("%s %x\n",__func__, state);
@@ -1036,17 +949,6 @@ void sensepi_cam_trigger_update(sensepi_config_t * update_config)
 void sensepi_cam_trigger_start()
 {
     log_printf("%s\n", __func__);
-//    aapend_config_page(config.config_sensepi);
-//    sensepi_config_t * temp_config = get_last_config ();
-//    log_printf("Trig mode %d, PIR ope time %08x, PIR mode %08x, PIR amp %d, PIR thres %d, \
-//         PIR int trig time %04d, Timer oper %x, Timer mode %x, timer interval %04d \n",
-//        temp_config->trig_conf, temp_config->pir_conf.oper_time, temp_config->pir_conf.mode,
-//        temp_config->pir_conf.amplification, temp_config->pir_conf.threshold,
-//        temp_config->pir_conf.intr_trig_timer,
-//        temp_config->timer_conf.oper_time, temp_config->timer_conf.mode,
-//               temp_config->timer_conf.timer_interval);
-//    clear_config_page();
-//    mem_get_config_page();
 
     sense_count = 0;
     sense_feedback = true;
