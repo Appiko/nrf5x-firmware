@@ -57,6 +57,7 @@
 #include "string.h"
 
 #include "boards.h"
+#include "sensepi_store_config.h"
 
 #define DEBUG_PRINT 0
 
@@ -950,6 +951,7 @@ void sensepi_cam_trigger_start()
 {
     log_printf("%s\n", __func__);
 
+    sensepi_store_config_write (config.config_sensepi);
     sense_count = 0;
     sense_feedback = true;
     oper_time_t pir_oper_time = config.config_sensepi->pir_conf.oper_time;

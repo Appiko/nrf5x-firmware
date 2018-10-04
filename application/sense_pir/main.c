@@ -75,6 +75,7 @@
 #include "sensepi_ble.h"
 #include "sensepi_cam_trigger.h"
 #include "dev_id_fw_ver.h"
+#include "sensepi_store_config.h"
 
 /* ----- Defines ----- */
 
@@ -324,7 +325,7 @@ void state_change_handler(uint32_t new_state)
             device_tick_init(&tick_cfg);
 
             led_ui_type_stop_all(LED_UI_LOOP_SEQ);
-            
+
             sensepi_cam_trigger_start();
         }
         break;
@@ -512,6 +513,19 @@ void boot_pwr_config(void)
 }
 
 /**
+ * @brief function to load previous sensepi configuration present in flash memory
+ */
+void load_last_config()
+{
+    if(sensepi_store_config_get_next_location() ==
+       SENSEPI_STORE_CONFIG_LAST_APP_PAGE_ADDR)
+    {
+        sensepi_store_config_write (&sensepi_ble_default_config);
+    }
+    sensepi_cam_trigger_update (sensepi_store_config_get_last_config ());    
+}
+
+/**
  * Different calls to sleep depending on the status of Softdevice
  */
 void slumber(void)
@@ -563,6 +577,7 @@ int main(void)
     current_state = ADVERTISING; //So that a state change happens
     irq_msg_push(MSG_STATE_CHANGE, (void *)SENSING);
     sensepi_ble_init(ble_evt_handler, get_sensepi_config_t);
+    load_last_config ();
 
     while (true)
     {
