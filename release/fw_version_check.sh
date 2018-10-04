@@ -94,6 +94,11 @@ nrfutil_settings_gen="$(nrfutil settings generate --family NRF52810 --applicatio
 
 nrfutil_pkg_gen="$(nrfutil pkg generate --application build/$pwd.hex --application-version $fw_ver_int --application-version-string "$fw_ver" --hw-version $hw_ver_int --sd-req "$sd_id" --key-file ../../../dfu_nrf_sdk15/examples/dfu/key_file.pem ../../release/${pwd}/${pwd}_${fw_ver_int}_010.zip)"
 
+if [ "$1" = "reset" ]
+then
+    final_out="$(srec_cat  build/${pwd}_${sd_used}.hex --Intel ../../release/reset_config.hex --Intel -O build/${pwd}_${sd_used}.hex --Intel)"
+fi
+
 out_hex="$(srec_cat build/${pwd}_${sd_used}.hex --Intel ../../../dfu_nrf_sdk15/examples/dfu/secure_bootloader/pca10040e_ble/armgcc/_build/$bl_hex_name.hex --Intel ../../release/${pwd}/${pwd}_bl_settings.hex --Intel -O ../../release/${pwd}/${pwd}_${fw_ver_int}_output.hex --Intel)"
 
 (rm ../../release/${pwd}/${pwd}_bl_settings.hex)
