@@ -48,7 +48,7 @@
 
 #include "sensepi_ble.h"
 
-/** Address of first memory location of last page available for application */
+/**Address of first memory location of last page available for application*/
 #define SENSEPI_STORE_CONFIG_LAST_APP_PAGE_ADDR 0x27000
 
 

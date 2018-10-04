@@ -43,18 +43,20 @@
 
 #include "log.h"
 
-/** Starting of memory location to store the last configuration  */
+/**Starting of memory location to store the last configuration*/
 #define LAST_CONFIG_ADDR 0x27FE8  ///After storing configuration on this location 
-///next time before writing all the configurations will be ersed.
+///next time before writing, all the configurations will be erased.
 /** Reset value or any flash register */
 #define MEM_RESET_VALUE 0xFFFFFFFF
-/** Size of config in unit of size of pointer */
+/**Size of config in unit of size of pointer*/
 #define CONFIG_SIZE_TO_POINTER 5 
+
+/**Pointer to do all flash memory related operations*/
+static uint32_t * p_mem_loc;
 
 uint32_t sensepi_store_config_get_next_location (void)
 {
     log_printf("%s\n",__func__);
-    uint32_t *p_mem_loc;
     p_mem_loc = (uint32_t *) SENSEPI_STORE_CONFIG_LAST_APP_PAGE_ADDR;
     while(p_mem_loc <= (uint32_t *)LAST_CONFIG_ADDR)
     {
@@ -72,7 +74,7 @@ uint32_t sensepi_store_config_get_next_location (void)
 void sensepi_store_config_write (sensepi_config_t* latest_config)
 {
     log_printf("%s\n",__func__);
-    uint32_t * p_mem_loc = (uint32_t *) sensepi_store_config_get_next_location();
+    p_mem_loc = (uint32_t *) sensepi_store_config_get_next_location();
     uint32_t * p_config_cast = (uint32_t *) latest_config;
     if(p_mem_loc == (uint32_t *)MEM_RESET_VALUE)
     {
@@ -93,7 +95,7 @@ void sensepi_store_config_write (sensepi_config_t* latest_config)
 sensepi_config_t * sensepi_store_config_get_last_config ()
 {
     log_printf("%s\n",__func__);
-    uint32_t *p_mem_loc = (uint32_t*)sensepi_store_config_get_next_location();
+    p_mem_loc = (uint32_t*)sensepi_store_config_get_next_location();
     if(p_mem_loc != (uint32_t*)SENSEPI_STORE_CONFIG_LAST_APP_PAGE_ADDR)
     {
         p_mem_loc -= CONFIG_SIZE_TO_POINTER;
