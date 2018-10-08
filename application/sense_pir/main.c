@@ -577,6 +577,7 @@ int main(void)
     current_state = ADVERTISING; //So that a state change happens
     irq_msg_push(MSG_STATE_CHANGE, (void *)SENSING);
     sensepi_ble_init(ble_evt_handler, get_sensepi_config_t);
+    sensepi_store_config_check_fw_ver ();
     load_last_config ();
 
     while (true)
