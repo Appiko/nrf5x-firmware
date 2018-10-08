@@ -49,7 +49,7 @@
 #include "sensepi_ble.h"
 
 /**Address of first memory location of last page available for application*/
-#define SENSEPI_STORE_CONFIG_LAST_APP_PAGE_ADDR 0x27000
+#define SENSEPI_STORE_CONFIG_LAST_APP_PAGE_ADDR 0x23000
 
 
 /**
@@ -85,6 +85,17 @@ sensepi_config_t * sensepi_store_config_get_last_config (void);
  */
 void sensepi_store_config_clear_all (void);
 
+/**
+ * @breif Function to check the major number of firmware if latest major number \
+ * firmware version is greater than respective previous number then it'll \
+ * initiate reset for stored configs.
+ */
+void sensepi_store_config_check_fw_ver ();
+
+/**
+ * @breif Function to update the firmware version stored in this page.
+ */
+void sensepi_store_config_update_fw_ver ();
 #endif /* SENSEPI_STORE_CONFIG_H */
 /**
  * @}

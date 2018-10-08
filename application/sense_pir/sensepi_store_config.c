@@ -44,8 +44,10 @@
 #include "log.h"
 
 /**Starting of memory location to store the last configuration*/
-#define LAST_CONFIG_ADDR 0x27FE8  ///After storing configuration on this location 
+#define LAST_CONFIG_ADDR (SENSEPI_STORE_CONFIG_LAST_APP_PAGE_ADDR+0xFF0)  ///After storing configuration on this location 
 ///next time before writing, all the configurations will be erased.
+/**Address where local firmware version number is saved*/
+#define CONFIG_FW_VER_LOC LAST_CONFIG_ADDR+0x6
 /** Reset value or any flash register */
 #define MEM_RESET_VALUE 0xFFFFFFFF
 /**Size of config in unit of size of pointer*/
@@ -109,6 +111,35 @@ void sensepi_store_config_clear_all (void)
     NRF_NVMC->CONFIG = NVMC_CONFIG_WEN_Een;
     while(NRF_NVMC->READY != NVMC_READY_READY_Ready);
     NRF_NVMC->ERASEPAGE = (uint32_t)SENSEPI_STORE_CONFIG_LAST_APP_PAGE_ADDR;
+    NRF_NVMC->CONFIG = NVMC_CONFIG_WEN_Ren;
+    while(NRF_NVMC->READY != NVMC_READY_READY_Ready);
+}
+
+void sensepi_store_config_check_fw_ver ()
+{
+    log_printf("%s\n",__func__);
+    p_mem_loc = (uint32_t *) CONFIG_FW_VER_LOC;
+    uint32_t local_major_num = *p_mem_loc/10000;
+    log_printf("Current FW ver : %d\n" local_major_num);
+    if(local_major_num == MEM_RESET_VALUE)
+    {
+        sensepi_store_config_update_fw_ver ();
+    }
+    else if(local_major_num != (FW_VER/10000))
+    {
+        sensepi_store_config_clear_all ();
+        sensepi_store_config_update_fw_ver ();
+    }
+    log_printf("Updated FW ver : %d\n", *p_mem_loc);
+}
+
+void sensepi_store_config_update_fw_ver ()
+{
+    log_printf("%s\n",__func__);
+    p_mem_loc = (uint32_t *) CONFIG_FW_VER_LOC;
+    NRF_NVMC->CONFIG = NVMC_CONFIG_WEN_Wen;
+    while(NRF_NVMC->READY != NVMC_READY_READY_Ready);
+    *p_mem_loc = (uint32_t)FW_VER;
     NRF_NVMC->CONFIG = NVMC_CONFIG_WEN_Ren;
     while(NRF_NVMC->READY != NVMC_READY_READY_Ready);
 }
