@@ -120,7 +120,6 @@ void sensepi_store_config_check_fw_ver ()
     log_printf("%s\n",__func__);
     p_mem_loc = (uint32_t *) CONFIG_FW_VER_LOC;
     uint32_t local_major_num = *p_mem_loc/10000;
-    log_printf("Current FW ver : %d\n" local_major_num);
     if(local_major_num == MEM_RESET_VALUE)
     {
         sensepi_store_config_update_fw_ver ();
@@ -130,7 +129,6 @@ void sensepi_store_config_check_fw_ver ()
         sensepi_store_config_clear_all ();
         sensepi_store_config_update_fw_ver ();
     }
-    log_printf("Updated FW ver : %d\n", *p_mem_loc);
 }
 
 void sensepi_store_config_update_fw_ver ()
