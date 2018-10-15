@@ -74,21 +74,9 @@ void hal_nvmc_write_data (void * p_destination, void * p_source, uint32_t size_o
     uint32_t * loc_to_write = (uint32_t *)start_address;
     uint32_t head_offset = ((uint32_t)p_destination - start_address)%4;
     word_to_write = *((uint32_t *)(data_to_write-head_offset));
-    switch(head_offset)
+    for(uint32_t cnt = 0; cnt < head_offset; cnt++)
     {
-        case 0 :
-            break;
-        case 1 : 
-            word_to_write = word_to_write | 0x000000FF;
-            break;
-        case 2:
-            word_to_write |= 0x0000FFFF;
-            break;
-        case 3:
-            word_to_write |= 0x00FFFFFF;
-            break;
-        default:
-            log_printf("Something went terribly wrong..!!\n");
+        word_to_write = (word_to_write << 8) | 0x000000FF;
     }
     *loc_to_write = word_to_write;
     loc_to_write++;
@@ -102,23 +90,10 @@ void hal_nvmc_write_data (void * p_destination, void * p_source, uint32_t size_o
     
     uint32_t tail_offset = ((no_of_words*4) - size_of_data - head_offset)%4;
     word_to_write = *((uint32_t *)(data_to_write+(no_of_words-1)));
-    switch(tail_offset)
+    for(uint32_t cnt = 0; cnt < tail_offset; cnt++)
     {
-        case 0 :
-            break;
-        case 1 :
-            word_to_write |= 0xFF000000;
-            break;
-        case 2 :
-            word_to_write |= 0xFFFF0000;
-            break;
-        case 3 :
-            word_to_write |= 0xFFFFFF00;
-            break;
-        default:
-            log_printf("Something went terribly wrong..!!\n");
-            break;
-    }           
+        word_to_write = (word_to_write >> 8) | 0xFF000000;
+    }
     *loc_to_write = word_to_write;
 
     NRF_NVMC->CONFIG = NVMC_CONFIG_WEN_Ren;
