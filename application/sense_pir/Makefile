@@ -48,6 +48,7 @@ C_SRC += hal_uart.c tinyprintf.c
 else
 endif
 C_SRC += hal_wdt.c
+C_SRC += hal_nvmc.c
 C_SRC += nrf_util.c irq_msg_util.c
 C_SRC += pir_sense.c device_tick.c
 C_SRC += evt_sd_handler.c
