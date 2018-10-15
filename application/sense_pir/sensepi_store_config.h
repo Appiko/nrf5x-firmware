@@ -37,8 +37,8 @@
  * @{
  * 
  * @defgroup store_sensepi_config The support code to store sensepi_configs in flash
- * @brief Functions to store and manage sensepi_configs in non volatile memory. \
- * This will enable the firmware to reload the previously written config in case \
+ * @brief Functions to store and manage sensepi_configs in non volatile memory. 
+ * This will enable the firmware to reload the previously written config in case 
  * of power reset or system reset.
  * @{
  */
@@ -53,35 +53,41 @@
 
 
 /**
- * @brief Function to get the next location where firmware will store latest \
+ * @brief Function to get the next location where firmware will store latest 
  * configuration.
- * @return Free memory location address in uint32_t format.
- * @retval 0xFFFFFFFF memory is full and firmware will now clear all the \
+ * 
+ * @return Free memory location address in uint32_t format. 
+ * @retval 0xFFFFFFFF memory is full and firmware will now clear all the 
  * previously saved configurations. 
  */
 uint32_t sensepi_store_config_get_next_location (void);
 
 /**
- * @brief Function to write the sensepi_config_t at address location received \
- * from @ref sensepi_store_config_get_next_location() .
- * @note all the previously stored configurations will be erased if return value \
+ * @brief Function to write the sensepi_config_t at address location received 
+ * from @ref sensepi_store_config_get_next_location().
+ * 
+ * @note all the previously stored configurations will be erased if return value 
  * of @ref sensepi_store_config_get_next_location() is 0xFFFFFFFF 
  * @param latest_config pointer to sensepi_config_t which is to be stored in memory.
  */
 void sensepi_store_config_write (sensepi_config_t * latest_config);
 
 /**
- * @breif Function to get the last sensepi_config_t stored in flash.
+ * @breif Function to get the last sensepi_config_t stored in flash. 
+ * 
  * @Warning This function cannot differentiate between single stored config and \
  * empty flash page. So make sure that there is at least one configuration \
  * stored in memory
+ * 
  * @return pointer to last sensepi_config_t stored in flash.
  */
 sensepi_config_t * sensepi_store_config_get_last_config (void);
 
 /**
  * @brief Function to erase all the previously return configurations.
+ * 
  * @note This function will get called automatically once memory is full.
+ * 
  */
 void sensepi_store_config_clear_all (void);
 
@@ -89,11 +95,13 @@ void sensepi_store_config_clear_all (void);
  * @breif Function to check the major number of firmware if latest major number \
  * firmware version is greater than respective previous number then it'll \
  * initiate reset for stored configs.
+ * 
  */
 void sensepi_store_config_check_fw_ver ();
 
 /**
  * @breif Function to update the firmware version stored in this page.
+ * 
  */
 void sensepi_store_config_update_fw_ver ();
 #endif /* SENSEPI_STORE_CONFIG_H */

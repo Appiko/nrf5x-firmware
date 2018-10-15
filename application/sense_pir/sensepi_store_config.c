@@ -36,6 +36,7 @@
 #include "sensepi_store_config.h"
 
 #include "hal_nop_delay.h"
+#include "hal_nvmc.h"
 
 #include "nrf_util.h"
 #include "nrf_assert.h"
@@ -47,11 +48,13 @@
 #define LAST_CONFIG_ADDR (SENSEPI_STORE_CONFIG_LAST_APP_PAGE_ADDR+0xFF0)  ///After storing configuration on this location 
 ///next time before writing, all the configurations will be erased.
 /**Address where local firmware version number is saved*/
-#define CONFIG_FW_VER_LOC LAST_CONFIG_ADDR+0x6
+#define CONFIG_FW_VER_LOC LAST_CONFIG_ADDR+0x4
 /** Reset value or any flash register */
 #define MEM_RESET_VALUE 0xFFFFFFFF
 /**Size of config in unit of size of pointer*/
 #define CONFIG_SIZE_TO_POINTER 5 
+/** Memory full flag*/
+#define MEM_FULL 0xFFFFFFFF
 
 /**Pointer to do all flash memory related operations*/
 static uint32_t * p_mem_loc;
@@ -62,35 +65,22 @@ uint32_t sensepi_store_config_get_next_location (void)
     p_mem_loc = (uint32_t *) SENSEPI_STORE_CONFIG_LAST_APP_PAGE_ADDR;
     while(p_mem_loc <= (uint32_t *)LAST_CONFIG_ADDR)
     {
-        if(*p_mem_loc == MEM_RESET_VALUE)
+        if(*(p_mem_loc) == MEM_FULL)
         {
             return (uint32_t)p_mem_loc;
         }
         p_mem_loc += CONFIG_SIZE_TO_POINTER;
-        hal_nop_delay_us(700);
+        hal_nop_delay_us(700);  //check without delay
     }
-    return MEM_RESET_VALUE;
+    return MEM_FULL;
     
 }
 
 void sensepi_store_config_write (sensepi_config_t* latest_config)
 {
     log_printf("%s\n",__func__);
-    p_mem_loc = (uint32_t *) sensepi_store_config_get_next_location();
-    uint32_t * p_config_cast = (uint32_t *) latest_config;
-    if(p_mem_loc == (uint32_t *)MEM_RESET_VALUE)
-    {
-        sensepi_store_config_clear_all ();
-        p_mem_loc = (uint32_t *) sensepi_store_config_get_next_location();
-    }
-    
-    NRF_NVMC->CONFIG = NVMC_CONFIG_WEN_Wen;
-    for(uint32_t i =0 ; i < CONFIG_SIZE_TO_POINTER; i++)
-    {
-        *p_mem_loc++ = *p_config_cast++;
-    }
-    NRF_NVMC->CONFIG = NVMC_CONFIG_WEN_Ren;
-    while(NRF_NVMC->READY != NVMC_READY_READY_Ready);
+    p_mem_loc = (void *) sensepi_store_config_get_next_location();
+    hal_nvmc_write_data(p_mem_loc, latest_config, sizeof(sensepi_config_t));
 
 }
 
@@ -105,14 +95,10 @@ sensepi_config_t * sensepi_store_config_get_last_config ()
     return (sensepi_config_t*) p_mem_loc;
 }
 
-void sensepi_store_config_clear_all (void)
+void sensepi_store_config_clear_all (void) //make it as hal_nvmc_page_erase
 {
     log_printf("%s\n",__func__);
-    NRF_NVMC->CONFIG = NVMC_CONFIG_WEN_Een;
-    while(NRF_NVMC->READY != NVMC_READY_READY_Ready);
-    NRF_NVMC->ERASEPAGE = (uint32_t)SENSEPI_STORE_CONFIG_LAST_APP_PAGE_ADDR;
-    NRF_NVMC->CONFIG = NVMC_CONFIG_WEN_Ren;
-    while(NRF_NVMC->READY != NVMC_READY_READY_Ready);
+    hal_nvcm_erase_page (SENSEPI_STORE_CONFIG_LAST_APP_PAGE_ADDR);
 }
 
 void sensepi_store_config_check_fw_ver ()
@@ -120,7 +106,7 @@ void sensepi_store_config_check_fw_ver ()
     log_printf("%s\n",__func__);
     p_mem_loc = (uint32_t *) CONFIG_FW_VER_LOC;
     uint32_t local_major_num = *p_mem_loc/10000;
-    if(local_major_num == MEM_RESET_VALUE)
+    if(*p_mem_loc == MEM_RESET_VALUE)
     {
         sensepi_store_config_update_fw_ver ();
     }
@@ -131,7 +117,7 @@ void sensepi_store_config_check_fw_ver ()
     }
 }
 
-void sensepi_store_config_update_fw_ver ()
+void sensepi_store_config_update_fw_ver ()  // make it as hal_nvmc_write
 {
     log_printf("%s\n",__func__);
     p_mem_loc = (uint32_t *) CONFIG_FW_VER_LOC;
