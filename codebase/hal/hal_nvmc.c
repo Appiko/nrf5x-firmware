@@ -68,18 +68,11 @@ void hal_nvmc_write_data (void * p_destination, void * p_source, uint32_t size_o
     log_printf("Start Address : %x, End Address : %x, Length : %d, No of words : %d\n",
                start_address, end_address, length_in_words, no_of_words);
 
-//Right now I don't know much about what other algorithms or functions that can be used
-// so here to write the data it'll just write it into 3 parts. as follow 
-// 1. First word : where prefix masking might be required.
-// 2. Middle words : where no padding is required as such
-// 3. Last word : where suffix masking might be required
-
     NRF_NVMC->CONFIG = NVMC_CONFIG_WEN_Wen;
     while(NRF_NVMC->READY != NVMC_READY_READY_Ready);
     uint32_t word_to_write;
     uint32_t * loc_to_write = (uint32_t *)start_address;
     uint32_t head_offset = ((uint32_t)p_destination - start_address)%4;
-    log_printf("Of by %d bytes\n", head_offset);
     word_to_write = *((uint32_t *)(data_to_write-head_offset));
     switch(head_offset)
     {
@@ -99,13 +92,11 @@ void hal_nvmc_write_data (void * p_destination, void * p_source, uint32_t size_o
     }
     *loc_to_write = word_to_write;
     loc_to_write++;
-    while(NRF_NVMC->READY != NVMC_READY_READY_Ready);
 
     for(int32_t i = 1; i< (no_of_words - 1); i++)
     {
         word_to_write = (*(uint32_t*)(data_to_write + i));
         *loc_to_write = word_to_write;
-        while(NRF_NVMC->READY != NVMC_READY_READY_Ready);
         loc_to_write++;
     }
     
@@ -128,11 +119,8 @@ void hal_nvmc_write_data (void * p_destination, void * p_source, uint32_t size_o
             log_printf("Something went terribly wrong..!!\n");
             break;
     }           
-    while(NRF_NVMC->READY != NVMC_READY_READY_Ready);
     *loc_to_write = word_to_write;
-    while(NRF_NVMC->READY != NVMC_READY_READY_Ready);
 
     NRF_NVMC->CONFIG = NVMC_CONFIG_WEN_Ren;
     while(NRF_NVMC->READY != NVMC_READY_READY_Ready);
 }
-
