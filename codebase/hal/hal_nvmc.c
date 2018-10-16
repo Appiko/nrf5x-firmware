@@ -64,16 +64,17 @@ void hal_nvmc_write_data (void * p_destination, void * p_source, uint32_t size_o
     uint32_t length_in_words = CEIL_DIV(size_of_data, 4);
     uint32_t end_address = (CEIL_DIV(((uint32_t)p_destination + length_in_words*4), 4))*4; //
     uint32_t no_of_words = (end_address - start_address)/4;
-    uint32_t * data_to_write = (uint32_t *)p_source;
     log_printf("Start Address : %x, End Address : %x, Length : %d, No of words : %d\n",
                start_address, end_address, length_in_words, no_of_words);
-
+    //To write the first word. Before writing check if data is aligned with Word lengths
+    //And if not add proper masking.
     NRF_NVMC->CONFIG = NVMC_CONFIG_WEN_Wen;
     while(NRF_NVMC->READY != NVMC_READY_READY_Ready);
     uint32_t word_to_write;
     uint32_t * loc_to_write = (uint32_t *)start_address;
     uint32_t head_offset = ((uint32_t)p_destination - start_address)%4;
-    word_to_write = *((uint32_t *)(data_to_write-head_offset));
+    uint32_t * data_to_write = (uint32_t *)((uint32_t)p_source);
+    word_to_write = *((uint32_t *)(data_to_write));
     for(uint32_t cnt = 0; cnt < head_offset; cnt++)
     {
         word_to_write = (word_to_write << 8) | 0x000000FF;
@@ -81,16 +82,28 @@ void hal_nvmc_write_data (void * p_destination, void * p_source, uint32_t size_o
     *loc_to_write = word_to_write;
     loc_to_write++;
 
+    data_to_write = (uint32_t *)((uint32_t)data_to_write - head_offset);
+     //words in middlle can be written directly.
     for(int32_t i = 1; i< (no_of_words - 1); i++)
     {
-        word_to_write = (*(uint32_t*)(data_to_write + i));
+        data_to_write++;
+        word_to_write = (*(uint32_t*)(data_to_write));
         *loc_to_write = word_to_write;
         loc_to_write++;
     }
-    
+    //Before writing last word add proper masking at the end if data is not 
+    //ending at word length
+    //for masking we will first remove unnecessary data. and then it'll be sent back 
+    //to it's original desired location in word with mask
     uint32_t tail_offset = ((no_of_words*4) - size_of_data - head_offset)%4;
-    word_to_write = *((uint32_t *)(data_to_write+(no_of_words-1)));
+    data_to_write++;
+    word_to_write = *(data_to_write);
+    //Note: Please suggest any other logic if you come up with other than 2 loop logic
     for(uint32_t cnt = 0; cnt < tail_offset; cnt++)
+    {
+        word_to_write = (word_to_write << 8);
+    }
+    for(uint32_t cnt=0; cnt <tail_offset; cnt++)
     {
         word_to_write = (word_to_write >> 8) | 0xFF000000;
     }

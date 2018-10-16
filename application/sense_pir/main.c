@@ -54,6 +54,8 @@
 #include "nrf.h"
 #include "boards.h"
 
+#include "hal_nvmc.h"
+
 #include "log.h"
 #include "nrf_util.h"
 #include "hal_gpio.h"
@@ -76,6 +78,7 @@
 #include "sensepi_cam_trigger.h"
 #include "dev_id_fw_ver.h"
 #include "sensepi_store_config.h"
+#include "hal_nvmc.h"
 
 /* ----- Defines ----- */
 
@@ -580,6 +583,9 @@ int main(void)
     sensepi_store_config_check_fw_ver ();
     load_last_config ();
 
+    uint8_t str[] = {0x10,0x21,0x45,0x8,0x10,0x7,0x9,0x54};
+    uint32_t *dest_ptr = (uint32_t *)0x26003;
+    hal_nvmc_write_data (dest_ptr, str, sizeof(uint8_t)*ARRAY_SIZE(str));
     while (true)
     {
 #if ENABLE_WDT == 1
