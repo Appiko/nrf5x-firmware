@@ -138,7 +138,7 @@ static void clear_all_config (void)
     hal_nvmc_erase_page (LAST_APP_PAGE_ADDR);
 }
 
-static void sensepi_store_config_check_fw_ver ()
+void sensepi_store_config_check_fw_ver ()
 {
     log_printf("%s\n",__func__);
     p_mem_loc = (uint32_t *) CONFIG_FW_VER_LOC;
