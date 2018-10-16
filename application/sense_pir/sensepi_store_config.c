@@ -44,8 +44,10 @@
 
 #include "log.h"
 
+/**Address of first memory location of last page available for application*/
+#define LAST_APP_PAGE_ADDR 0x23000
 /**Starting of memory location to store the last configuration*/
-#define LAST_CONFIG_ADDR (SENSEPI_STORE_CONFIG_LAST_APP_PAGE_ADDR+0xFF0)  ///After storing configuration on this location 
+#define LAST_CONFIG_ADDR (LAST_APP_PAGE_ADDR+0xFF0)  ///After storing configuration on this location 
 ///next time before writing, all the configurations will be erased.
 /**Address where local firmware version number is saved*/
 #define CONFIG_FW_VER_LOC LAST_CONFIG_ADDR+0x4
@@ -59,13 +61,35 @@
 /**Pointer to do all flash memory related operations*/
 static uint32_t * p_mem_loc;
 
-uint32_t sensepi_store_config_get_next_location (void)
+/**
+ * @brief Function to get the next location where firmware will store latest 
+ * configuration.
+ * 
+ * @return Free memory location address in uint32_t format. 
+ * @retval 0xFFFFFFFF memory is full and firmware will now clear all the 
+ * previously saved configurations. 
+ */
+static uint32_t get_next_location (void);
+
+/**
+ * @brief Function to erase all the previously return configurations.
+ * 
+ * @note This function will get called automatically once memory is full.
+ */
+static void clear_all_config (void);
+
+/**
+ * @brief Function to update the firmware version stored in this page.
+ */
+static void update_fw_ver (void);
+
+static uint32_t get_next_location (void)
 {
     log_printf("%s\n",__func__);
-    p_mem_loc = (uint32_t *) SENSEPI_STORE_CONFIG_LAST_APP_PAGE_ADDR;
+    p_mem_loc = (uint32_t *) LAST_APP_PAGE_ADDR;
     while(p_mem_loc <= (uint32_t *)LAST_CONFIG_ADDR)
     {
-        if(*(p_mem_loc) == MEM_FULL)
+        if(*(p_mem_loc) == MEM_RESET_VALUE)
         {
             return (uint32_t)p_mem_loc;
         }
@@ -76,10 +100,23 @@ uint32_t sensepi_store_config_get_next_location (void)
     
 }
 
+bool sensepi_store_config_is_memory_empty (void)
+{
+    log_printf("%s\n",__func__);
+    if(get_next_location () == LAST_APP_PAGE_ADDR)
+    {
+        return true;
+    }
+    else
+    {
+        return false;
+    }
+}
+
 void sensepi_store_config_write (sensepi_config_t* latest_config)
 {
     log_printf("%s\n",__func__);
-    p_mem_loc = (void *) sensepi_store_config_get_next_location();
+    p_mem_loc = (void *) get_next_location();
     hal_nvmc_write_data(p_mem_loc, latest_config, sizeof(sensepi_config_t));
 
 }
@@ -87,43 +124,41 @@ void sensepi_store_config_write (sensepi_config_t* latest_config)
 sensepi_config_t * sensepi_store_config_get_last_config ()
 {
     log_printf("%s\n",__func__);
-    p_mem_loc = (uint32_t*)sensepi_store_config_get_next_location();
-    if(p_mem_loc != (uint32_t*)SENSEPI_STORE_CONFIG_LAST_APP_PAGE_ADDR)
+    p_mem_loc = (uint32_t*)get_next_location();
+    if(p_mem_loc != (uint32_t*)LAST_APP_PAGE_ADDR)
     {
         p_mem_loc -= CONFIG_SIZE_TO_POINTER;
     }
     return (sensepi_config_t*) p_mem_loc;
 }
 
-void sensepi_store_config_clear_all (void) //make it as hal_nvmc_page_erase
+static void clear_all_config (void)
 {
     log_printf("%s\n",__func__);
-    hal_nvcm_erase_page (SENSEPI_STORE_CONFIG_LAST_APP_PAGE_ADDR);
+    hal_nvmc_erase_page (LAST_APP_PAGE_ADDR);
 }
 
-void sensepi_store_config_check_fw_ver ()
+static void sensepi_store_config_check_fw_ver ()
 {
     log_printf("%s\n",__func__);
     p_mem_loc = (uint32_t *) CONFIG_FW_VER_LOC;
     uint32_t local_major_num = *p_mem_loc/10000;
     if(*p_mem_loc == MEM_RESET_VALUE)
     {
-        sensepi_store_config_update_fw_ver ();
+        update_fw_ver ();
     }
     else if(local_major_num != (FW_VER/10000))
     {
-        sensepi_store_config_clear_all ();
-        sensepi_store_config_update_fw_ver ();
+        clear_all_config ();
+        update_fw_ver ();
     }
 }
 
-void sensepi_store_config_update_fw_ver ()  // make it as hal_nvmc_write
+static void update_fw_ver ()  // make it as hal_nvmc_write
 {
     log_printf("%s\n",__func__);
     p_mem_loc = (uint32_t *) CONFIG_FW_VER_LOC;
-    NRF_NVMC->CONFIG = NVMC_CONFIG_WEN_Wen;
-    while(NRF_NVMC->READY != NVMC_READY_READY_Ready);
-    *p_mem_loc = (uint32_t)FW_VER;
-    NRF_NVMC->CONFIG = NVMC_CONFIG_WEN_Ren;
-    while(NRF_NVMC->READY != NVMC_READY_READY_Ready);
+    uint32_t local_fw_ver = FW_VER;
+    hal_nvmc_write_data (p_mem_loc, &local_fw_ver, sizeof(uint32_t));
+    
 }

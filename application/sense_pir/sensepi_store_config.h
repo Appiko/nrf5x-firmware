@@ -53,19 +53,16 @@
 
 
 /**
- * @brief Function to get the next location where firmware will store latest 
- * configuration.
- * 
- * @return Free memory location address in uint32_t format. 
- * @retval 0xFFFFFFFF memory is full and firmware will now clear all the 
- * previously saved configurations. 
- * TODO this can be changed to a function with a bool return that tells if config page is empty
+ * @breif Function to check if memory where config is to be written is empty.
+ * @return Memory status.
+ * @retval 0 Memory is not empty
+ * @retval 1 Memory is empty
  */
-uint32_t sensepi_store_config_get_next_location (void);
+bool sensepi_store_config_is_memory_empty (void);
 
 /**
  * @brief Function to write the sensepi_config_t at address location received 
- * from @ref sensepi_store_config_get_next_location().
+ * from @ref get_next_location().
  * 
  * @note all the previously stored configurations will be erased if return value 
  * of @ref sensepi_store_config_get_next_location() is 0xFFFFFFFF 
@@ -85,26 +82,12 @@ void sensepi_store_config_write (sensepi_config_t * latest_config);
 sensepi_config_t * sensepi_store_config_get_last_config (void);
 
 /**
- * @brief Function to erase all the previously return configurations.
- * 
- * @note This function will get called automatically once memory is full.
- *  TODO This can be a local function
- */
-void sensepi_store_config_clear_all (void);
-
-/**
  * @brief Function to check the major number of firmware if latest major number \
  * firmware version is greater than respective previous number then it'll \
  * initiate reset for stored configs.
  * 
  */
 void sensepi_store_config_check_fw_ver ();
-
-/**
- * @brief Function to update the firmware version stored in this page.
- * TODO This can be a local function
- */
-void sensepi_store_config_update_fw_ver ();
 #endif /* SENSEPI_STORE_CONFIG_H */
 /**
  * @}
