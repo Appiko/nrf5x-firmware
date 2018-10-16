@@ -520,8 +520,7 @@ void boot_pwr_config(void)
  */
 void load_last_config()
 {
-    if(sensepi_store_config_get_next_location() ==
-       SENSEPI_STORE_CONFIG_LAST_APP_PAGE_ADDR)
+    if(sensepi_store_config_is_memory_empty())
     {
         sensepi_store_config_write (&sensepi_ble_default_config);
     }
@@ -582,10 +581,6 @@ int main(void)
     sensepi_ble_init(ble_evt_handler, get_sensepi_config_t);
     sensepi_store_config_check_fw_ver ();
     load_last_config ();
-
-    uint8_t str[] = {0x10,0x21,0x45,0x8,0x10,0x7,0x9,0x54};
-    uint32_t *dest_ptr = (uint32_t *)0x26003;
-    hal_nvmc_write_data (dest_ptr, str, sizeof(uint8_t)*ARRAY_SIZE(str));
     while (true)
     {
 #if ENABLE_WDT == 1
