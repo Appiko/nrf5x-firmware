@@ -48,10 +48,6 @@
 
 #include "sensepi_ble.h"
 
-/**Address of first memory location of last page available for application*/
-#define SENSEPI_STORE_CONFIG_LAST_APP_PAGE_ADDR 0x23000
-
-
 /**
  * @breif Function to check if memory where config is to be written is empty.
  * @return Memory status.
