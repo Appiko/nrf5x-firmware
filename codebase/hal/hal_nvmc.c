@@ -39,7 +39,7 @@
 
 #define PAGE_START_ADDR_SUFFIX 0x1000
 
-int hal_nvmc_erase_page (uint32_t page_start_address)
+uint32_t hal_nvmc_erase_page (uint32_t page_start_address)
 {
     if((page_start_address % PAGE_START_ADDR_SUFFIX) != 0)
     {

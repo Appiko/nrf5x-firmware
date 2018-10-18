@@ -51,7 +51,7 @@ extern "C" {
  * @retval 0 for Success
  * @retval Other for failure
  */
-int hal_nvmc_erase_page (uint32_t page_start_address);
+uint32_t hal_nvmc_erase_page (uint32_t page_start_address);
 
 /**
  * @brief Function to write data to flash.
