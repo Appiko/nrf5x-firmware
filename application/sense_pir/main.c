@@ -366,7 +366,7 @@ void state_change_handler(uint32_t new_state)
             sensepi_ble_adv_start();
 
             led_ui_type_stop_all(LED_UI_LOOP_SEQ);
-            led_ui_loop_start(LED_SEQ_ADV_MODE, LED_UI_MID_PRIORITY);
+            led_ui_loop_start(LED_SEQ_ORANGE_SEQ, LED_UI_MID_PRIORITY);
         }
         break;
     case CONNECTED:
@@ -380,7 +380,7 @@ void state_change_handler(uint32_t new_state)
             device_tick_init(&tick_cfg);
 
             led_ui_type_stop_all(LED_UI_LOOP_SEQ);
-            led_ui_loop_start(LED_SEQ_CONN_MODE, LED_UI_MID_PRIORITY);
+            led_ui_loop_start(LED_SEQ_GREEN_SEQ, LED_UI_MID_PRIORITY);
             break;
         }
     }

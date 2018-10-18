@@ -48,10 +48,6 @@
 
 #include "sensepi_ble.h"
 
-/**Address of first memory location of last page available for application*/
-#define SENSEPI_STORE_CONFIG_LAST_APP_PAGE_ADDR 0x23000
-
-
 /**
  * @breif Function to check if memory where config is to be written is empty.
  * @return Memory status.
@@ -75,7 +71,8 @@ void sensepi_store_config_write (sensepi_config_t * latest_config);
  * 
  * @Warning This function cannot differentiate between single stored config and \
  * empty flash page. So make sure that there is at least one configuration \
- * stored in memory
+ * stored in memory. Use @ref sensepi_store_config_is_memory_empty() function for 
+ * that
  * 
  * @return pointer to last sensepi_config_t stored in flash.
  */

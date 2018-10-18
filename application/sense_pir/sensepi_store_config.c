@@ -45,21 +45,23 @@
 #include "log.h"
 
 /**Address of first memory location of last page available for application*/
-#define LAST_APP_PAGE_ADDR 0x23000
-/**Starting of memory location to store the last configuration*/
-#define LAST_CONFIG_ADDR (LAST_APP_PAGE_ADDR+0xFF0)  ///After storing configuration on this location 
-///next time before writing, all the configurations will be erased.
-/**Address where local firmware version number is saved*/
-#define CONFIG_FW_VER_LOC LAST_CONFIG_ADDR+0x4
-/** Reset value or any flash register */
-#define MEM_RESET_VALUE 0xFFFFFFFF
+#define LAST_APP_PAGE_ADDR 0x24000
 /**Size of config in unit of size of pointer*/
 #define CONFIG_SIZE_TO_POINTER 5 
+/**Number of configurations to be stored*/
+#define NO_OF_CONFIGS 204
+/**Word size*/
+#define WORD_SIZE 4
+/** End of memory location to store the configurations*/
+#define LAST_CONFIG_END_ADDR (LAST_APP_PAGE_ADDR+NO_OF_CONFIGS*CONFIG_SIZE_TO_POINTER\
+                                * WORD_SIZE)  ///After storing configuration on this location 
+///next time before writing, all the configurations will be erased.
+/**Address where local firmware version number is saved*/
+#define CONFIG_FW_VER_LOC LAST_CONFIG_END_ADDR+0x2
+/** Reset value or any flash register */
+#define MEM_RESET_VALUE 0xFFFFFFFF
 /** Memory full flag*/
-#define MEM_FULL 0xFFFFFFFF
-
-/**Pointer to do all flash memory related operations*/
-static uint32_t * p_mem_loc;
+#define MEM_FULL LAST_CONFIG_END_ADDR
 
 /**
  * @brief Function to get the next location where firmware will store latest 
@@ -86,15 +88,14 @@ static void update_fw_ver (void);
 static uint32_t get_next_location (void)
 {
     log_printf("%s\n",__func__);
-    p_mem_loc = (uint32_t *) LAST_APP_PAGE_ADDR;
-    while(p_mem_loc <= (uint32_t *)LAST_CONFIG_ADDR)
+    uint32_t * p_mem_loc = (uint32_t *) LAST_APP_PAGE_ADDR;
+    while(p_mem_loc < (uint32_t *)LAST_CONFIG_END_ADDR)
     {
         if(*(p_mem_loc) == MEM_RESET_VALUE)
         {
             return (uint32_t)p_mem_loc;
         }
         p_mem_loc += CONFIG_SIZE_TO_POINTER;
-        hal_nop_delay_us(700);  //check without delay
     }
     return MEM_FULL;
     
@@ -116,7 +117,12 @@ bool sensepi_store_config_is_memory_empty (void)
 void sensepi_store_config_write (sensepi_config_t* latest_config)
 {
     log_printf("%s\n",__func__);
-    p_mem_loc = (void *) get_next_location();
+    uint32_t * p_mem_loc = (uint32_t *) get_next_location();
+    if(p_mem_loc == (uint32_t *)MEM_FULL)
+    {
+        clear_all_config ();
+        p_mem_loc = (uint32_t *) get_next_location();
+    }
     hal_nvmc_write_data(p_mem_loc, latest_config, sizeof(sensepi_config_t));
 
 }
@@ -124,7 +130,7 @@ void sensepi_store_config_write (sensepi_config_t* latest_config)
 sensepi_config_t * sensepi_store_config_get_last_config ()
 {
     log_printf("%s\n",__func__);
-    p_mem_loc = (uint32_t*)get_next_location();
+    uint32_t * p_mem_loc = (uint32_t*)get_next_location();
     if(p_mem_loc != (uint32_t*)LAST_APP_PAGE_ADDR)
     {
         p_mem_loc -= CONFIG_SIZE_TO_POINTER;
@@ -141,7 +147,7 @@ static void clear_all_config (void)
 void sensepi_store_config_check_fw_ver ()
 {
     log_printf("%s\n",__func__);
-    p_mem_loc = (uint32_t *) CONFIG_FW_VER_LOC;
+    uint32_t * p_mem_loc = (uint32_t *) CONFIG_FW_VER_LOC;
     uint32_t local_major_num = *p_mem_loc/10000;
     if(*p_mem_loc == MEM_RESET_VALUE)
     {
@@ -157,7 +163,7 @@ void sensepi_store_config_check_fw_ver ()
 static void update_fw_ver ()  // make it as hal_nvmc_write
 {
     log_printf("%s\n",__func__);
-    p_mem_loc = (uint32_t *) CONFIG_FW_VER_LOC;
+    uint32_t * p_mem_loc = (uint32_t *) CONFIG_FW_VER_LOC;
     uint32_t local_fw_ver = FW_VER;
     hal_nvmc_write_data (p_mem_loc, &local_fw_ver, sizeof(uint32_t));
     
