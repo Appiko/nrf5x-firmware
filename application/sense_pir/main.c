@@ -75,6 +75,8 @@
 #include "sensepi_ble.h"
 #include "sensepi_cam_trigger.h"
 #include "dev_id_fw_ver.h"
+#include "sensepi_store_config.h"
+#include "hal_nvmc.h"
 
 /* ----- Defines ----- */
 
@@ -157,8 +159,8 @@ static uint32_t conn_count;
 static sensepi_config_t sensepi_ble_default_config = {
     .pir_conf.oper_time.day_or_night = 1,
     .pir_conf.oper_time.threshold = 0b0000000,
-    .pir_conf.amplification = 31,
-    .pir_conf.threshold = 100,
+    .pir_conf.amplification = 20,
+    .pir_conf.threshold = 175,
     .pir_conf.mode = 0x00000000,
     .pir_conf.intr_trig_timer = 50,
     
@@ -324,7 +326,7 @@ void state_change_handler(uint32_t new_state)
             device_tick_init(&tick_cfg);
 
             led_ui_type_stop_all(LED_UI_LOOP_SEQ);
-            
+
             sensepi_cam_trigger_start();
         }
         break;
@@ -364,7 +366,7 @@ void state_change_handler(uint32_t new_state)
             sensepi_ble_adv_start();
 
             led_ui_type_stop_all(LED_UI_LOOP_SEQ);
-            led_ui_loop_start(LED_SEQ_ADV_MODE, LED_UI_MID_PRIORITY);
+            led_ui_loop_start(LED_SEQ_ORANGE_WAVE, LED_UI_MID_PRIORITY);
         }
         break;
     case CONNECTED:
@@ -378,7 +380,7 @@ void state_change_handler(uint32_t new_state)
             device_tick_init(&tick_cfg);
 
             led_ui_type_stop_all(LED_UI_LOOP_SEQ);
-            led_ui_loop_start(LED_SEQ_CONN_MODE, LED_UI_MID_PRIORITY);
+            led_ui_loop_start(LED_SEQ_GREEN_WAVE, LED_UI_MID_PRIORITY);
             break;
         }
     }
@@ -408,6 +410,20 @@ void button_handler(button_ui_steps step, button_ui_action act)
             }
             break;
         case BUTTON_UI_STEP_LONG:
+            {
+                NRF_POWER->GPREGRET = 0xB1;
+                log_printf("Trying to do system reset..!!");
+                uint8_t is_sd_enabled;
+                sd_softdevice_is_enabled(&is_sd_enabled);
+                if(is_sd_enabled == 0)
+                {
+                    sd_nvic_SystemReset();
+                }
+                else
+                {
+                    NVIC_SystemReset ();
+                }
+            }
             break;
         }
     }
@@ -423,20 +439,6 @@ void button_handler(button_ui_steps step, button_ui_action act)
         case BUTTON_UI_STEP_PRESS:
             break;
         case BUTTON_UI_STEP_LONG:
-        {
-            NRF_POWER->GPREGRET = 0xB1;
-            log_printf("Trying to do system reset..!!");
-            uint8_t is_sd_enabled;
-            sd_softdevice_is_enabled(&is_sd_enabled);
-            if(is_sd_enabled == 0)
-            {
-                sd_nvic_SystemReset();
-            }
-            else
-            {
-                NVIC_SystemReset ();
-            }
-        }
             break;
         }
     }
@@ -512,6 +514,18 @@ void boot_pwr_config(void)
 }
 
 /**
+ * @brief function to load previous sensepi configuration present in flash memory
+ */
+void load_last_config()
+{
+    if(sensepi_store_config_is_memory_empty())
+    {
+        sensepi_store_config_write (&sensepi_ble_default_config);
+    }
+    sensepi_cam_trigger_update (sensepi_store_config_get_last_config ());
+}
+
+/**
  * Different calls to sleep depending on the status of Softdevice
  */
 void slumber(void)
@@ -563,7 +577,8 @@ int main(void)
     current_state = ADVERTISING; //So that a state change happens
     irq_msg_push(MSG_STATE_CHANGE, (void *)SENSING);
     sensepi_ble_init(ble_evt_handler, get_sensepi_config_t);
-
+    sensepi_store_config_check_fw_ver ();
+    load_last_config ();
     while (true)
     {
 #if ENABLE_WDT == 1

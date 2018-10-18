@@ -140,6 +140,25 @@ static void ble_evt_handler(ble_evt_t * evt)
         APP_ERROR_CHECK(err_code);
         break;
     }
+    case BLE_GAP_EVT_PHY_UPDATE_REQUEST:
+    {
+        ble_gap_phys_t const phys = {
+            .rx_phys = BLE_GAP_PHY_AUTO,
+            .tx_phys = BLE_GAP_PHY_AUTO,
+        };
+
+        err_code = sd_ble_gap_phy_update(h_conn, &phys);
+        APP_ERROR_CHECK(err_code);
+        break;
+    }
+    case BLE_GAP_EVT_PHY_UPDATE:
+    {
+        log_printf("Tx_get : %x  Rx_get : %x  Status : %x\n",
+                   evt->evt.gap_evt.params.phy_update.tx_phy, 
+                   evt->evt.gap_evt.params.phy_update.rx_phy,
+                   evt->evt.gap_evt.params.phy_update.status);
+        break;
+    }
     }
 
     sensepi_ble_sd_evt(evt);
