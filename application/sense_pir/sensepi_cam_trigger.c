@@ -120,16 +120,6 @@
 /** Duration for which PIR will be active for video extension */
 #define VIDEO_PIR_ON 2000
 
-/** Address of first memory location of last byte */
-#define LAST_APP_PAGE_ADDR 0x27000
-
-/***/
-#define LAST_CONFIG_ADDR 0x27FE8
-
-/***/
-#define COMP_RESET_VALUE 0xFFFFFFFF
-
-
 /**
  * @brief Enum of different types of camera triggering.
  */
