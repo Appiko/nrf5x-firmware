@@ -54,8 +54,6 @@
 #include "nrf.h"
 #include "boards.h"
 
-#include "hal_nvmc.h"
-
 #include "log.h"
 #include "nrf_util.h"
 #include "hal_gpio.h"
@@ -524,7 +522,7 @@ void load_last_config()
     {
         sensepi_store_config_write (&sensepi_ble_default_config);
     }
-    sensepi_cam_trigger_update (sensepi_store_config_get_last_config ());    
+    sensepi_cam_trigger_update (sensepi_store_config_get_last_config ());
 }
 
 /**
