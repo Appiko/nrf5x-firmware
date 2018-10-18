@@ -45,7 +45,7 @@
 #include "log.h"
 
 /**Address of first memory location of last page available for application*/
-#define LAST_APP_PAGE_ADDR 0x24000
+#define LAST_APP_PAGE_ADDR 0x27000
 /**Size of config in unit of size of pointer*/
 #define CONFIG_SIZE_TO_POINTER 5 
 /**Number of configurations to be stored*/
