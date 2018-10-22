@@ -5,7 +5,7 @@
 
 # SensePi Firmware:
 
-[SensePi] (https://appiko.org/sensepi.html) is a motion based camera triggering device. This device can be used 
+[SensePi](https://appiko.org/sensepi.html) is a motion based camera triggering device. This device can be used 
 to trigger DSLRs and Point and Shoot cameras. This device can be used as trigger 
 for other systems as well. 
 
@@ -93,6 +93,11 @@ Interaction between these modules and application can be represented as follow :
 
 ![modular_interaction](https://github.com/Appiko/nrf5x-firmware/blob/master/application/sense_pir/modular_interaction.svg)
 
+In the context of of this diagram communication means data transfer between any
+two modules. Here all the arrows represent transfer of sensepi_config until specified 
+otherwise. Data transfer happens bi-directionally between modules, except for 
+2 cases where it's unidirectional.
+ 
 As We can observe over there, all modules interact with main application directly. 
 Almost all the inter-module communication is done through main application. Only 
 once direct communication between two module happens when Camera module saves 
