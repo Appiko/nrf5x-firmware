@@ -68,7 +68,7 @@ scenarios
 
 The state diagram for SensePi is given below:
 
-![state_diagram](https://github.com/Appiko/nrf5x-firmware/blob/master/application/sense_pir/state_diagram.png)
+![](./state_diagram.png)
 
 As one can see, the default state when SensePi starts it's operation is Sensing. 
 If someone presses button present on SensePi, it'll go into Advertising state. 
@@ -91,7 +91,7 @@ of firmware. Those modules are :
 
 Interaction between these modules and application can be represented as follow :
 
-![modular_interaction](https://github.com/Appiko/nrf5x-firmware/blob/master/application/sense_pir/modular_interaction.png)
+![](./modular_interaction.png)
 
 In the context of of this diagram communication means data transfer between any
 two modules. Here all the arrows represent transfer of sensepi_config until specified 
