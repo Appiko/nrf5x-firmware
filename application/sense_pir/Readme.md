@@ -98,6 +98,11 @@ two modules. Here all the arrows represent transfer of sensepi_config until spec
 otherwise. Data transfer happens bi-directionally between modules, except for 
 2 cases where it's unidirectional.
  
+In the context of of this diagram communication means data transfer between any
+two modules. Here all the arrows represent transfer of sensepi_config until specified 
+otherwise. Data transfer happens bi-directionally between modules, except for 
+2 cases where it's unidirectional.
+ 
 As We can observe over there, all modules interact with main application directly. 
 Almost all the inter-module communication is done through main application. Only 
 once direct communication between two module happens when Camera module saves 
