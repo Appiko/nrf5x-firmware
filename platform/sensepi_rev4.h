@@ -37,8 +37,8 @@
  * @addtogroup group_platform
  * @{
  *
- * @defgroup board_sense_rev4 Appiko Sense Revision 4
- * @brief The fourth revision of the animal detector unit by Appiko
+ * @defgroup board_sense_rev4 Appiko SensePi revision 4
+ * @brief Board definitions for the 4th revision of the passive motion sensor by Appiko
  * @{
  */
 
