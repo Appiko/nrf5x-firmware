@@ -68,7 +68,7 @@ scenarios
 
 The state diagram for SensePi is given below:
 
-![](./state_diagram.png)
+![](./doc/app_flow.png)
 
 As one can see, the default state when SensePi starts it's operation is Sensing. 
 If someone presses button present on SensePi, it'll go into Advertising state. 
@@ -91,7 +91,7 @@ of firmware. Those modules are :
 
 Interaction between these modules and application can be represented as follow :
 
-![](./modular_interaction.png)
+![](./doc/data_flow.png)
 
 In the context of of this diagram communication means data transfer between any
 two modules. Here all the arrows represent transfer of sensepi_config until specified 
