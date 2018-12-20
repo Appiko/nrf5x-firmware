@@ -39,11 +39,30 @@
 #ifdef __cplusplus
 extern "C" {
 #endif
-    
+   
+/** Structure containing all the values required for sensebe_rx_detect module */
+typedef struct 
+{
+    /** Pin number for Enable pin on TSSP module */
+    uint32_t rx_en_pin;
+    /** Pin number for Out pin on TSSP module */
+    uint32_t rx_out_pin;
+    /** Time window after which camera has to be triggered */
+    uint32_t time_window_ms;
+    /** Number of pins used for out_gen module */
+    uint32_t out_gen_no_of_pins;
+    /** Pin numbers for out_gen module */
+    uint32_t *out_gen_pin_array;
+    /** Initial values for out_gen module */
+    bool *out_gen_init_val;
+}sensebe_rx_detect_config_t;
+
 /**
  * @brief Function to initialize the Rx detect module
+ * @param sensebe_rx_detect_config COnfiguration required for sensbe_rx_detect module
+ * @ref sensebe_rx_detect_config_t
  */    
-void sensebe_rx_detect_init (void);
+void sensebe_rx_detect_init (sensebe_rx_detect_config_t * sensebe_rx_detect_config);
 
 /**
  * @brief Function to enable detection for SenseBe Rx
@@ -54,6 +73,12 @@ void sensebe_rx_detect_start (void);
  * @brief Function to disable detection for SenseBe Rx
  */
 void sensebe_rx_detect_stop (void);
+
+/**
+ * @brief Function to handle add tick event.
+ * @param interval Ticks since the last occurance of add tick event.
+ */
+void sensebe_rx_detect_add_ticks (uint32_t interval);
 
 #ifdef __cplusplus
 }

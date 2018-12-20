@@ -40,21 +40,21 @@
 #include "log.h"
 #include "led_ui.h"
 #include "led_seq.h"
+#include "ir_detect.h"
 
 #define MS_TIMER_USED MS_TIMER2
 #define SINGLE_SHOT_TRANSITIONS 1
 #define SINGLE_SHOT_DURATION MS_TIMER_TICKS_MS(250)
 #define NULL_STATE 0
+#define DETECT_FEEDBACK_TIMEOUT_TICKS MS_TIMER_TICKS_MS(600000)
 
-static uint32_t no_output_pins = 2;
-static uint32_t cam_trigger_pin_array[] = {JACK_FOCUS_PIN, JACK_TRIGGER_PIN};
-static bool cam_trigger_defaults[] = {1, 1};
+static bool detect_feedback_flag = true;
+static uint32_t detect_time_pass = 0;
 
 void out_gen_done_handler(uint32_t state)
 {
     log_printf("%s\n", __func__);
     log_printf("State : %d\n", state);
-    return;
 }
 
 static out_gen_config_t single_shot_config ={
@@ -75,46 +75,55 @@ void cam_trigger ()
     log_printf("%s\n", __func__);
     if(out_gen_is_on () == false)
     {
-        led_ui_single_start (LED_SEQ_PIR_PULSE, LED_UI_HIGH_PRIORITY, true);
+        if(detect_feedback_flag == true)
+        {
+            led_ui_single_start (LED_SEQ_PIR_PULSE, LED_UI_HIGH_PRIORITY, true);
+        }
         out_gen_start (&single_shot_config);
     }
 }
 
-void timer_handler ()
-{
-//    log_printf("%s\n", __func__);
-    static uint32_t count_ms = 0;
-    count_ms++;
-    if(count_ms == 100)
-    {
-        cam_trigger ();
-        count_ms = 0;
-        return;
-    }
-    if(hal_gpio_pin_read (TSSP_RX_OUT) == 0)
-    {
-        count_ms= 0;
-    }
-}
-
-void sensebe_rx_detect_init (void)
+void sensebe_rx_detect_init (sensebe_rx_detect_config_t * sensebe_rx_detect_config)
 {
     log_printf("%s\n", __func__);
-    hal_gpio_cfg_input (TSSP_RX_OUT, HAL_GPIO_PULL_UP);
-    hal_gpio_cfg_output (TSSP_RX_EN, 0);
-    out_gen_init (no_output_pins, cam_trigger_pin_array, cam_trigger_defaults);
+    out_gen_init (sensebe_rx_detect_config->out_gen_no_of_pins,
+                  sensebe_rx_detect_config->out_gen_pin_array,
+                  sensebe_rx_detect_config->out_gen_init_val);
+
+    ir_detect_config_t ir_detect_config = 
+    {
+        .detect_logic_level = false,
+        .ir_missed_handler = cam_trigger,
+        .rx_en_pin = sensebe_rx_detect_config->rx_en_pin,
+        .rx_in_pin = sensebe_rx_detect_config->rx_out_pin,
+        .window_duration = sensebe_rx_detect_config->time_window_ms,
+    };
+    ir_detect_init (&ir_detect_config);
 }
 
 void sensebe_rx_detect_start (void)
 {
     log_printf("%s\n", __func__);
-    ms_timer_start (MS_TIMER_USED,MS_REPEATED_CALL, MS_TIMER_TICKS_MS(1),timer_handler);
-    hal_gpio_pin_set (TSSP_RX_EN);
+    ir_detect_start ();
 }
 
 void sensebe_rx_detect_stop (void)
 {
     log_printf("%s\n", __func__);
-    ms_timer_stop (MS_TIMER_USED);
-    hal_gpio_pin_clear (TSSP_RX_EN);
+    ir_detect_stop ();
+}
+
+void sensebe_rx_detect_add_ticks (uint32_t interval)
+{
+    log_printf("%s\n", __func__);
+    if(detect_feedback_flag == true)
+    {
+        detect_time_pass += interval;
+        if(detect_time_pass >= DETECT_FEEDBACK_TIMEOUT_TICKS)
+        {
+            detect_feedback_flag = false;
+            detect_time_pass = 0;
+        }
+    }
+    
 }
