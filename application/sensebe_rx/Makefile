@@ -6,7 +6,7 @@ PINRESET_REQD   := CONFIG_GPIO_AS_PINRESET
 DEBUGGER        := BMP
 LOGGER          := LOG_UART_PRINTF
 FW_VER_VAL      := 0
-MS_TIMER_FREQ   := 32768
+MS_TIMER_FREQ   := 100
 SD_USED         := s112
 SD_VER          := 6.0.0
 

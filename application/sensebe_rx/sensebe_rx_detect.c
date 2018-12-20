@@ -41,16 +41,18 @@
 #include "led_ui.h"
 #include "led_seq.h"
 #include "ir_detect.h"
+#include "device_tick.h"
 
 #define MS_TIMER_USED MS_TIMER2
-#define SINGLE_SHOT_TRANSITIONS 1
+#define SINGLE_SHOT_TRANSITIONS 2
 #define SINGLE_SHOT_DURATION MS_TIMER_TICKS_MS(250)
 #define NULL_STATE 0
 #define DETECT_FEEDBACK_TIMEOUT_TICKS MS_TIMER_TICKS_MS(600000)
+#define INTER_TRIG_TIME MS_TIMER_TICKS_MS(750)
 
 static bool detect_feedback_flag = true;
 static uint32_t detect_time_pass = 0;
-
+static uint32_t total_operation_time = INTER_TRIG_TIME + SINGLE_SHOT_DURATION + 10;
 void out_gen_done_handler(uint32_t state)
 {
     log_printf("%s\n", __func__);
@@ -61,23 +63,48 @@ static out_gen_config_t single_shot_config ={
     .num_transitions = SINGLE_SHOT_TRANSITIONS,
     .done_handler = out_gen_done_handler,
     .out_gen_state = NULL_STATE,
-    .transitions_durations = { SINGLE_SHOT_DURATION},
+    .transitions_durations = { SINGLE_SHOT_DURATION, INTER_TRIG_TIME},
     .next_out ={
-       {0, 1},
-       {0, 1}
+       {0, 1, 1},
+       {0, 1, 1}
     },
 };
 
-
+void system_dowm (void)
+{   
+    log_printf("%s\n",__func__);
+    ir_detect_stop ();
+    NRF_POWER->SYSTEMOFF = (POWER_SYSTEMOFF_SYSTEMOFF_Enter 
+        << POWER_SYSTEMOFF_SYSTEMOFF_Pos) & POWER_SYSTEMOFF_SYSTEMOFF_Msk;
+}
 
 void cam_trigger ()
 {
-    log_printf("%s\n", __func__);
+//    log_printf("%s\n", __func__);
     if(out_gen_is_on () == false)
     {
         if(detect_feedback_flag == true)
         {
             led_ui_single_start (LED_SEQ_PIR_PULSE, LED_UI_HIGH_PRIORITY, true);
+        }
+        else 
+        {
+            static uint32_t trig_count = 0, current_tick = 0, 
+                previous_tick = 0;
+            current_tick = ms_timer_get_current_count ();
+            if(current_tick - previous_tick <= total_operation_time)
+            {
+                trig_count++;
+            }
+            else
+            {
+                trig_count = 0;
+            }
+            if(trig_count >= 30)
+            {
+                system_dowm ();
+            }
+            previous_tick = current_tick;
         }
         out_gen_start (&single_shot_config);
     }
@@ -104,6 +131,8 @@ void sensebe_rx_detect_init (sensebe_rx_detect_config_t * sensebe_rx_detect_conf
 void sensebe_rx_detect_start (void)
 {
     log_printf("%s\n", __func__);
+    detect_time_pass = 0;
+    detect_feedback_flag = true;
     ir_detect_start ();
 }
 

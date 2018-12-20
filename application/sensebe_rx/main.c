@@ -399,13 +399,14 @@ void button_handler(button_ui_steps step, button_ui_action act)
             log_printf("fast\n");
             button_ui_config_wake(false);
             device_tick_switch_mode(DEVICE_TICK_FAST);
-//            sensebe_rx_detect_start();
+            sensebe_rx_detect_start();
             break;
         case BUTTON_UI_STEP_PRESS:
 //            if(current_state == SENSING)
 //            {
 //                irq_msg_push(MSG_STATE_CHANGE, (void *) ADVERTISING);
 //            }
+            log_printf("Pressed..!!");
 
             break;
         case BUTTON_UI_STEP_LONG:
@@ -550,6 +551,8 @@ int main(void)
     hal_wdt_start();
 #endif
 
+    button_ui_init(BUTTON_PIN, APP_IRQ_PRIORITY_LOW,
+            button_handler);
 
     {
         irq_msg_callbacks cb =
@@ -563,8 +566,6 @@ int main(void)
     irq_msg_push(MSG_STATE_CHANGE, (void *)SENSING);
     sensebe_ble_init(ble_evt_handler, get_sensebe_config_t);
 
-    button_ui_init(BUTTON_PIN, APP_IRQ_PRIORITY_LOW,
-            button_handler);
     while (true)
     {
 #if ENABLE_WDT == 1
