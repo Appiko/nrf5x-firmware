@@ -78,6 +78,23 @@ void system_dowm (void)
         << POWER_SYSTEMOFF_SYSTEMOFF_Pos) & POWER_SYSTEMOFF_SYSTEMOFF_Msk;
 }
 
+void timer_1s (void);
+void timer_200ms (void);
+
+void timer_200ms (void)
+{
+    ir_detect_stop ();
+    ms_timer_start (MS_TIMER_USED, MS_SINGLE_CALL, MS_TIMER_TICKS_MS(1000),
+                    timer_1s);
+}
+
+void timer_1s (void)
+{
+    ir_detect_pulse_detect ();
+    ms_timer_start (MS_TIMER_USED, MS_SINGLE_CALL, MS_TIMER_TICKS_MS(200),
+                    timer_200ms);
+}
+
 void cam_trigger ()
 {
 //    log_printf("%s\n", __func__);
@@ -102,12 +119,21 @@ void cam_trigger ()
             }
             if(trig_count >= 30)
             {
-                system_dowm ();
+                trig_count = 0;
+                ir_detect_stop ();
+                ms_timer_start (MS_TIMER_USED, MS_SINGLE_CALL, MS_TIMER_TICKS_MS(1000), timer_1s);
             }
             previous_tick = current_tick;
         }
         out_gen_start (&single_shot_config);
     }
+}
+
+void sync_start ()
+{
+    log_printf ("%s\n", __func__);
+    ms_timer_stop (MS_TIMER_USED);
+    ir_detect_start ();
 }
 
 void sensebe_rx_detect_init (sensebe_rx_detect_config_t * sensebe_rx_detect_config)
@@ -121,6 +147,7 @@ void sensebe_rx_detect_init (sensebe_rx_detect_config_t * sensebe_rx_detect_conf
     {
         .detect_logic_level = false,
         .ir_missed_handler = cam_trigger,
+        .ir_detect_handler = sync_start,
         .rx_en_pin = sensebe_rx_detect_config->rx_en_pin,
         .rx_in_pin = sensebe_rx_detect_config->rx_out_pin,
         .window_duration = sensebe_rx_detect_config->time_window_ms,
@@ -144,7 +171,6 @@ void sensebe_rx_detect_stop (void)
 
 void sensebe_rx_detect_add_ticks (uint32_t interval)
 {
-    log_printf("%s\n", __func__);
     if(detect_feedback_flag == true)
     {
         detect_time_pass += interval;
