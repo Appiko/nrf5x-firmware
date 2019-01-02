@@ -54,15 +54,25 @@
 /** Channel 2 of GPIOTE is used here */
 #define GPIOTE_CHANNEL_USED 2
 
-/** Channel 1 of PPI is used here */
-#define PPI_CHANNEL_USED 1
+/** Channel 1 of PPI is used here for RTC */
+#define PPI_CHANNEL_USED_RTC 1
+
+/** Channel 2 of PPI is used here for EGU */
+#define PPI_CHANNEL_USED_EGU 2
+
+/** Channel 0 of EGU0 is used here */
+#define EGU_CHANNEL_USED 0
 
 /** Pin number of Enable pin present on IR Rx module */
 uint32_t ir_en_pin;
 
+
 /** Function pointer which is to be called if it doesn't detect any pulse in\
  *  given window of time */
 void (*missed_handler)(void);
+
+/**Function pointer which is to be called if module detects the pulse*/
+void (*detect_handler)(void);
 
 void ir_detect_init (ir_detect_config_t * ir_detect_config)
 {
@@ -70,29 +80,39 @@ void ir_detect_init (ir_detect_config_t * ir_detect_config)
     hal_gpio_cfg_input (ir_detect_config->rx_in_pin,
                         HAL_GPIO_PULL_UP);
 
+    NRF_GPIOTE->EVENTS_IN[GPIOTE_CHANNEL_USED] = 0;
+    NRF_GPIOTE->CONFIG[GPIOTE_CHANNEL_USED] =
+        GPIOTE_CONFIG_MODE_Event << GPIOTE_CONFIG_MODE_Pos|
+        GPIOTE_CONFIG_POLARITY_HiToLo << GPIOTE_CONFIG_POLARITY_Pos| 
+        ((ir_detect_config->rx_in_pin << GPIOTE_CONFIG_PSEL_Pos) 
+         & GPIOTE_CONFIG_PSEL_Msk);
+
     if(ir_detect_config->ir_missed_handler != NULL)
     {
         missed_handler = ir_detect_config->ir_missed_handler;
         IR_DETECT_RTC_USED->PRESCALER = ROUNDED_DIV(LFCLK_FREQ, IR_DETECT_FREQ) - 1;
         IR_DETECT_RTC_USED->CC[RTC_CHANNEL_USED] = ir_detect_config->window_duration;
-        
-        
         IR_DETECT_RTC_USED->INTENSET |= 1 << (RTC_CHANNEL_USED+16);
-        
-        NRF_GPIOTE->EVENTS_IN[GPIOTE_CHANNEL_USED] = 0;
-        NRF_GPIOTE->CONFIG[GPIOTE_CHANNEL_USED] =
-            GPIOTE_CONFIG_MODE_Event << GPIOTE_CONFIG_MODE_Pos|
-            GPIOTE_CONFIG_POLARITY_HiToLo << GPIOTE_CONFIG_POLARITY_Pos| 
-            ((ir_detect_config->rx_in_pin << GPIOTE_CONFIG_PSEL_Pos) 
-             & GPIOTE_CONFIG_PSEL_Msk);
-        
-        
-        
+                
         NVIC_SetPriority (RTC0_IRQn, 1);
         NVIC_EnableIRQ (RTC0_IRQn);
         NVIC_ClearPendingIRQ(RTC0_IRQn);
-        NRF_PPI->CH[PPI_CHANNEL_USED].EEP = (uint32_t) &NRF_GPIOTE->EVENTS_IN[GPIOTE_CHANNEL_USED];
-        NRF_PPI->CH[PPI_CHANNEL_USED].TEP = (uint32_t) &IR_DETECT_RTC_USED->TASKS_CLEAR;
+        NRF_PPI->CH[PPI_CHANNEL_USED_RTC].EEP = (uint32_t) &NRF_GPIOTE->EVENTS_IN[GPIOTE_CHANNEL_USED];
+        NRF_PPI->CH[PPI_CHANNEL_USED_RTC].TEP = (uint32_t) &IR_DETECT_RTC_USED->TASKS_CLEAR;
+        
+    }
+    if(ir_detect_config->ir_detect_handler != NULL)
+    {
+        
+        detect_handler = ir_detect_config->ir_detect_handler;
+
+        IR_DETECT_EGU_USED->INTENSET |= 1 << EGU_CHANNEL_USED;
+        NVIC_SetPriority (SWI0_EGU0_IRQn, 1);
+        NVIC_EnableIRQ (SWI0_IRQn);
+        NVIC_ClearPendingIRQ (SWI0_IRQn);
+
+        NRF_PPI->CH[PPI_CHANNEL_USED_EGU].EEP = (uint32_t) &NRF_GPIOTE->EVENTS_IN[GPIOTE_CHANNEL_USED];
+        NRF_PPI->CH[PPI_CHANNEL_USED_EGU].TEP = (uint32_t) &IR_DETECT_EGU_USED->TASKS_TRIGGER[EGU_CHANNEL_USED];
     }
     
 }
@@ -100,7 +120,7 @@ void ir_detect_init (ir_detect_config_t * ir_detect_config)
 void ir_detect_start ()
 {
     hal_gpio_cfg_output (ir_en_pin, 1);
-    NRF_PPI->CHENSET |= 1 << PPI_CHANNEL_USED;
+    NRF_PPI->CHENSET |= 1 << PPI_CHANNEL_USED_RTC;
     IR_DETECT_RTC_USED->TASKS_CLEAR = 1;
     (void) IR_DETECT_RTC_USED->TASKS_CLEAR;
     IR_DETECT_RTC_USED->TASKS_START = 1;
@@ -109,12 +129,25 @@ void ir_detect_start ()
 void ir_detect_stop ()
 {
     hal_gpio_cfg_output (ir_en_pin, 0);
-    NRF_PPI->CHENCLR |= 1 << PPI_CHANNEL_USED;
+    NRF_PPI->CHENCLR |= 1 << PPI_CHANNEL_USED_RTC;
     IR_DETECT_RTC_USED->TASKS_CLEAR = 1;
     (void) IR_DETECT_RTC_USED->TASKS_CLEAR;
     IR_DETECT_RTC_USED->TASKS_STOP = 1;
 }
 
+void ir_detect_pulse_detect ()
+{
+    hal_gpio_cfg_output (ir_en_pin, 1);
+    IR_DETECT_EGU_USED->INTENSET |= 1 << EGU_CHANNEL_USED;
+    NRF_PPI->CHENSET |= 1 << PPI_CHANNEL_USED_EGU;
+}
+
+void SWI0_IRQHandler ()
+{
+    NRF_PPI->CHENCLR |= 1 << PPI_CHANNEL_USED_EGU;
+    IR_DETECT_EGU_USED->EVENTS_TRIGGERED[EGU_CHANNEL_USED] = 0;
+    detect_handler ();
+}
 
 void RTC0_IRQHandler (void)
 {

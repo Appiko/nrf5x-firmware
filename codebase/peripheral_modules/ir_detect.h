@@ -40,6 +40,7 @@
 #include "boards.h"
 
 #define IR_DETECT_RTC_USED NRF_RTC0
+#define IR_DETECT_EGU_USED NRF_EGU0
 
 
 typedef struct 
@@ -55,6 +56,8 @@ typedef struct
     /** Function pointer for a function which is to be called when no pulse is detected\ 
      *  for window duration*/
     void (*ir_missed_handler) (void);
+    /** Function pointer for a function which is to be called when a pulse is detected */
+    void (*ir_detect_handler) (void);
 }ir_detect_config_t;
 
 /**
@@ -72,4 +75,11 @@ void ir_detect_start (void);
  * @breif Function to stop IR pulse detection
  */
 void ir_detect_stop (void);
+
+/**
+ * @breif Function to start module is pulse detecting mode.
+ * @note In this mode module will wait for pulse.
+ */
+void ir_detect_pulse_detect ();
+
 #endif /* IR_DETECT_H */
