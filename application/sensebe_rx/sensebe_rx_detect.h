@@ -49,10 +49,8 @@ typedef struct
     uint32_t rx_out_pin;
     /** Time window after which camera has to be triggered */
     uint32_t time_window_ms;
-    /** Number of pins used for out_gen module */
-    uint32_t out_gen_no_of_pins;
     /** Pin numbers for out_gen module */
-    uint32_t *out_gen_pin_array;
+    uint32_t *cam_trig_pin_array;
     /** Initial values for out_gen module */
     bool *out_gen_init_val;
 }sensebe_rx_detect_config_t;

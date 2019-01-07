@@ -75,7 +75,6 @@
 #include "dev_id_fw_ver.h"
 #include "led_seq.h"
 #include "led_ui.h"
-#include "ir_detect.h"
 /* ----- Defines ----- */
 
 /**< Name of device, to be included in the advertising data. */
@@ -179,8 +178,7 @@ sensebe_rx_detect_config_t default_sensebe_rx_detect_config =
     .rx_en_pin = TSSP_RX_EN,
     .rx_out_pin = TSSP_RX_OUT,
     .time_window_ms = MS_TIMER_TICKS_MS(100),
-    .out_gen_no_of_pins = ARRAY_SIZE(OUT_PIN_ARRAY),
-    .out_gen_pin_array = OUT_PIN_ARRAY,
+    .cam_trig_pin_array = OUT_PIN_ARRAY,
     .out_gen_init_val = OUT_PIN_INIT_VAL
     
 };

@@ -42,6 +42,7 @@
 #include "led_seq.h"
 #include "tssp_detect.h"
 #include "device_tick.h"
+#include "cam_trigger.h"
 
 #define MS_TIMER_USED MS_TIMER2
 #define SINGLE_SHOT_TRANSITIONS 2
@@ -59,24 +60,13 @@ void out_gen_done_handler(uint32_t state)
     log_printf("State : %d\n", state);
 }
 
-static out_gen_config_t single_shot_config ={
-    .num_transitions = SINGLE_SHOT_TRANSITIONS,
-    .done_handler = out_gen_done_handler,
-    .out_gen_state = NULL_STATE,
-    .transitions_durations = { SINGLE_SHOT_DURATION, INTER_TRIG_TIME},
-    .next_out ={
-       {0, 1, 1},
-       {0, 1, 1}
-    },
-};
-
-void system_dowm (void)
-{   
-    log_printf("%s\n",__func__);
-    tssp_detect_stop ();
-    NRF_POWER->SYSTEMOFF = (POWER_SYSTEMOFF_SYSTEMOFF_Enter 
-        << POWER_SYSTEMOFF_SYSTEMOFF_Pos) & POWER_SYSTEMOFF_SYSTEMOFF_Msk;
-}
+//void system_dowm (void)
+//{   
+//    log_printf("%s\n",__func__);
+//    tssp_detect_stop ();
+//    NRF_POWER->SYSTEMOFF = (POWER_SYSTEMOFF_SYSTEMOFF_Enter 
+//        << POWER_SYSTEMOFF_SYSTEMOFF_Pos) & POWER_SYSTEMOFF_SYSTEMOFF_Msk;
+//}
 
 void timer_1s (void);
 void timer_200ms (void);
@@ -95,7 +85,7 @@ void timer_1s (void)
                     timer_200ms);
 }
 
-void cam_trigger ()
+void window_trigger ()
 {
 //    log_printf("%s\n", __func__);
     if(out_gen_is_on () == false)
@@ -117,7 +107,7 @@ void cam_trigger ()
             {
                 trig_count = 0;
             }
-            if(trig_count >= 30)
+            if(trig_count >= 3)
             {
                 trig_count = 0;
                 tssp_detect_stop ();
@@ -125,7 +115,8 @@ void cam_trigger ()
             }
             previous_tick = current_tick;
         }
-        out_gen_start (&single_shot_config);
+//        out_gen_start (&single_shot_config);
+        cam_trigger (0);
     }
 }
 
@@ -141,20 +132,25 @@ void sync_start ()
 void sensebe_rx_detect_init (sensebe_rx_detect_config_t * sensebe_rx_detect_config)
 {
     log_printf("%s\n", __func__);
-    out_gen_init (sensebe_rx_detect_config->out_gen_no_of_pins,
-                  sensebe_rx_detect_config->out_gen_pin_array,
-                  sensebe_rx_detect_config->out_gen_init_val);
 
     tssp_detect_config_t tssp_detect_config = 
     {
         .detect_logic_level = false,
-        .tssp_missed_handler = cam_trigger,
+        .tssp_missed_handler = window_trigger,
         .tssp_detect_handler = sync_start,
         .rx_en_pin = sensebe_rx_detect_config->rx_en_pin,
         .rx_in_pin = sensebe_rx_detect_config->rx_out_pin,
         .window_duration = sensebe_rx_detect_config->time_window_ms,
     };
     tssp_detect_init (&tssp_detect_config);
+    
+    cam_trigger_config_t cam_trig_conf = 
+    {
+        .cam_trigger_done_handler = out_gen_done_handler,
+        .no_of_setups = 1,
+        .out_gen_pin_array = sensebe_rx_detect_config->cam_trig_pin_array,
+    };
+    cam_trigger_init (&cam_trig_conf);
 }
 
 void sensebe_rx_detect_start (void)
@@ -163,6 +159,13 @@ void sensebe_rx_detect_start (void)
     detect_time_pass = 0;
     detect_feedback_flag = true;
     tssp_detect_window_detect ();
+    cam_trigger_setup_t cam_trig_setup = 
+    {
+        .done_state = 0,
+        .setup_number = 0,
+        .trig_duration_ms = 1000
+    };
+    cam_trigger_set_trigger (0, &cam_trig_setup);
 }
 
 void sensebe_rx_detect_stop (void)
