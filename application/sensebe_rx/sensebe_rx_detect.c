@@ -40,7 +40,7 @@
 #include "log.h"
 #include "led_ui.h"
 #include "led_seq.h"
-#include "ir_detect.h"
+#include "tssp_detect.h"
 #include "device_tick.h"
 
 #define MS_TIMER_USED MS_TIMER2
@@ -73,7 +73,7 @@ static out_gen_config_t single_shot_config ={
 void system_dowm (void)
 {   
     log_printf("%s\n",__func__);
-    ir_detect_stop ();
+    tssp_detect_stop ();
     NRF_POWER->SYSTEMOFF = (POWER_SYSTEMOFF_SYSTEMOFF_Enter 
         << POWER_SYSTEMOFF_SYSTEMOFF_Pos) & POWER_SYSTEMOFF_SYSTEMOFF_Msk;
 }
@@ -83,14 +83,14 @@ void timer_200ms (void);
 
 void timer_200ms (void)
 {
-    ir_detect_stop ();
+    tssp_detect_stop ();
     ms_timer_start (MS_TIMER_USED, MS_SINGLE_CALL, MS_TIMER_TICKS_MS(1000),
                     timer_1s);
 }
 
 void timer_1s (void)
 {
-    ir_detect_pulse_detect ();
+    tssp_detect_pulse_detect ();
     ms_timer_start (MS_TIMER_USED, MS_SINGLE_CALL, MS_TIMER_TICKS_MS(200),
                     timer_200ms);
 }
@@ -120,7 +120,7 @@ void cam_trigger ()
             if(trig_count >= 30)
             {
                 trig_count = 0;
-                ir_detect_stop ();
+                tssp_detect_stop ();
                 ms_timer_start (MS_TIMER_USED, MS_SINGLE_CALL, MS_TIMER_TICKS_MS(1000), timer_1s);
             }
             previous_tick = current_tick;
@@ -132,8 +132,10 @@ void cam_trigger ()
 void sync_start ()
 {
     log_printf ("%s\n", __func__);
+    detect_feedback_flag = true;
+    detect_time_pass = 0;
     ms_timer_stop (MS_TIMER_USED);
-    ir_detect_start ();
+    tssp_detect_window_detect ();
 }
 
 void sensebe_rx_detect_init (sensebe_rx_detect_config_t * sensebe_rx_detect_config)
@@ -143,16 +145,16 @@ void sensebe_rx_detect_init (sensebe_rx_detect_config_t * sensebe_rx_detect_conf
                   sensebe_rx_detect_config->out_gen_pin_array,
                   sensebe_rx_detect_config->out_gen_init_val);
 
-    ir_detect_config_t ir_detect_config = 
+    tssp_detect_config_t tssp_detect_config = 
     {
         .detect_logic_level = false,
-        .ir_missed_handler = cam_trigger,
-        .ir_detect_handler = sync_start,
+        .tssp_missed_handler = cam_trigger,
+        .tssp_detect_handler = sync_start,
         .rx_en_pin = sensebe_rx_detect_config->rx_en_pin,
         .rx_in_pin = sensebe_rx_detect_config->rx_out_pin,
         .window_duration = sensebe_rx_detect_config->time_window_ms,
     };
-    ir_detect_init (&ir_detect_config);
+    tssp_detect_init (&tssp_detect_config);
 }
 
 void sensebe_rx_detect_start (void)
@@ -160,13 +162,13 @@ void sensebe_rx_detect_start (void)
     log_printf("%s\n", __func__);
     detect_time_pass = 0;
     detect_feedback_flag = true;
-    ir_detect_start ();
+    tssp_detect_window_detect ();
 }
 
 void sensebe_rx_detect_stop (void)
 {
     log_printf("%s\n", __func__);
-    ir_detect_stop ();
+    tssp_detect_stop ();
 }
 
 void sensebe_rx_detect_add_ticks (uint32_t interval)
