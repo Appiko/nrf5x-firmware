@@ -168,8 +168,6 @@ static sensebe_config_t sensebe_ble_default_config = {
 
 };
 
-static uint32_t OUT_PIN_ARRAY[] = {JACK_FOCUS_PIN, JACK_TRIGGER_PIN};
-static bool OUT_PIN_INIT_VAL[] = {1,1};
 
 
 
@@ -178,8 +176,8 @@ sensebe_rx_detect_config_t default_sensebe_rx_detect_config =
     .rx_en_pin = TSSP_RX_EN,
     .rx_out_pin = TSSP_RX_OUT,
     .time_window_ms = MS_TIMER_TICKS_MS(100),
-    .cam_trig_pin_array = OUT_PIN_ARRAY,
-    .out_gen_init_val = OUT_PIN_INIT_VAL
+    .focus_pin_no = JACK_FOCUS_PIN,
+    .trigger_pin_no = JACK_TRIGGER_PIN,
     
 };
 

@@ -34,7 +34,6 @@
 
 #include "hal_gpio.h"
 #include "ms_timer.h"
-#include "out_pattern_gen.h"
 #include "sensebe_rx_rev1.h"
 #include "sensebe_rx_detect.h"
 #include "log.h"
@@ -54,10 +53,11 @@
 static bool detect_feedback_flag = true;
 static uint32_t detect_time_pass = 0;
 static uint32_t total_operation_time = INTER_TRIG_TIME + SINGLE_SHOT_DURATION + 10;
-void out_gen_done_handler(uint32_t state)
+void camera_unit_handler(uint32_t state)
 {
     log_printf("%s\n", __func__);
     log_printf("State : %d\n", state);
+    tssp_detect_window_detect ();
 }
 
 //void system_dowm (void)
@@ -87,8 +87,7 @@ void timer_1s (void)
 
 void window_trigger ()
 {
-//    log_printf("%s\n", __func__);
-    if(out_gen_is_on () == false)
+    log_printf("%s\n", __func__);
     {
         if(detect_feedback_flag == true)
         {
@@ -107,7 +106,7 @@ void window_trigger ()
             {
                 trig_count = 0;
             }
-            if(trig_count >= 3)
+            if(trig_count >= 30)
             {
                 trig_count = 0;
                 tssp_detect_stop ();
@@ -115,7 +114,7 @@ void window_trigger ()
             }
             previous_tick = current_tick;
         }
-//        out_gen_start (&single_shot_config);
+        tssp_detect_stop ();
         cam_trigger (0);
     }
 }
@@ -146,9 +145,10 @@ void sensebe_rx_detect_init (sensebe_rx_detect_config_t * sensebe_rx_detect_conf
     
     cam_trigger_config_t cam_trig_conf = 
     {
-        .cam_trigger_done_handler = out_gen_done_handler,
+        .cam_trigger_done_handler = camera_unit_handler,
         .no_of_setups = 1,
-        .out_gen_pin_array = sensebe_rx_detect_config->cam_trig_pin_array,
+        .focus_pin = sensebe_rx_detect_config->focus_pin_no,
+        .trigger_pin = sensebe_rx_detect_config->trigger_pin_no
     };
     cam_trigger_init (&cam_trig_conf);
 }
@@ -158,14 +158,22 @@ void sensebe_rx_detect_start (void)
     log_printf("%s\n", __func__);
     detect_time_pass = 0;
     detect_feedback_flag = true;
-    tssp_detect_window_detect ();
     cam_trigger_setup_t cam_trig_setup = 
     {
-        .done_state = 0,
         .setup_number = 0,
-        .trig_duration_ms = 1000
+        .trig_duration_ms = 80
     };
-    cam_trigger_set_trigger (0, &cam_trig_setup);
+    
+    cam_trigger_t local_cam_trigger =
+    {
+        .trig_mode = VIDEO,
+        .trig_param1 = 2,
+        .trig_param2 = 1
+    };
+
+    cam_trigger_set_trigger (&local_cam_trigger, &cam_trig_setup);
+
+    tssp_detect_window_detect ();
 }
 
 void sensebe_rx_detect_stop (void)
