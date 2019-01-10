@@ -182,7 +182,7 @@ void single_shot (cam_trigger_setup_t * cam_trigger_setup)
     uint32_t number_of_transition = SINGLE_SHOT_TRANSITIONS;
     int32_t time_remain;
     
-    time_remain = MS_TIMER_TICKS_MS(cam_trigger_setup->trig_duration_ms) - SINGLE_SHOT_DURATION;
+    time_remain = MS_TIMER_TICKS_MS(cam_trigger_setup->trig_duration_100ms * 100) - SINGLE_SHOT_DURATION;
     
     if(time_remain <= 0)
     {
@@ -237,7 +237,7 @@ void multi_shot (cam_trigger_setup_t * cam_trigger_setup, uint32_t time_between_
             local_out_gen_config.next_out[j][no_of_shots * SINGLE_SHOT_TRANSITIONS] = 1;
         }
     }
-    time_remain = MS_TIMER_TICKS_MS(cam_trigger_setup->trig_duration_ms)
+    time_remain = MS_TIMER_TICKS_MS(cam_trigger_setup->trig_duration_100ms * 100)
         - SINGLE_SHOT_DURATION*no_of_shots - 
         ((MS_TIMER_TICKS_MS (time_between_shots_100ms * 100) - SINGLE_SHOT_DURATION)
         *(no_of_shots - 1));    
@@ -259,7 +259,7 @@ void long_press (cam_trigger_setup_t * cam_trigger_setup, uint32_t expousure_tim
     uint32_t number_of_transition = BULB_SHOT_TRANSITIONS;
     uint32_t bulb_time_ticks = MS_TIMER_TICKS_MS ((expousure_time_100ms * 100));
 
-    time_remain = MS_TIMER_TICKS_MS(cam_trigger_setup->trig_duration_ms) - bulb_time_ticks;    
+    time_remain = MS_TIMER_TICKS_MS(cam_trigger_setup->trig_duration_100ms * 100) - bulb_time_ticks;    
     if(time_remain <= 0)
     {
         time_remain = 1;
@@ -288,7 +288,7 @@ void video_without_extn (cam_trigger_setup_t * cam_trigger_setup, uint32_t video
     int32_t time_remain;
     video_len_s = MS_TIMER_TICKS_MS(video_len_s * 1000);
 
-    time_remain = MS_TIMER_TICKS_MS(cam_trigger_setup->trig_duration_ms*100) - 
+    time_remain = MS_TIMER_TICKS_MS(cam_trigger_setup->trig_duration_100ms * 100) - 
         (video_len_s);
 
     if(time_remain <= 0)
@@ -320,7 +320,7 @@ void video_with_extn (cam_trigger_setup_t * cam_trigger_setup, uint32_t video_le
     video_ext_config.transitions_durations[0] = (video_extn_len);
 
     video_len_s = video_len_s * 1000;
-    video_oper_time = cam_trigger_setup->trig_duration_ms*100 - video_len_s;
+    video_oper_time = cam_trigger_setup->trig_duration_100ms * 100 - video_len_s;
     video_oper_time = MS_TIMER_TICKS_MS(video_oper_time);
     if(video_oper_time < 0)
     {
@@ -355,7 +355,7 @@ void half_press (cam_trigger_setup_t * cam_trigger_setup)
     int32_t time_remain;
     uint32_t number_of_transition = FOCUS_TRANSITIONS;
     
-    time_remain = MS_TIMER_TICKS_MS(cam_trigger_setup->trig_duration_ms) - 
+    time_remain = MS_TIMER_TICKS_MS(cam_trigger_setup->trig_duration_100ms * 100) - 
         SINGLE_SHOT_DURATION;
     if(time_remain <= 0)
     {

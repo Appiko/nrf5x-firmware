@@ -73,7 +73,7 @@ typedef struct
 typedef struct
 {
     /** Total operation duration in milliseconds */
-    uint32_t trig_duration_ms;
+    uint32_t trig_duration_100ms;
     /** Serial number of current setup */
     uint32_t setup_number;
 }cam_trigger_setup_t;
