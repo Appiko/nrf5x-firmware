@@ -70,7 +70,7 @@
 #endif
 
 /** Macro to find out the rounded number of MS_TIMER ticks for the passed time in milli-seconds */
-#define MS_TIMER_TICKS_MS(ms)                ((uint32_t) ROUNDED_DIV( (MS_TIMER_FREQ*(uint64_t)ms) , 1000) )
+#define MS_TIMER_TICKS_MS(ms)                ((uint32_t) ROUNDED_DIV( (MS_TIMER_FREQ*(uint64_t)(ms)) , 1000) )
 
 /** @brief Enumeration used for specifying the timers that can be used with a RTC peripheral
  */
