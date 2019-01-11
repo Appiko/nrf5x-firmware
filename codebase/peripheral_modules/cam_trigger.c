@@ -392,7 +392,6 @@ void cam_trigger_init(cam_trigger_config_t * cam_trigger_config)
 
 void cam_trigger_set_trigger (cam_trigger_t * cam_trigger, cam_trigger_setup_t * cam_trigger_setup)
 {
-    callback_state = cam_trigger_setup->setup_number;
     
     switch(cam_trigger->trig_mode)
     {
@@ -430,6 +429,7 @@ void cam_trigger (uint32_t setup_number)
     static int32_t video_itt;
     if(out_gen_is_on () == DISABLE && video_on_flag == DISABLE)
     {
+        callback_state = setup_number;
         out_gen_start (&arr_out_gen_config[setup_number]);
         video_itt = video_oper_time;
     }
