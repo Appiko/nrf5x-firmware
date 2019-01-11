@@ -59,7 +59,8 @@ C_SRC += out_pattern_gen.c
 C_SRC += sensebe_rx_detect.c
 C_SRC += led_ui.c
 C_SRC += led_seq.c
-C_SRC += ir_detect.c
+C_SRC += tssp_detect.c
+C_SRC += cam_trigger.c
 #Gets the name of the application folder
 APPLN = $(shell basename $(PWD))
 
