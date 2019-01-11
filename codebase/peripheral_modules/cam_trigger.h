@@ -40,11 +40,11 @@
 //TODO Proper naming and documentation 
 typedef enum
 {
-    SINGLE_SHOT,
-    MULTI_SHOT,
-    LONG_PRESS,
-    VIDEO,
-    HALF_PRESS
+    CAM_TRIGGER_SINGLE_SHOT,
+    CAM_TRIGGER_MULTI_SHOT,
+    CAM_TRIGGER_LONG_PRESS,
+    CAM_TRIGGER_VIDEO,
+    CAM_TRIGGER_HALF_PRESS
 }cam_trigger_list_t;
 
 typedef struct
@@ -63,8 +63,6 @@ typedef struct
     uint32_t focus_pin;
     /** Trigger Pin */
     uint32_t trigger_pin;
-    /** Number of setups required to application */
-    uint32_t no_of_setups;
     /** Function pointer of function which is to be called when cam trigger\
      *  operation is finished  */
     void (* cam_trigger_done_handler)(uint32_t done_state);
@@ -79,14 +77,14 @@ typedef struct
 }cam_trigger_setup_t;
 
 /**
- * @breif Function to initiate output pins
+ * @brief Function to initiate output pins
  * 
  * @param cam_trigger_config Pointer to cam_trigger configuration @ref cam_trigger_config_t 
  */
 void cam_trigger_init(cam_trigger_config_t * cam_trigger_config);
 
 /**
- * @breif Function to set a camera trigger
+ * @brief Function to set a camera trigger
  * 
  * @param cam_trigger Camera trigger in combined format
  * 
@@ -95,7 +93,7 @@ void cam_trigger_init(cam_trigger_config_t * cam_trigger_config);
 void cam_trigger_set_trigger (cam_trigger_t * cam_trigger, cam_trigger_setup_t * cam_trigger_setup);
 
 /**
- * @breif Function to trigger the camera with given setup number
+ * @brief Function to trigger the camera with given setup number
  * 
  * @param setup_number Setup which is to be used to trigger the camera.
  */
