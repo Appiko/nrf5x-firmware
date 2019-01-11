@@ -95,12 +95,25 @@ enum
     NO_OF_PINS
 };
 
-enum
+typedef enum
 {
-    END_TRIG,
-    VIDEO_EXTENSIONS,
-    
-};
+    SINGLE_SHOT,
+    MULTI_SHOT,
+    LONG_PRESS,
+    VIDEO_WO_EXT,
+    HALF_PRESS,
+    VIDEO_W_EXT,
+}trig_modes_t;
+
+typedef enum
+{
+    NON_VIDEO_EXT_IDLE,
+    NON_VIDEO_EXT_RUNNING,
+    VIDEO_EXT_START,
+    VIDEO_EXT_END,
+    VIDEO_EXT_EXTEND,
+    VIDEO_EXT_ITT
+}state_t;
 
 /** Array which is partially copied while generating out_gen_config for multi-shot */
 static const bool multishot_generic[NO_OF_PINS][OUT_GEN_MAX_TRANSITIONS] ={
@@ -110,72 +123,97 @@ static const bool multishot_generic[NO_OF_PINS][OUT_GEN_MAX_TRANSITIONS] ={
     0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1}
 };
 
-
-/** Counter to keep track of extensions */
-static uint32_t video_extn_cnt = NO_OF_VIDEO_EXTN_ALLOWED;
-/** Video flag */
-static bool video_on_flag;
-/** Video operation duration */
-static int32_t video_oper_time;
-/** Video Extension time */
-static uint32_t video_extn_len = 1;
- /* extension length will be set in trigger_set function. Once set, Extension length will remain same.*/
-static out_gen_config_t video_ext_config = 
+static out_gen_config_t video_ext_itt_config =
 {
     .done_handler = out_gen_done_handler,
-    .next_out = 
-    {{1,1},
-    {1,1}},
+    .next_out = {{1,1},
+                 {1,1}},
     .num_transitions = 1,
-    .out_gen_state = VIDEO_EXTENSIONS
 };
-/* Stop length will be calculated every time. Stop config will be automatically started once start 
-part or extensions are over*/
-static out_gen_config_t video_end_config = 
+
+static const out_gen_config_t video_end_config =
 {
     .next_out = 
-    {{1,0,1,1},
-    {1,1,1,1}},
-    .num_transitions = 3,
-    .transitions_durations = {MS_TIMER_TICKS_MS(VIDEO_END_PART), VIDEO_END_PULSE,
-    1},
+    {{1,0,1},
+    {1,1,1}},
+    .num_transitions = 2,
+    .transitions_durations = {MS_TIMER_TICKS_MS(VIDEO_END_PART), VIDEO_END_PULSE},
     .done_handler = out_gen_done_handler,
-    .out_gen_state = END_TRIG
+    .out_gen_state = VIDEO_EXT_END
 };
 
+static const bool OUT_GEN_DEFAULT_STATE[] = {1,1};
 
-static uint32_t callback_state;
-void (*cam_trigger_handler) (uint32_t callback_state);
+void (*cam_trigger_handler) (uint32_t active_config);
 
-
-void out_gen_done_handler (uint32_t state)
-{
-    log_printf("%s : %d\n", __func__, state);
-    switch(state)
-    {
-        case END_TRIG :
-            video_on_flag = DISABLE;
-            video_extn_cnt = NO_OF_VIDEO_EXTN_ALLOWED;
-            break;
-        case VIDEO_EXTENSIONS :
-            video_on_flag = ENABLE;
-            out_gen_start (&video_end_config);
-            break;
-    }
-    if(video_extn_cnt != 0)
-    {
-        cam_trigger_handler (callback_state);
-    }
-}
-
-
-static bool OUT_GEN_DEFAULT_STATE[] = {1,1};
-
-static uint32_t arr_out_pin[NO_OF_PINS];
+static uint32_t active_config;
+static state_t state;
 
 static out_gen_config_t arr_out_gen_config[MAX_SETUP_NO];
 
-static uint32_t setup_nos;
+static struct
+{
+    uint32_t itt_max_duration;
+    uint32_t extend_duration;
+}ext[MAX_SETUP_NO];
+
+void out_gen_done_handler (uint32_t out_gen_context)
+{
+    log_printf("%s : %d\n", __func__, state);
+
+    static uint32_t video_ext_count;
+
+    switch(state)
+    {
+        case NON_VIDEO_EXT_RUNNING :
+            state = NON_VIDEO_EXT_IDLE;
+            cam_trigger_handler(active_config);
+            break;
+        case VIDEO_EXT_START :
+            state = VIDEO_EXT_END;
+            video_ext_count = NO_OF_VIDEO_EXTN_ALLOWED;
+            out_gen_start (&video_end_config);
+            cam_trigger_handler (active_config);
+            break;
+        case VIDEO_EXT_END:
+            state = VIDEO_EXT_ITT;
+            if( ext[active_config].itt_max_duration >
+                    ((NO_OF_VIDEO_EXTN_ALLOWED-video_ext_count)*
+                            ext[active_config].extend_duration))
+            {
+                video_ext_itt_config.transitions_durations[0] =
+                        ext[active_config].itt_max_duration -
+                ((NO_OF_VIDEO_EXTN_ALLOWED-video_ext_count)*
+                        ext[active_config].extend_duration);
+            }
+            else
+            {
+                video_ext_itt_config.transitions_durations[0] = 0;
+            }
+            video_ext_itt_config.out_gen_state = VIDEO_EXT_ITT;
+            out_gen_start (&video_ext_itt_config);
+            break;
+        case VIDEO_EXT_EXTEND:
+            video_ext_count--;
+            if(video_ext_count)
+            {
+                state = VIDEO_EXT_END;
+                cam_trigger_handler(active_config);
+                out_gen_start (&video_end_config);
+            }
+            else
+            {
+                state = VIDEO_EXT_ITT;
+                out_gen_start (&video_end_config);
+            }
+
+            break;
+        case VIDEO_EXT_ITT:
+           cam_trigger_handler (active_config);
+           state = NON_VIDEO_EXT_IDLE;
+           break;
+    }
+}
 
 void single_shot (cam_trigger_setup_t * cam_trigger_setup)
 {
@@ -193,7 +231,7 @@ void single_shot (cam_trigger_setup_t * cam_trigger_setup)
     {
         .num_transitions = number_of_transition,
         .done_handler = out_gen_done_handler,
-        .out_gen_state = END_TRIG,
+        .out_gen_state = NON_VIDEO_EXT_RUNNING,
         .transitions_durations = { SINGLE_SHOT_DURATION, time_remain },
         .next_out = {{0, 1, 1},
                      {0, 1, 1}},
@@ -221,7 +259,7 @@ void multi_shot (cam_trigger_setup_t * cam_trigger_setup, uint32_t time_between_
     {
         .num_transitions = number_of_transition,
         .done_handler = out_gen_done_handler,
-        .out_gen_state = END_TRIG,
+        .out_gen_state = NON_VIDEO_EXT_RUNNING,
     };
 
     for (uint32_t i = 0; i < no_of_shots; i++)
@@ -269,7 +307,7 @@ void long_press (cam_trigger_setup_t * cam_trigger_setup, uint32_t expousure_tim
     {
         .num_transitions = number_of_transition,
         .done_handler = out_gen_done_handler,
-        .out_gen_state = END_TRIG,
+        .out_gen_state = NON_VIDEO_EXT_RUNNING,
         .transitions_durations =
             {bulb_time_ticks, time_remain},
         .next_out =
@@ -305,7 +343,7 @@ void video_without_extn (cam_trigger_setup_t * cam_trigger_setup, uint32_t video
                     (video_len_s),
                     VIDEO_END_PULSE,  time_remain},
         .done_handler = out_gen_done_handler,
-        .out_gen_state = END_TRIG,
+        .out_gen_state = NON_VIDEO_EXT_RUNNING,
     };
     
     memcpy (&arr_out_gen_config[cam_trigger_setup->setup_number], &local_out_gen_config,
@@ -316,19 +354,22 @@ void video_without_extn (cam_trigger_setup_t * cam_trigger_setup, uint32_t video
 void video_with_extn (cam_trigger_setup_t * cam_trigger_setup, uint32_t video_len_s,
                       uint32_t extn_len_s)
 {
-    video_extn_len = MS_TIMER_TICKS_MS(extn_len_s * 1000);
-    video_ext_config.transitions_durations[0] = (video_extn_len);
+    ext[cam_trigger_setup->setup_number].extend_duration =
+            MS_TIMER_TICKS_MS(extn_len_s * 1000);
 
     video_len_s = video_len_s * 1000;
-    video_oper_time = cam_trigger_setup->trig_duration_100ms * 100 - video_len_s;
-    video_oper_time = MS_TIMER_TICKS_MS(video_oper_time);
-    if(video_oper_time < 0)
+    if((cam_trigger_setup->trig_duration_100ms * 100) > video_len_s)
     {
-        video_oper_time = 1;
+        ext[cam_trigger_setup->setup_number].itt_max_duration =
+                cam_trigger_setup->trig_duration_100ms * 100 - video_len_s;
+        ext[cam_trigger_setup->setup_number].itt_max_duration =
+                MS_TIMER_TICKS_MS(ext[cam_trigger_setup->setup_number].itt_max_duration);
     }
-    video_end_config.transitions_durations[2] = (video_oper_time);
+    else
+    {
+        ext[cam_trigger_setup->setup_number].itt_max_duration = 0;
+    }
     
-
     int32_t video_len_check;
     video_len_check = video_len_s - VIDEO_END_PART;
     video_len_s = (video_len_check < 0) ? 1 : video_len_check;
@@ -341,13 +382,11 @@ void video_with_extn (cam_trigger_setup_t * cam_trigger_setup, uint32_t video_le
         {1,1,1}},
         .transitions_durations = {VIDEO_START_PULSE, MS_TIMER_TICKS_MS(video_len_s)},
         .done_handler = out_gen_done_handler,
-        .out_gen_state = VIDEO_EXTENSIONS,
+        .out_gen_state = VIDEO_EXT_EXTEND,
     };
 
     memcpy (&arr_out_gen_config[cam_trigger_setup->setup_number], &local_out_gen_config,
             sizeof(out_gen_config_t));
-    
-    
 }
 
 void half_press (cam_trigger_setup_t * cam_trigger_setup)
@@ -365,7 +404,7 @@ void half_press (cam_trigger_setup_t * cam_trigger_setup)
     {
         .num_transitions = number_of_transition,
         .done_handler = out_gen_done_handler,
-        .out_gen_state = END_TRIG,
+        .out_gen_state = NON_VIDEO_EXT_RUNNING,
         .transitions_durations =
             {SINGLE_SHOT_DURATION, time_remain},
         .next_out =
@@ -383,17 +422,29 @@ void cam_trigger_init(cam_trigger_config_t * cam_trigger_config)
 {
     cam_trigger_handler = cam_trigger_config->cam_trigger_done_handler;
     
+    uint32_t arr_out_pin[NO_OF_PINS];
     arr_out_pin[FOCUS_PIN] = cam_trigger_config->focus_pin;
     arr_out_pin[TRIGGER_PIN] = cam_trigger_config->trigger_pin;
     
-    setup_nos = cam_trigger_config->no_of_setups;
+    //Check if setup_no is a valid number
     out_gen_init (NO_OF_PINS, arr_out_pin, OUT_GEN_DEFAULT_STATE);
+
+    state = NON_VIDEO_EXT_RUNNING;
 }
 
 void cam_trigger_set_trigger (cam_trigger_t * cam_trigger, cam_trigger_setup_t * cam_trigger_setup)
 {
+    trig_modes_t mode;
+    if((cam_trigger->trig_mode == CAM_TRIGGER_VIDEO) && (cam_trigger->trig_param2 != 0))
+    {
+        mode = VIDEO_W_EXT;
+    }
+    else
+    {
+        mode = cam_trigger->trig_mode;
+    }
     
-    switch(cam_trigger->trig_mode)
+    switch(mode)
     {
         case SINGLE_SHOT : 
             single_shot (cam_trigger_setup);
@@ -406,17 +457,12 @@ void cam_trigger_set_trigger (cam_trigger_t * cam_trigger, cam_trigger_setup_t *
             long_press (cam_trigger_setup,  (uint32_t)(cam_trigger->trig_param1 
                 | (cam_trigger->trig_param2 << 16)));
             break;
-        case VIDEO:
-            if(cam_trigger->trig_param2 == 0)
-            {
-                video_without_extn (cam_trigger_setup, cam_trigger->trig_param1);
-            }
-            else
-            {
-                video_on_flag = DISABLE;
-                video_with_extn (cam_trigger_setup, cam_trigger->trig_param1,
+        case VIDEO_WO_EXT:
+            video_without_extn (cam_trigger_setup, cam_trigger->trig_param1);
+            break;
+        case VIDEO_W_EXT:
+            video_with_extn (cam_trigger_setup, cam_trigger->trig_param1,
                                     cam_trigger->trig_param2);
-            }
             break;
         case HALF_PRESS :
             half_press (cam_trigger_setup);
@@ -426,29 +472,34 @@ void cam_trigger_set_trigger (cam_trigger_t * cam_trigger, cam_trigger_setup_t *
 
 void cam_trigger (uint32_t setup_number)
 {
-    static int32_t video_itt;
-    if(out_gen_is_on () == DISABLE && video_on_flag == DISABLE)
+    if(state == NON_VIDEO_EXT_IDLE)
     {
-        callback_state = setup_number;
-        out_gen_start (&arr_out_gen_config[setup_number]);
-        video_itt = video_oper_time;
+       active_config = setup_number;
+
+       //A non extend trigger should happen now
+       if(arr_out_gen_config[setup_number].out_gen_state != VIDEO_EXT_EXTEND)
+       {
+            state = NON_VIDEO_EXT_RUNNING;
+            out_gen_start (&arr_out_gen_config[setup_number]);
+       }
+       //A extendable video trigger starts now
+       else
+       {
+           state = VIDEO_EXT_START;
+           out_gen_start (&arr_out_gen_config[setup_number]);
+       }
     }
-    else if(video_on_flag == ENABLE)
+    else if(state == VIDEO_EXT_END)
     {
-        video_itt = video_itt - video_extn_len;
-        if(video_itt <= 0)
-        {
-            video_itt = 1;
-        }
-        video_end_config.transitions_durations[2] = (video_itt);
-        
         uint32_t ticks_done = out_gen_get_ticks ();
-        video_ext_config.transitions_durations[0]  = (video_extn_len > ticks_done) 
-            ? (video_extn_len - ticks_done) : video_extn_len;
-        
-        out_gen_start (&video_ext_config);
-        
-        video_extn_cnt --;
+        video_ext_itt_config.transitions_durations[0]  =
+            (ext[active_config].extend_duration > ticks_done)
+            ? (ext[active_config].extend_duration - ticks_done)
+            : ext[active_config].extend_duration;
+        video_ext_itt_config.out_gen_state = VIDEO_EXT_END;
+        out_gen_start (&video_ext_itt_config);
+        state = VIDEO_EXT_EXTEND;
     }
+
 }
 
