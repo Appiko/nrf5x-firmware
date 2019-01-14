@@ -36,10 +36,16 @@
 #ifndef SENSEBE_RX_DETECT_H
 #define SENSEBE_RX_DETECT_H
 
+#include "ms_timer.h"
+
 #ifdef __cplusplus
 extern "C" {
 #endif
-   
+    
+#define SENSEBE_TIMER_MODE_MS_TIMER MS_TIMER3
+    
+#define SENSEBE_OPERATION_MS_TIMER MS_TIMER2
+
 /** Structure containing all the values required for sensebe_rx_detect module */
 typedef struct 
 {
