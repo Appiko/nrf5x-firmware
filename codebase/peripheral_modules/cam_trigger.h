@@ -36,6 +36,7 @@
 #define CAM_TRIGGER_H
 
 #include "stdint.h"
+#include "stdbool.h"
 
 #define CAM_TRIGGER_MAX_SETUP_NO 8
 
@@ -97,4 +98,12 @@ void cam_trigger_set_trigger (cam_trigger_config_t * cam_trigger);
  * @param setup_number Setup which is to be used to trigger the camera.
  */
 void cam_trigger (uint32_t setup_number);
+
+/**
+ * @brief Function to check status of cam_trigger module.
+ * @return Status of cam_trigger module
+ * @retval true : cam_trigger module is already running
+ * @retval false : cam_trigger module is not running
+ */
+bool cam_trigger_is_on (void);
 #endif /* CAM_TRIGGER_H */
