@@ -178,6 +178,7 @@ sensebe_rx_detect_config_t default_sensebe_rx_detect_config =
     .time_window_ms = MS_TIMER_TICKS_MS(100),
     .focus_pin_no = JACK_FOCUS_PIN,
     .trigger_pin_no = JACK_TRIGGER_PIN,
+    .photodiode_pin = PIN_TO_ANALOG_INPUT(PHOTODIODE_LIGHT_SENSE),
     
 };
 

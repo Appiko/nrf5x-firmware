@@ -63,6 +63,8 @@ typedef struct
     uint32_t focus_pin_no;
     /** Pin number for Trigger pin */
     uint32_t trigger_pin_no;
+    /** Pin number for Photodiode */
+    uint32_t photodiode_pin;
 }sensebe_rx_detect_config_t;
 
 /**
