@@ -37,6 +37,9 @@
 
 #include "stdint.h"
 
+#define CAM_TRIGGER_MAX_SETUP_NO 8
+
+
 //TODO Proper naming and documentation 
 typedef enum
 {
@@ -55,7 +58,11 @@ typedef struct
     uint16_t trig_param1;
     /** Second parameter for camera trigger */
     uint8_t trig_param2;
-}cam_trigger_t;
+    /** Total operation duration in milliseconds */
+    uint32_t trig_duration_100ms;
+    /** Serial number of current setup */
+    uint32_t setup_number;
+}cam_trigger_config_t;
 
 typedef struct
 {
@@ -66,14 +73,6 @@ typedef struct
     /** Function pointer of function which is to be called when cam trigger\
      *  operation is finished  */
     void (* cam_trigger_done_handler)(uint32_t done_state);
-}cam_trigger_config_t;
-
-typedef struct
-{
-    /** Total operation duration in milliseconds */
-    uint32_t trig_duration_100ms;
-    /** Serial number of current setup */
-    uint32_t setup_number;
 }cam_trigger_setup_t;
 
 /**
@@ -81,7 +80,7 @@ typedef struct
  * 
  * @param cam_trigger_config Pointer to cam_trigger configuration @ref cam_trigger_config_t 
  */
-void cam_trigger_init(cam_trigger_config_t * cam_trigger_config);
+void cam_trigger_init(cam_trigger_setup_t * cam_trigger_config);
 
 /**
  * @brief Function to set a camera trigger
@@ -90,7 +89,7 @@ void cam_trigger_init(cam_trigger_config_t * cam_trigger_config);
  * 
  * @param cam_trigger_setup Pointer to trigger setup @ref cam_trigger_setup_t
  */
-void cam_trigger_set_trigger (cam_trigger_t * cam_trigger, cam_trigger_setup_t * cam_trigger_setup);
+void cam_trigger_set_trigger (cam_trigger_config_t * cam_trigger);
 
 /**
  * @brief Function to trigger the camera with given setup number
