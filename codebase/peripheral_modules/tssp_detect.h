@@ -70,7 +70,7 @@ typedef struct
     bool detect_logic_level;
 
     /** Window duration in RTC ticks for which if no pulse is detected, some operation will done */
-    uint32_t window_duration;
+    uint32_t window_duration_ticks;
 
     /** Function pointer for a function which is to be called when no pulse is detected\ 
      *  for window duration */

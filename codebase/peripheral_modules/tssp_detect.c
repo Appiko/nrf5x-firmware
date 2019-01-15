@@ -105,12 +105,9 @@ void tssp_detect_init (tssp_detect_config_t * tssp_detect_config)
     {
         missed_handler = tssp_detect_config->tssp_missed_handler;
         TSSP_DETECT_RTC_USED->PRESCALER = ROUNDED_DIV(LFCLK_FREQ, TSSP_DETECT_FREQ) - 1;
-        TSSP_DETECT_RTC_USED->CC[RTC_CHANNEL_USED] = tssp_detect_config->window_duration;
+        TSSP_DETECT_RTC_USED->CC[RTC_CHANNEL_USED] = tssp_detect_config->window_duration_ticks;
         TSSP_DETECT_RTC_USED->INTENSET |= ENABLE << (RTC_CHANNEL_USED+16);
-                
-        NVIC_SetPriority (RTC0_IRQn, 1);
-        NVIC_EnableIRQ (RTC0_IRQn);
-        NVIC_ClearPendingIRQ(RTC0_IRQn);
+                    
         NRF_PPI->CH[PPI_CHANNEL_USED_RTC].EEP = (uint32_t) &NRF_GPIOTE->EVENTS_IN[GPIOTE_CHANNEL_USED];
         NRF_PPI->CH[PPI_CHANNEL_USED_RTC].TEP = (uint32_t) &TSSP_DETECT_RTC_USED->TASKS_CLEAR;
         
@@ -121,7 +118,7 @@ void tssp_detect_init (tssp_detect_config_t * tssp_detect_config)
         detect_handler = tssp_detect_config->tssp_detect_handler;
 
         TSSP_DETECT_EGU_USED->INTENSET |= ENABLE << EGU_CHANNEL_USED;
-        NVIC_SetPriority (SWI0_EGU0_IRQn, 1);
+        NVIC_SetPriority (SWI0_EGU0_IRQn, APP_IRQ_PRIORITY_HIGHEST);
         NVIC_EnableIRQ (SWI0_IRQn);
         NVIC_ClearPendingIRQ (SWI0_IRQn);
 
@@ -134,6 +131,10 @@ void tssp_detect_init (tssp_detect_config_t * tssp_detect_config)
 void tssp_detect_window_detect ()
 {
     hal_gpio_pin_write (tssp_en_pin, ENABLE);
+
+    NVIC_SetPriority (RTC0_IRQn, APP_IRQ_PRIORITY_HIGHEST);
+    NVIC_EnableIRQ (RTC0_IRQn);
+
     NRF_GPIOTE->EVENTS_IN[GPIOTE_CHANNEL_USED] = 0;
     
     NRF_GPIOTE->CONFIG[GPIOTE_CHANNEL_USED] =
@@ -160,6 +161,8 @@ void tssp_detect_stop ()
 
     NRF_PPI->CHENCLR |= 1 << PPI_CHANNEL_USED_RTC;
     NRF_PPI->CHENCLR |= 1 << PPI_CHANNEL_USED_EGU;
+
+    NVIC_DisableIRQ  (RTC0_IRQn);
 
     TSSP_DETECT_RTC_USED->TASKS_CLEAR = 1;
     (void) TSSP_DETECT_RTC_USED->TASKS_CLEAR;
