@@ -32,6 +32,16 @@
  * POSSIBILITY OF SUCH DAMAGE
  */
 
+/**
+ * @addtogroup group_peripheral_modules
+ * @{
+ *
+ * @defgroup group_tssp_detect TSSP Detector Driver
+ *
+ * @brief Driver for TSSP IR beam detector.
+ * @{
+ */
+
 #ifndef TSSP_DETECT_H
 #define TSSP_DETECT_H
 
@@ -39,47 +49,65 @@
 #include "stdbool.h"
 #include "boards.h"
 
+/** RTC used by this module */
 #define TSSP_DETECT_RTC_USED NRF_RTC0
+
+/** EGU channel used by this module */
 #define TSSP_DETECT_EGU_USED NRF_EGU0
 
-
+/**
+ * @brief Structure to store information required to use this module.
+ */
 typedef struct 
 {
     /** Pin number for enable pin */
     uint32_t rx_en_pin;
+
     /** Pin number for IR Rx detect pin */
     uint32_t rx_in_pin;
+
     /** Logic level when pulse is detected */
     bool detect_logic_level;
+
     /** Window duration in RTC ticks for which if no pulse is detected, some operation will done */
     uint32_t window_duration;
+
     /** Function pointer for a function which is to be called when no pulse is detected\ 
-     *  for window duration*/
+     *  for window duration */
     void (*tssp_missed_handler) (void);
+
     /** Function pointer for a function which is to be called when a pulse is detected */
     void (*tssp_detect_handler) (void);
+
 }tssp_detect_config_t;
 
 /**
  * @brief Function to initialize IR detect sub-module
+ * 
  * @param tssp_detect_config Configuration requtssped for initialization
  */
 void tssp_detect_init (tssp_detect_config_t * tssp_detect_config);
 
 /**
  * @brief Function to start IR pulse detection.
+ * 
  */
 void tssp_detect_window_detect (void);
 
 /**
- * @breif Function to stop IR pulse detection
+ * @brief Function to stop IR pulse detection
+ * 
  */
 void tssp_detect_stop (void);
 
 /**
- * @breif Function to start module is pulse detecting mode.
- * @note In this mode module will wait for pulse.
+ * @brief Function to start module is pulse detecting mode.
+ * 
  */
-void tssp_detect_pulse_detect ();
+void tssp_detect_pulse_detect (void);
 
 #endif /* TSSP_DETECT_H */
+/**
+ * @}
+ * @}
+ */
