@@ -165,6 +165,11 @@ void cam_trigger_set_trigger (cam_trigger_config_t * cam_trigger);
 void cam_trigger (uint32_t setup_number);
 
 /**
+ * @brief Function to stop camera trigger
+ */
+void cam_trigger_stop (void);
+
+/**
  * @brief Function to check status of cam_trigger module.
  * @return Status of cam_trigger module
  * @retval true : cam_trigger module is already running

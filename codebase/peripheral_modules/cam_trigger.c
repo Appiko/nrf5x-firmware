@@ -495,6 +495,12 @@ void cam_trigger (uint32_t setup_number)
 
 }
 
+void cam_trigger_stop (void)
+{
+    state = NON_VIDEO_EXT_IDLE;
+    out_gen_stop (OUT_GEN_DEFAULT_STATE);
+}
+
 bool cam_trigger_is_on (void)
 {
     return (state != NON_VIDEO_EXT_IDLE) ? true : false;
