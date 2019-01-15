@@ -63,8 +63,8 @@ typedef struct
 typedef enum
 {
     TIMER_ONLY,     ///Trigger only on timer
-    PIR_ONLY,       ///Trigger only on motion detection
-    PIR_AND_TIMER,  ///Trigger on both motion detection or timer.
+    MOTION_ONLY,       ///Trigger only on motion detection
+    MOTION_AND_TIMER,  ///Trigger on both motion detection or timer.
 }trigger_conf_t;
 
 /**
@@ -115,15 +115,14 @@ typedef struct
      *  Larger Value    : --\n
      *  Smaller Value   : --\n
      */
-    uint32_t mode;
-    /** In pir_Conf: The threshold for PIR sensing is a 11 bit value, so this value needs to be
-     *  multiplied by 8 and used as the threshold. */
-    uint8_t threshold;
-    /** In pir_Conf: Amplification of the PIR signal amplifier. */
-    uint8_t amplification;
-    /** In pir_Conf: Time between triggers by a PIR in s (with a resolution of 0.1s). */
+    uint8_t mode;
+    uint16_t larger_value;
+    uint8_t smaller_value;
+    /** In tssp_Conf: Detection window duration in resolution of 100ms. */
+    uint16_t detect_window;
+    /** In tssp_Conf: Time between triggers by a PIR in s (with a resolution of 0.1s). */
     uint16_t intr_trig_timer; 
-}__attribute__ ((packed)) pir_conf_t;
+}__attribute__ ((packed)) tssp_conf_t;
 
 /**
  * @brief Structure to configure Timer triggering.
@@ -133,7 +132,9 @@ typedef struct
     /** In timer_conf: Interval between two triggers. */
     uint16_t timer_interval;
     oper_time_t oper_time;
-    uint32_t mode;
+    uint8_t mode;
+    uint16_t larger_value;
+    uint8_t smaller_value;
 }__attribute__ ((packed)) timer_conf_t;
 
 /**
@@ -143,8 +144,8 @@ typedef struct
 {
     /** In sensebe_conf: Mode of operation */
     trigger_conf_t trig_conf;
-    /** In sensebe_conf: PIR Configuration */
-    pir_conf_t  pir_conf;
+    /** In sensebe_conf: TSSP Configuration */
+    tssp_conf_t  tssp_conf;
     /** In sensebe_conf: Time configuration */
     timer_conf_t  timer_conf;
 }__attribute__ ((packed)) sensebe_config_t ;
