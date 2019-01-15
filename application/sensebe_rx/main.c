@@ -177,6 +177,7 @@ sensebe_rx_detect_config_t default_sensebe_rx_detect_config =
     .focus_pin_no = JACK_FOCUS_PIN,
     .trigger_pin_no = JACK_TRIGGER_PIN,
     .photodiode_pin = PIN_TO_ANALOG_INPUT(PHOTODIODE_LIGHT_SENSE),
+    .photodiode_en_pin = PHOTODIODE_ENABLE_PIN,
     .init_sensebe_config = &sensebe_ble_default_config,
     
 };

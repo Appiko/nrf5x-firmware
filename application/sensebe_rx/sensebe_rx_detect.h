@@ -60,6 +60,8 @@ typedef struct
     uint32_t trigger_pin_no;
     /** Pin number for Photodiode */
     uint32_t photodiode_pin;
+    /** Enable pin for Photodiode */
+    uint32_t photodiode_en_pin;
     /** sensebe_config_t pointer which points to default configuration */
     sensebe_config_t * init_sensebe_config;
 }sensebe_rx_detect_config_t;

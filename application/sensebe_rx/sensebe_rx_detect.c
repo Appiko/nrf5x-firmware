@@ -44,6 +44,7 @@
 #include "cam_trigger.h"
 #include "simple_adc.h"
 #include "string.h"
+#include "hal_nop_delay.h"
 
 typedef enum
 {
@@ -71,6 +72,8 @@ static uint32_t detect_time_pass = 0;
 static uint32_t wait_window_timepassed = 0;
 
 static uint32_t light_intensity_pin;
+
+static uint32_t light_check_enable_pin;
 
 static sensebe_config_t sensebe_config;
 
@@ -115,16 +118,20 @@ void camera_unit_handler(uint32_t trigger)
     
 }
 
-bool light_sense (uint8_t light_threshold_mode)
+bool light_sense (oper_time_t * light_threshold_mode)
 {
+    hal_gpio_pin_write (light_check_enable_pin, 1);
+    //TODO : Calculate and change this delay
+    hal_nop_delay_ms (2);
     bool mode;
     uint8_t light_threshold;
-    mode = light_threshold_mode & 0x1;
-    light_threshold = ((light_threshold_mode & 0xFE)>>1) 
+    mode = light_threshold_mode->day_or_night;
+    light_threshold = light_threshold_mode->threshold 
         * LIGHT_THRESHOLD_MULTIPLING_FACTOR;
     uint32_t light_intensity;
     light_intensity = simple_adc_get_value (SIMPLE_ADC_GAIN1_6, 
                                             light_intensity_pin);
+    hal_gpio_pin_write (light_check_enable_pin, 0);
     if(((mode == 1) && (light_intensity >= light_threshold)) ||
        ((mode == 0) && (light_intensity <= light_threshold)))
     {
@@ -188,10 +195,11 @@ void sensebe_rx_detect_init (sensebe_rx_detect_config_t * sensebe_rx_detect_conf
     log_printf("%s\n", __func__);
     
     light_intensity_pin = sensebe_rx_detect_config->photodiode_pin;
+    light_check_enable_pin = sensebe_rx_detect_config->photodiode_en_pin;
 
     memcpy (&sensebe_config, sensebe_rx_detect_config->init_sensebe_config,
             sizeof(sensebe_config_t));
-
+    
     tssp_detect_config_t local_tssp_detect_config = 
     {
         .detect_logic_level = false,
@@ -242,7 +250,7 @@ void sensebe_rx_detect_start (void)
         cam_trigger_set_trigger (&timer_cam_trig_config);
         
         ms_timer_start (SENSEBE_TIMER_MODE_MS_TIMER, MS_REPEATED_CALL,
-                        MS_TIMER_TICKS_MS(sensebe_config.timer_conf.timer_interval),
+                        MS_TIMER_TICKS_MS(sensebe_config.timer_conf.timer_interval * 100),
                         timer_trigger_handler);
     }
     
@@ -302,8 +310,8 @@ void sensebe_rx_detect_add_ticks (uint32_t interval)
                 }
                 break;
             case MOTION_IDLE : 
-//                if(light_sense (1))
-                if(true)
+                if(light_sense (&sensebe_config.tssp_conf.oper_time))
+//                if(true)
                 {
                     tssp_detect_window_detect ();
                 }
@@ -313,8 +321,8 @@ void sensebe_rx_detect_add_ticks (uint32_t interval)
                 }
                 break;
             case MOTION_SYNC : 
-//                if(light_sense (1))
-                if(true)
+                if(light_sense (&sensebe_config.tssp_conf.oper_time))
+//                if(true)
                 {
                     ms_timer_start (SENSEBE_OPERATION_MS_TIMER, MS_SINGLE_CALL, 
                                     MS_TIMER_TICKS_MS(1000), timer_1s_handler);
@@ -326,6 +334,19 @@ void sensebe_rx_detect_add_ticks (uint32_t interval)
 
                 break;
         }    
+    }
+    if(sensebe_config.trig_conf != MOTION_ONLY)
+    {
+        if(light_sense (&sensebe_config.timer_conf.oper_time))
+        {
+            ms_timer_start (SENSEBE_TIMER_MODE_MS_TIMER, MS_REPEATED_CALL,
+                MS_TIMER_TICKS_MS(sensebe_config.timer_conf.timer_interval * 100),
+                timer_trigger_handler);
+        }
+        else
+        {
+            ms_timer_stop (SENSEBE_TIMER_MODE_MS_TIMER);
+        }
     }
 }
 
