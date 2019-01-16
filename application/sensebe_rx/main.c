@@ -75,7 +75,6 @@
 #include "dev_id_fw_ver.h"
 #include "led_seq.h"
 #include "led_ui.h"
-#include "ir_detect.h"
 /* ----- Defines ----- */
 
 /**< Name of device, to be included in the advertising data. */
@@ -155,33 +154,31 @@ sense_states current_state;
 static uint32_t conn_count;
 
 static sensebe_config_t sensebe_ble_default_config = {
-    .pir_conf.oper_time.day_or_night = 1,
-    .pir_conf.oper_time.threshold = 0b0000000,
-    .pir_conf.amplification = 20,
-    .pir_conf.threshold = 175,
-    .pir_conf.mode = 0x00000000,
-    .pir_conf.intr_trig_timer = 50,
+    .tssp_conf.oper_time.day_or_night = 1,
+    .tssp_conf.oper_time.threshold = 0b0000000,
+    .tssp_conf.detect_window = 1,
+    .tssp_conf.mode = 0x00000000,
+    .tssp_conf.intr_trig_timer = 50,
 
     .timer_conf.oper_time.day_or_night = 1,
     .timer_conf.oper_time.threshold = 0b0000000,
     .timer_conf.mode = 0x00000000,
     .timer_conf.timer_interval = 50,
+    
+    .trig_conf = MOTION_ONLY,
 
 };
-
-static uint32_t OUT_PIN_ARRAY[] = {JACK_FOCUS_PIN, JACK_TRIGGER_PIN};
-static bool OUT_PIN_INIT_VAL[] = {1,1};
-
 
 
 sensebe_rx_detect_config_t default_sensebe_rx_detect_config = 
 {
     .rx_en_pin = TSSP_RX_EN,
     .rx_out_pin = TSSP_RX_OUT,
-    .time_window_ms = MS_TIMER_TICKS_MS(100),
-    .out_gen_no_of_pins = ARRAY_SIZE(OUT_PIN_ARRAY),
-    .out_gen_pin_array = OUT_PIN_ARRAY,
-    .out_gen_init_val = OUT_PIN_INIT_VAL
+    .focus_pin_no = JACK_FOCUS_PIN,
+    .trigger_pin_no = JACK_TRIGGER_PIN,
+    .photodiode_pin = PIN_TO_ANALOG_INPUT(PHOTODIODE_LIGHT_SENSE),
+    .photodiode_en_pin = PHOTODIODE_ENABLE_PIN,
+    .init_sensebe_config = &sensebe_ble_default_config,
     
 };
 
@@ -251,12 +248,13 @@ static void ble_evt_handler(ble_evt_t * evt)
  */
 static void get_sensebe_config_t(sensebe_config_t *config)
 {
-    log_printf("Trig mode %d, PIR ope time %08x, PIR mode %08x, PIR amp %d, PIR thres %d, \
-             PIR int trig time %04d, Timer oper %x, Timer mode %x, timer interval %04d \n",
-            config->trig_conf, config->pir_conf.oper_time, config->pir_conf.mode,
-            config->pir_conf.amplification, config->pir_conf.threshold,
-            config->pir_conf.intr_trig_timer,
-            config->timer_conf.oper_time, config->timer_conf.mode, config->timer_conf.timer_interval);
+//    log_printf("Trig mode %d, PIR ope time %08x, PIR mode %08x, PIR amp %d, PIR thres %d, 
+//             PIR int trig time %04d, Timer oper %x, Timer mode %x, timer interval %04d \n",
+//            config->trig_conf, config->tssp_conf.oper_time, config->tssp_conf.mode,
+//            config->tssp_conf.amplification, config->tssp_conf.threshold,
+//            config->tssp_conf.intr_trig_timer,
+//            config->timer_conf.oper_time, config->timer_conf.mode, config->timer_conf.timer_interval);
+    sensebe_rx_detect_update_config (config);
 }
 
 /**
@@ -336,6 +334,8 @@ void state_change_handler(uint32_t new_state)
                 DEVICE_TICK_SAME
             };
             device_tick_init(&tick_cfg);
+            
+            sensebe_rx_detect_stop();
 
             uint8_t is_sd_enabled;
             sd_softdevice_is_enabled(&is_sd_enabled);
@@ -352,11 +352,12 @@ void state_change_handler(uint32_t new_state)
                 sysinfo.battery_status = aa_aaa_battery_status();
                 memcpy(&sysinfo.fw_ver, fw_ver_get(), sizeof(fw_ver_t));
                 sensebe_ble_update_sysinfo(&sysinfo);
-                sensebe_ble_update_config (&sensebe_ble_default_config);
+
+                sensebe_config_t * config = sensebe_rx_detect_last_config ();
+                sensebe_ble_update_config (config);
 
                 ///Get config from sensebe_cam_trigger and send to the BLE module
             }
-            sensebe_rx_detect_stop();
             sensebe_ble_adv_start();
             
             led_ui_type_stop_all(LED_UI_LOOP_SEQ);
@@ -373,10 +374,7 @@ void state_change_handler(uint32_t new_state)
             };
             device_tick_init(&tick_cfg);
             led_ui_type_stop_all (LED_UI_LOOP_SEQ);
-//            led_ui_loop_start (LED_SEQ_GREEN_WAVE, LED_UI_MID_PRIORITY);
-//            uint8_t test_data[] = {0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0x00, 0x00, 0x00, 0x00};
-//            sensebe_led_comm_init();
-//            sensebe_led_comm_send (test_data, ARRAY_SIZE(test_data));
+            led_ui_loop_start (LED_SEQ_GREEN_WAVE, LED_UI_MID_PRIORITY);
             
             break;
         }
@@ -397,32 +395,39 @@ void button_handler(button_ui_steps step, button_ui_action act)
         {
         case BUTTON_UI_STEP_WAKE:
             log_printf("fast\n");
+            device_tick_cfg tick_cfg =
+            {
+                MS_TIMER_TICKS_MS(SENSE_FAST_TICK_INTERVAL_MS),
+                MS_TIMER_TICKS_MS(SENSE_SLOW_TICK_INTERVAL_MS),
+                DEVICE_TICK_FAST
+            };
+            device_tick_init(&tick_cfg);
             button_ui_config_wake(false);
-            device_tick_switch_mode(DEVICE_TICK_FAST);
 //            sensebe_rx_detect_start();
             break;
         case BUTTON_UI_STEP_PRESS:
-//            if(current_state == SENSING)
-//            {
-//                irq_msg_push(MSG_STATE_CHANGE, (void *) ADVERTISING);
-//            }
+            if(current_state == SENSING)
+            {
+                irq_msg_push(MSG_STATE_CHANGE, (void *) ADVERTISING);
+            }
+//            log_printf("Pressed..!!");
 
             break;
         case BUTTON_UI_STEP_LONG:
-//            {
-//                NRF_POWER->GPREGRET = 0xB1;
-//                log_printf("Trying to do system reset..!!");
-//                uint8_t is_sd_enabled;
-//                sd_softdevice_is_enabled(&is_sd_enabled);
-//                if(is_sd_enabled == 0)
-//                {
-//                    sd_nvic_SystemReset();
-//                }
-//                else
-//                {
-//                    NVIC_SystemReset ();
-//                }
-//            }
+            {
+                NRF_POWER->GPREGRET = 0xB1;
+                log_printf("Trying to do system reset..!!");
+                uint8_t is_sd_enabled;
+                sd_softdevice_is_enabled(&is_sd_enabled);
+                if(is_sd_enabled == 0)
+                {
+                    sd_nvic_SystemReset();
+                }
+                else
+                {
+                    NVIC_SystemReset ();
+                }
+            }
             break;
         }
     }
@@ -550,6 +555,8 @@ int main(void)
     hal_wdt_start();
 #endif
 
+    button_ui_init(BUTTON_PIN, APP_IRQ_PRIORITY_LOW,
+            button_handler);
 
     {
         irq_msg_callbacks cb =
@@ -563,8 +570,6 @@ int main(void)
     irq_msg_push(MSG_STATE_CHANGE, (void *)SENSING);
     sensebe_ble_init(ble_evt_handler, get_sensebe_config_t);
 
-    button_ui_init(BUTTON_PIN, APP_IRQ_PRIORITY_LOW,
-            button_handler);
     while (true)
     {
 #if ENABLE_WDT == 1

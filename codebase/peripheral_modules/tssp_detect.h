@@ -1,5 +1,5 @@
 /* 
- * File:   ir_detect.h
+ * File:   tssp_detect.h
  * Copyright (c) 2018 Appiko
  * Created on 18 December, 2018, 3:27 PM
  * Author:  Tejas Vasekar (https://github.com/tejas-tj)
@@ -32,44 +32,82 @@
  * POSSIBILITY OF SUCH DAMAGE
  */
 
-#ifndef IR_DETECT_H
-#define IR_DETECT_H
+/**
+ * @addtogroup group_peripheral_modules
+ * @{
+ *
+ * @defgroup group_tssp_detect TSSP Detector Driver
+ *
+ * @brief Driver for TSSP IR beam detector.
+ * @{
+ */
+
+#ifndef TSSP_DETECT_H
+#define TSSP_DETECT_H
 
 #include "stdint.h"
 #include "stdbool.h"
 #include "boards.h"
 
-#define IR_DETECT_RTC_USED NRF_RTC0
+/** RTC used by this module */
+#define TSSP_DETECT_RTC_USED NRF_RTC0
 
+/** EGU channel used by this module */
+#define TSSP_DETECT_EGU_USED NRF_EGU0
 
+/**
+ * @brief Structure to store information required to use this module.
+ */
 typedef struct 
 {
     /** Pin number for enable pin */
     uint32_t rx_en_pin;
+
     /** Pin number for IR Rx detect pin */
     uint32_t rx_in_pin;
+
     /** Logic level when pulse is detected */
     bool detect_logic_level;
-    /** Window duration for which if no pulse is detected, some operation will done */
-    uint32_t window_duration;
+
+    /** Window duration in RTC ticks for which if no pulse is detected, some operation will done */
+    uint32_t window_duration_ticks;
+
     /** Function pointer for a function which is to be called when no pulse is detected\ 
-     *  for window duration*/
-    void (*ir_missed_handler) (void);
-}ir_detect_config_t;
+     *  for window duration */
+    void (*tssp_missed_handler) (void);
+
+    /** Function pointer for a function which is to be called when a pulse is detected */
+    void (*tssp_detect_handler) (void);
+
+}tssp_detect_config_t;
 
 /**
  * @brief Function to initialize IR detect sub-module
- * @param ir_detect_config Configuration required for initialization
+ * 
+ * @param tssp_detect_config Configuration requtssped for initialization
  */
-void ir_detect_init (ir_detect_config_t * ir_detect_config);
+void tssp_detect_init (tssp_detect_config_t * tssp_detect_config);
 
 /**
  * @brief Function to start IR pulse detection.
+ * 
  */
-void ir_detect_start (void);
+void tssp_detect_window_detect (void);
 
 /**
- * @breif Function to stop IR pulse detection
+ * @brief Function to stop IR pulse detection
+ * 
  */
-void ir_detect_stop (void);
-#endif /* IR_DETECT_H */
+void tssp_detect_stop (void);
+
+/**
+ * @brief Function to start module is pulse detecting mode.
+ * 
+ */
+void tssp_detect_pulse_detect (void);
+
+#endif /* TSSP_DETECT_H */
+/**
+ * @}
+ * @}
+ */

@@ -36,10 +36,17 @@
 #ifndef SENSEBE_RX_DETECT_H
 #define SENSEBE_RX_DETECT_H
 
+#include "ms_timer.h"
+#include "sensebe_ble.h"
+
 #ifdef __cplusplus
 extern "C" {
 #endif
-   
+    
+#define SENSEBE_TIMER_MODE_MS_TIMER MS_TIMER3
+    
+#define SENSEBE_OPERATION_MS_TIMER MS_TIMER2
+
 /** Structure containing all the values required for sensebe_rx_detect module */
 typedef struct 
 {
@@ -47,14 +54,16 @@ typedef struct
     uint32_t rx_en_pin;
     /** Pin number for Out pin on TSSP module */
     uint32_t rx_out_pin;
-    /** Time window after which camera has to be triggered */
-    uint32_t time_window_ms;
-    /** Number of pins used for out_gen module */
-    uint32_t out_gen_no_of_pins;
-    /** Pin numbers for out_gen module */
-    uint32_t *out_gen_pin_array;
-    /** Initial values for out_gen module */
-    bool *out_gen_init_val;
+    /** Pin number for Focus pin */
+    uint32_t focus_pin_no;
+    /** Pin number for Trigger pin */
+    uint32_t trigger_pin_no;
+    /** Pin number for Photodiode */
+    uint32_t photodiode_pin;
+    /** Enable pin for Photodiode */
+    uint32_t photodiode_en_pin;
+    /** sensebe_config_t pointer which points to default configuration */
+    sensebe_config_t * init_sensebe_config;
 }sensebe_rx_detect_config_t;
 
 /**
@@ -76,10 +85,23 @@ void sensebe_rx_detect_stop (void);
 
 /**
  * @brief Function to handle add tick event.
+ * 
  * @param interval Ticks since the last occurance of add tick event.
  */
 void sensebe_rx_detect_add_ticks (uint32_t interval);
 
+/**
+ * @brief Function to update SenseBe Rx configuration to config received over BLE
+ * 
+ * @param sensebe_config Pointer to the Configuration received over BLE
+ */
+void sensebe_rx_detect_update_config (sensebe_config_t * update_sensebe_config);
+
+/**
+ * @brief Function to get last config which is being used.
+ * @return Configuration pointer to the configuration which is being used.
+ */
+sensebe_config_t * sensebe_rx_detect_last_config ();
 #ifdef __cplusplus
 }
 #endif

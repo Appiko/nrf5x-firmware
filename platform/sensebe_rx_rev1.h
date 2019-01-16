@@ -47,6 +47,13 @@
 #ifndef PLATFORM_SENSEBE_RX_REV1_H_
 #define PLATFORM_SENSEBE_RX_REV1_H_
 
+/** @anchor sensebe_rx_rev1_gpio
+ * @name Pins for testing and debugging
+ * @{*/
+#define GPIO1_PIN       19
+#define GPIO2_PIN       18
+/** @} */
+
 /** @anchor sensebe_rx_rev1_leds
  * @name LED definitions for SenseBe Rx rev1
  * @note LED_1 and LED_2 are defines of the LED
@@ -64,6 +71,9 @@
 
 /** Photodiode light sensing */
 #define PHOTODIODE_LIGHT_SENSE     5
+
+/** Photodiode Enable Pin */
+#define PHOTODIODE_ENABLE_PIN GPIO2_PIN
 
 /** @anchor sensebe_rx_rev1_config_enable
  * @name Definition of configuration mode enable button pin
@@ -109,13 +119,6 @@
 #define HWFC                false
 #define RTS_PIN_NUMBER      23
 #define CTS_PIN_NUMBER      24
-/** @} */
-
-/** @anchor sensebe_rx_rev1_gpio
- * @name Pins for testing and debugging
- * @{*/
-#define GPIO1_PIN       19
-#define GPIO2_PIN       18
 /** @} */
 
 ///Bool define if the circuitry is present for the internal DC-DC of nRF52
