@@ -55,6 +55,14 @@
 /** EGU channel used by this module */
 #define TSSP_DETECT_EGU_USED NRF_EGU0
 
+#ifndef TSSP_DETECT_FREQ
+#ifdef MS_TIMER_FREQ
+#define TSSP_DETECT_FREQ MS_TIMER_FREQ
+#else
+#define TSSP_DETECT_FREQ 32768
+#endif
+#endif
+
 /**
  * @brief Structure to store information required to use this module.
  */
@@ -77,7 +85,7 @@ typedef struct
     void (*tssp_missed_handler) (void);
 
     /** Function pointer for a function which is to be called when a pulse is detected */
-    void (*tssp_detect_handler) (void);
+    void (*tssp_detect_handler) (uint32_t ticks);
 
 }tssp_detect_config_t;
 
@@ -98,7 +106,12 @@ void tssp_detect_window_detect (void);
  * @brief Function to stop IR pulse detection
  * 
  */
-void tssp_detect_stop (void);
+void tssp_detect_pulse_stop (void);
+
+/**
+ * @brief Function to stop IR missed window detection
+ */
+void tssp_detect_window_stop (void);
 
 /**
  * @brief Function to start module is pulse detecting mode.
