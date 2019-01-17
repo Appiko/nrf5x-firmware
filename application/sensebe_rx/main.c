@@ -156,7 +156,7 @@ static uint32_t conn_count;
 static sensebe_config_t sensebe_ble_default_config = {
     .tssp_conf.oper_time.day_or_night = 1,
     .tssp_conf.oper_time.threshold = 0b0000000,
-    .tssp_conf.detect_window = 1,
+    .tssp_conf.detect_window = 100,
     .tssp_conf.mode = 0x00000000,
     .tssp_conf.intr_trig_timer = 50,
 
@@ -335,7 +335,6 @@ void state_change_handler(uint32_t new_state)
             };
             device_tick_init(&tick_cfg);
             
-            sensebe_rx_detect_stop();
 
             uint8_t is_sd_enabled;
             sd_softdevice_is_enabled(&is_sd_enabled);
@@ -389,12 +388,14 @@ void state_change_handler(uint32_t new_state)
  */
 void button_handler(button_ui_steps step, button_ui_action act)
 {
+    log_printf("Act (0 = CROSS, 1= RELEASE) : %d\nStep : %d\n", act,step);
     if(act == BUTTON_UI_ACT_CROSS)
     {
         switch(step)
         {
         case BUTTON_UI_STEP_WAKE:
             log_printf("fast\n");
+            button_ui_config_wake(false);
             device_tick_cfg tick_cfg =
             {
                 MS_TIMER_TICKS_MS(SENSE_FAST_TICK_INTERVAL_MS),
@@ -402,15 +403,13 @@ void button_handler(button_ui_steps step, button_ui_action act)
                 DEVICE_TICK_FAST
             };
             device_tick_init(&tick_cfg);
-            button_ui_config_wake(false);
-//            sensebe_rx_detect_start();
+            sensebe_rx_detect_stop ();
             break;
         case BUTTON_UI_STEP_PRESS:
             if(current_state == SENSING)
             {
                 irq_msg_push(MSG_STATE_CHANGE, (void *) ADVERTISING);
             }
-//            log_printf("Pressed..!!");
 
             break;
         case BUTTON_UI_STEP_LONG:

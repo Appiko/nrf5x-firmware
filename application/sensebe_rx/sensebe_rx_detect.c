@@ -65,9 +65,11 @@ typedef enum
 
 #define LIGHT_THRESHOLD_MULTIPLING_FACTOR 32
 
+#define PULSE_REQ_FOR_SYNC 3
+
 static motion_detection_states_t state = MOTION_IDLE;
 
-static uint32_t detect_time_pass = 0;
+static uint32_t feedback_timepassed = 0;
 
 static uint32_t wait_window_timepassed = 0;
 
@@ -79,12 +81,14 @@ static sensebe_config_t sensebe_config;
 
 static tssp_detect_config_t tssp_detect_config;
 
+static uint32_t light_sense_timepassed = 0;
+
 void timer_1s_handler (void);
 void timer_200ms_handler (void);
 
 void timer_200ms_handler (void)
 {
-    tssp_detect_stop ();
+    tssp_detect_pulse_stop ();
     ms_timer_start (SENSEBE_OPERATION_MS_TIMER, MS_SINGLE_CALL, MS_TIMER_TICKS_MS(1000),
                     timer_1s_handler);
 }
@@ -109,7 +113,6 @@ void camera_unit_handler(uint32_t trigger)
             }
             if(state != MOTION_SYNC)
             {
-               tssp_detect_window_detect ();
             }
             break;
         case TIMER_ONLY :
@@ -143,6 +146,19 @@ bool light_sense (oper_time_t * light_threshold_mode)
     }
 }
 
+bool light_check_req (uint32_t timepassed)
+{
+    if (timepassed >= SENSE_SLOW_TICK_INTERVAL_MS)
+    {
+        light_sense_timepassed = 0;
+        return true;
+    }
+    else
+    {
+        return false;
+    }
+}
+
 void timer_trigger_handler ()
 {
     
@@ -157,7 +173,7 @@ void window_detect_handler ()
     log_printf("%s\n", __func__);
     {
         led_ui_stop_seq (LED_UI_LOOP_SEQ, LED_SEQ_PIR_PULSE);
-        tssp_detect_stop ();
+        tssp_detect_pulse_stop ();
         if(state != MOTION_FEEDBACK)
         {
             device_tick_switch_mode (DEVICE_TICK_FAST);
@@ -168,14 +184,63 @@ void window_detect_handler ()
     }
 }
 
-void pulse_detect_handler ()
+bool compare_percent(uint32_t data, uint32_t ref, float per)
+{
+    if((ref-(ref*per/100))<=data && data<=(ref+(ref*per/100)))
+    {
+        return true;
+    }
+    else
+    {
+        return false;    
+    }
+}
+
+bool two_window_sync (uint32_t ticks)
+{
+    static uint32_t previous_pulse_tick = 0, current_pulse_tick = 0;
+    static uint32_t pulse_diff_window[] = {0,0}, pulse_diff_window_cnt = 0;
+    static uint32_t pulse_cnt = PULSE_REQ_FOR_SYNC;
+    if(pulse_cnt == PULSE_REQ_FOR_SYNC)
+    {
+        previous_pulse_tick = ticks;
+        pulse_cnt --;
+    }
+    else if(pulse_cnt > 0)
+    {
+        current_pulse_tick = ticks;
+        pulse_diff_window[pulse_diff_window_cnt] = ((current_pulse_tick + (1<<24))- previous_pulse_tick)
+             & 0x00FFFFFF;
+        previous_pulse_tick = current_pulse_tick;
+        pulse_diff_window_cnt++;
+        pulse_cnt--;
+    }
+    else if(pulse_cnt == 0)
+    {
+        pulse_diff_window_cnt = 0;
+        log_printf("Window[0]: %d\n", pulse_diff_window[0]);
+        log_printf("Window[1]: %d\n", pulse_diff_window[1]);
+        pulse_cnt = PULSE_REQ_FOR_SYNC;
+        return compare_percent (pulse_diff_window[1], pulse_diff_window[0], 10);
+    }
+    
+    return false;
+}
+
+void pulse_detect_handler (uint32_t ticks_count)
 {
     if(state == MOTION_SYNC)
     {
-        detect_time_pass = 0;
-        ms_timer_stop (SENSEBE_OPERATION_MS_TIMER);
-        tssp_detect_window_detect ();
-        state = MOTION_IDLE;
+        if(two_window_sync (ticks_count))
+        {
+            state = MOTION_IDLE;
+            device_tick_switch_mode (DEVICE_TICK_SLOW);
+            ms_timer_stop(SENSEBE_OPERATION_MS_TIMER);
+        }
+        else
+        {
+            tssp_detect_pulse_detect ();
+        }
     }
     else if (state == MOTION_FEEDBACK)
     {
@@ -186,6 +251,7 @@ void pulse_detect_handler ()
     {
         device_tick_process ();
         wait_window_timepassed = 0;
+        device_tick_switch_mode (DEVICE_TICK_SLOW);
         state = MOTION_IDLE;
     }
 }
@@ -208,7 +274,7 @@ void sensebe_rx_detect_init (sensebe_rx_detect_config_t * sensebe_rx_detect_conf
         .rx_en_pin = sensebe_rx_detect_config->rx_en_pin,
         .rx_in_pin = sensebe_rx_detect_config->rx_out_pin,
         .window_duration_ticks = 
-            MS_TIMER_TICKS_MS(sensebe_config.tssp_conf.detect_window * 100),
+            MS_TIMER_TICKS_MS(sensebe_config.tssp_conf.detect_window ),
     };
     memcpy (&tssp_detect_config, &local_tssp_detect_config,
             sizeof(tssp_detect_config_t));
@@ -225,7 +291,9 @@ void sensebe_rx_detect_init (sensebe_rx_detect_config_t * sensebe_rx_detect_conf
 void sensebe_rx_detect_start (void)
 {
     log_printf("%s\n", __func__);
-    detect_time_pass = 0;
+    feedback_timepassed = 0;
+    wait_window_timepassed = 0;
+    light_sense_timepassed = 0;
     state = MOTION_FEEDBACK;
 
     device_tick_cfg tick_cfg =
@@ -267,7 +335,7 @@ void sensebe_rx_detect_start (void)
         cam_trigger_set_trigger (&motion_cam_trig_config);
         
         tssp_detect_config.window_duration_ticks =
-            MS_TIMER_TICKS_MS(sensebe_config.tssp_conf.detect_window * 100);
+            sensebe_config.tssp_conf.detect_window;
         tssp_detect_init (&tssp_detect_config);
 
         tssp_detect_window_detect ();        
@@ -278,24 +346,27 @@ void sensebe_rx_detect_start (void)
 void sensebe_rx_detect_stop (void)
 {
     log_printf("%s\n", __func__);
-    tssp_detect_stop ();
     cam_trigger_stop ();
+    tssp_detect_pulse_stop ();
+    tssp_detect_window_stop ();
     ms_timer_stop (SENSEBE_TIMER_MODE_MS_TIMER);
     ms_timer_stop (SENSEBE_OPERATION_MS_TIMER);
 }
 
 void sensebe_rx_detect_add_ticks (uint32_t interval)
 {
+    light_sense_timepassed += interval;
     if(sensebe_config.trig_conf != TIMER_ONLY)
     {
+        log_printf("Machine State : %d\n", state);
         switch (state)
         {
             case MOTION_FEEDBACK : 
-                detect_time_pass += interval;
-                if(detect_time_pass >= DETECT_FEEDBACK_TIMEOUT_TICKS)
+                feedback_timepassed += interval;
+                if(feedback_timepassed >= DETECT_FEEDBACK_TIMEOUT_TICKS)
                 {
                     state = MOTION_IDLE;
-                    detect_time_pass = 0;
+                    feedback_timepassed = 0;
                 }
                 break;
             case MOTION_WAIT_FOR_TIMEOUT : 
@@ -303,33 +374,38 @@ void sensebe_rx_detect_add_ticks (uint32_t interval)
                 if(wait_window_timepassed >= CAMERA_TIMEOUT_30S)
                 {
                     device_tick_switch_mode (DEVICE_TICK_SLOW);
-                    tssp_detect_stop ();
-                    tssp_detect_pulse_detect ();
+                    tssp_detect_window_stop ();
                     wait_window_timepassed = 0;
                     state = MOTION_SYNC;
                 }
                 break;
             case MOTION_IDLE : 
-                if(light_sense (&sensebe_config.tssp_conf.oper_time))
-//                if(true)
+                if(light_check_req (light_sense_timepassed))
                 {
-                    tssp_detect_window_detect ();
-                }
-                else
-                {
-                    tssp_detect_stop ();
+                    if(true)
+                    {
+                        tssp_detect_window_detect ();
+                    }
+                    else
+                    {
+                        tssp_detect_window_stop ();
+                    }
                 }
                 break;
             case MOTION_SYNC : 
-                if(light_sense (&sensebe_config.tssp_conf.oper_time))
-//                if(true)
+                if(light_check_req (light_sense_timepassed))
                 {
-                    ms_timer_start (SENSEBE_OPERATION_MS_TIMER, MS_SINGLE_CALL, 
-                                    MS_TIMER_TICKS_MS(1000), timer_1s_handler);
-                }
-                else
-                {
-                    ms_timer_stop (SENSEBE_OPERATION_MS_TIMER);
+                    if(true)
+                    {
+                        tssp_detect_pulse_detect ();
+                        ms_timer_start (SENSEBE_OPERATION_MS_TIMER, MS_SINGLE_CALL, 
+                                        MS_TIMER_TICKS_MS(1000), timer_1s_handler);
+                    }
+                    else
+                    {
+                        tssp_detect_pulse_stop ();
+                        ms_timer_stop (SENSEBE_OPERATION_MS_TIMER);
+                    }
                 }
 
                 break;
