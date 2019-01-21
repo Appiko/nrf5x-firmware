@@ -345,6 +345,96 @@ void light_check (uint32_t interval)
     }
 }
 
+void motion_module_start ()
+{
+    oper_time_t motion_oper_time = sensebe_config.tssp_conf.oper_time;
+
+    if((motion_oper_time.day_or_night == 1 && motion_oper_time.threshold == 0b0000000)||
+    (motion_oper_time.day_or_night == 0 && motion_oper_time.threshold == 0b1111111))
+    {
+        arr_is_light_sense_req[MOTION_ONLY] = false;
+        arr_is_light_ok [MOTION_ONLY] = true; 
+    }
+    else
+    {
+        arr_is_light_sense_req[MOTION_ONLY] = true;
+    }      
+    cam_trigger_config_t motion_cam_trig_config = 
+    {
+        .setup_number = MOTION_ONLY,
+        .trig_duration_100ms = sensebe_config.tssp_conf.intr_trig_timer,
+        .trig_mode = sensebe_config.tssp_conf.mode,
+        .trig_param1 = sensebe_config.tssp_conf.larger_value,
+        .trig_param2 = sensebe_config.tssp_conf.smaller_value,
+    };
+    cam_trigger_set_trigger (&motion_cam_trig_config);
+
+    tssp_detect_config.window_duration_ticks =
+        sensebe_config.tssp_conf.detect_window;
+    tssp_detect_init (&tssp_detect_config);
+
+    tssp_detect_window_detect ();        
+}
+
+void motion_module_add_ticks (uint32_t interval)
+{
+    log_printf("Machine State : %d\n", state);
+    if(arr_is_light_ok [MOTION_ONLY] == false)
+    {
+        state = MOTION_STOP;
+    }
+    else if(state == MOTION_STOP)
+    {
+        state = MOTION_SYNC;
+    }
+    arr_add_tick_motion[state](interval);
+}
+
+void timer_module_start ()
+{
+    oper_time_t timer_oper_time = sensebe_config.timer_conf.oper_time;
+
+    if((timer_oper_time.day_or_night == 1 && timer_oper_time.threshold == 0b0000000)||
+    (timer_oper_time.day_or_night == 0 && timer_oper_time.threshold == 0b1111111))
+    {
+        arr_is_light_sense_req[TIMER_ONLY] = false;
+        arr_is_light_ok [TIMER_ONLY] = true; 
+    }
+    else
+    {
+        arr_is_light_sense_req[TIMER_ONLY] = true;
+    }      
+    cam_trigger_config_t timer_cam_trig_config = 
+    {
+        .setup_number = TIMER_ONLY,
+        .trig_duration_100ms = 0,
+        .trig_mode = sensebe_config.timer_conf.mode,
+        .trig_param1 = sensebe_config.timer_conf.larger_value,
+        .trig_param2 = sensebe_config.timer_conf.smaller_value
+    };
+    cam_trigger_set_trigger (&timer_cam_trig_config);
+
+    ms_timer_start (SENSEBE_TIMER_MODE_MS_TIMER, MS_REPEATED_CALL,
+                    MS_TIMER_TICKS_MS(sensebe_config.timer_conf.timer_interval * 100),
+                    timer_trigger_handler);
+}
+
+void timer_module_add_ticks (uint32_t interval)
+{
+    if(arr_is_light_ok [TIMER_ONLY] == false)
+    {
+        if(ms_timer_get_on_status (SENSEBE_TIMER_MODE_MS_TIMER) == false)
+        {
+            ms_timer_start (SENSEBE_TIMER_MODE_MS_TIMER, MS_REPEATED_CALL, 
+                            MS_TIMER_TICKS_MS(sensebe_config.timer_conf.timer_interval * 100),
+                            timer_trigger_handler);
+        }
+    }
+    else 
+    {
+        ms_timer_stop (SENSEBE_TIMER_MODE_MS_TIMER);
+    }
+}
 void sensebe_rx_detect_init (sensebe_rx_detect_config_t * sensebe_rx_detect_config)
 {
     log_printf("%s\n", __func__);
@@ -388,10 +478,7 @@ void sensebe_rx_detect_start (void)
     state = MOTION_FEEDBACK;
     
     //Check if light sense is required
-    oper_time_t motion_oper_time = sensebe_config.tssp_conf.oper_time;
-    oper_time_t timer_oper_time = sensebe_config.timer_conf.oper_time;
     
-
     device_tick_cfg tick_cfg =
     {
         MS_TIMER_TICKS_MS(SENSE_FAST_TICK_INTERVAL_MS),
@@ -403,29 +490,7 @@ void sensebe_rx_detect_start (void)
     
     if(sensebe_config.trig_conf != MOTION_ONLY)
     {
-        if((timer_oper_time.day_or_night == 1 && timer_oper_time.threshold == 0b0000000)||
-        (timer_oper_time.day_or_night == 0 && timer_oper_time.threshold == 0b1111111))
-        {
-            arr_is_light_sense_req[TIMER_ONLY] = false;
-            arr_is_light_ok [TIMER_ONLY] = true; 
-        }
-        else
-        {
-            arr_is_light_sense_req[TIMER_ONLY] = true;
-        }      
-        cam_trigger_config_t timer_cam_trig_config = 
-        {
-            .setup_number = TIMER_ONLY,
-            .trig_duration_100ms = 0,
-            .trig_mode = sensebe_config.timer_conf.mode,
-            .trig_param1 = sensebe_config.timer_conf.larger_value,
-            .trig_param2 = sensebe_config.timer_conf.smaller_value
-        };
-        cam_trigger_set_trigger (&timer_cam_trig_config);
-        
-        ms_timer_start (SENSEBE_TIMER_MODE_MS_TIMER, MS_REPEATED_CALL,
-                        MS_TIMER_TICKS_MS(sensebe_config.timer_conf.timer_interval * 100),
-                        timer_trigger_handler);
+        timer_module_start ();
     }
     else
     {
@@ -434,31 +499,7 @@ void sensebe_rx_detect_start (void)
     
     if(sensebe_config.trig_conf != TIMER_ONLY)
     {
-        if((motion_oper_time.day_or_night == 1 && motion_oper_time.threshold == 0b0000000)||
-        (motion_oper_time.day_or_night == 0 && motion_oper_time.threshold == 0b1111111))
-        {
-            arr_is_light_sense_req[MOTION_ONLY] = false;
-            arr_is_light_ok [MOTION_ONLY] = true; 
-        }
-        else
-        {
-            arr_is_light_sense_req[MOTION_ONLY] = true;
-        }      
-        cam_trigger_config_t motion_cam_trig_config = 
-        {
-            .setup_number = MOTION_ONLY,
-            .trig_duration_100ms = sensebe_config.tssp_conf.intr_trig_timer,
-            .trig_mode = sensebe_config.tssp_conf.mode,
-            .trig_param1 = sensebe_config.tssp_conf.larger_value,
-            .trig_param2 = sensebe_config.tssp_conf.smaller_value,
-        };
-        cam_trigger_set_trigger (&motion_cam_trig_config);
-        
-        tssp_detect_config.window_duration_ticks =
-            sensebe_config.tssp_conf.detect_window;
-        tssp_detect_init (&tssp_detect_config);
-
-        tssp_detect_window_detect ();        
+        motion_module_start ();
     }
     else
     {
@@ -487,32 +528,11 @@ void sensebe_rx_detect_add_ticks (uint32_t interval)
     
     if(sensebe_config.trig_conf != TIMER_ONLY)
     {
-        log_printf("Machine State : %d\n", state);
-        if(arr_is_light_ok [MOTION_ONLY] == false)
-        {
-            state = MOTION_STOP;
-        }
-        else if(state == MOTION_STOP)
-        {
-            state = MOTION_SYNC;
-        }
-        arr_add_tick_motion[state](interval);
+        motion_module_add_ticks (interval);
     }
     if(sensebe_config.trig_conf != MOTION_ONLY)
     {
-        if(arr_is_light_ok [TIMER_ONLY] == false)
-        {
-            if(ms_timer_get_on_status (SENSEBE_TIMER_MODE_MS_TIMER) == false)
-            {
-                ms_timer_start (SENSEBE_TIMER_MODE_MS_TIMER, MS_REPEATED_CALL, 
-                                MS_TIMER_TICKS_MS(sensebe_config.timer_conf.timer_interval * 100),
-                                timer_trigger_handler);
-            }
-        }
-        else 
-        {
-            ms_timer_stop (SENSEBE_TIMER_MODE_MS_TIMER);
-        }
+        timer_module_add_ticks (interval); 
     }
 }
 
