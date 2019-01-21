@@ -67,6 +67,8 @@ typedef enum
 
 #define LIGHT_THRESHOLD_MULTIPLY_FACTOR 32
 
+#define MAX_ADC_OUTPUT 4096
+
 #define LIGHT_SENSE_INTERVAL_TICKS MS_TIMER_TICKS_MS(300000)
 
 #define PULSE_REQ_FOR_SYNC 3
@@ -323,8 +325,9 @@ void light_check (uint32_t interval)
         //Enable light sense module
         hal_gpio_pin_set (light_check_en_pin);
         //Take light reading
-        light_intensity = simple_adc_get_value (SIMPLE_ADC_GAIN1_6,
-                                                light_check_sense_pin);
+        hal_nop_delay_ms (3);
+        light_intensity = (MAX_ADC_OUTPUT - simple_adc_get_value (SIMPLE_ADC_GAIN1_6,
+                                                light_check_sense_pin));
         //motion light check
         if(arr_is_light_sense_req[MOTION_ONLY])
         {
@@ -348,7 +351,9 @@ void sensebe_rx_detect_init (sensebe_rx_detect_config_t * sensebe_rx_detect_conf
     
     //Assign Enable and sense pins
     light_check_sense_pin = sensebe_rx_detect_config->photodiode_pin;
+    hal_gpio_cfg_input (light_check_sense_pin, HAL_GPIO_PULL_DOWN);
     light_check_en_pin = sensebe_rx_detect_config->photodiode_en_pin;
+    hal_gpio_cfg_output (light_check_en_pin, 0);
     
     memcpy (&sensebe_config, sensebe_rx_detect_config->init_sensebe_config,
             sizeof(sensebe_config_t));
@@ -402,6 +407,7 @@ void sensebe_rx_detect_start (void)
         (timer_oper_time.day_or_night == 0 && timer_oper_time.threshold == 0b1111111))
         {
             arr_is_light_sense_req[TIMER_ONLY] = false;
+            arr_is_light_ok [TIMER_ONLY] = true; 
         }
         else
         {
@@ -432,6 +438,7 @@ void sensebe_rx_detect_start (void)
         (motion_oper_time.day_or_night == 0 && motion_oper_time.threshold == 0b1111111))
         {
             arr_is_light_sense_req[MOTION_ONLY] = false;
+            arr_is_light_ok [MOTION_ONLY] = true; 
         }
         else
         {
