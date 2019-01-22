@@ -422,7 +422,7 @@ void timer_module_start ()
 
 void timer_module_add_ticks (uint32_t interval)
 {
-    if(arr_is_light_ok [TIMER_ONLY] == false)
+    if(arr_is_light_ok [TIMER_ONLY] == true)
     {
         if(ms_timer_get_on_status (SENSEBE_TIMER_MODE_MS_TIMER) == false)
         {
