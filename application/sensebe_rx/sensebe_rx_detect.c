@@ -103,7 +103,7 @@ void add_tick_motion_feedback (uint32_t interval)
     feedback_timepassed += interval;
     if(feedback_timepassed >= DETECT_FEEDBACK_TIMEOUT_TICKS)
     {
-        led_ui_stop_seq (LED_UI_LOOP_SEQ, LED_SEQ_PIR_PULSE);
+        led_ui_stop_seq (LED_UI_LOOP_SEQ, LED_SEQ_DETECT_PULSE);
         state = MOTION_IDLE;
         feedback_timepassed = 0;
     }
@@ -208,7 +208,8 @@ void timer_trigger_handler ()
 void window_detect_handler ()
 {
     {
-        led_ui_stop_seq (LED_UI_LOOP_SEQ, LED_SEQ_PIR_PULSE);
+        led_ui_stop_seq (LED_UI_LOOP_SEQ, LED_SEQ_DETECT_PULSE);
+        led_ui_single_start (LED_SEQ_DETECT_WINDOW, LED_UI_HIGH_PRIORITY, true);
         tssp_detect_pulse_stop ();
         if(state != MOTION_FEEDBACK)
         {
@@ -282,7 +283,7 @@ void pulse_detect_handler (uint32_t ticks_count)
     else if (state == MOTION_FEEDBACK)
     {
         wait_window_timepassed = 0;
-        led_ui_loop_start (LED_SEQ_PIR_PULSE, LED_UI_HIGH_PRIORITY);
+        led_ui_loop_start (LED_SEQ_DETECT_PULSE, LED_UI_MID_PRIORITY);
         tssp_detect_window_detect ();
     }
     else

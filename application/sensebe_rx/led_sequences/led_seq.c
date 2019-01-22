@@ -2,7 +2,7 @@
  * @file led_seq.c Contains the PWM values for the one or more color LED(s)
  *                 for the different sequences 
  *
- * Automagically created on: 18-10-2018 at 17:06 */
+ * Automagically created on: 22-01-2019 at 12:08 */
 
 #include "led_seq.h"
 #include "boards.h"
@@ -15,6 +15,11 @@
                                         uint16_t red[count];    \
                                         uint16_t green[count];   \
                                       } __attribute__((packed)) name
+
+LED_STRUCT1(detect_pulse_seq, 4) = {
+    {0, 1000, 1000, 0}
+};
+const uint16_t detect_pulse_duration[] = { 0, 250, 250, 250, 750 };
 
 LED_STRUCT2(ramp_offset_seq, 5) = {
     {0, 0, 1000, 1000, 0},
@@ -33,16 +38,16 @@ LED_STRUCT2(orange_wave_seq, 3) = {
 };
 const uint16_t orange_wave_duration[] = { 0, 2500, 2500, 5000 };
 
+LED_STRUCT1(detect_window_seq, 2) = {
+    {0, 0}
+};
+const uint16_t detect_window_duration[] = { 0, 500, 500 };
+
 LED_STRUCT2(dual_freq_seq, 5) = {
     {0, 1000, 0, 1000, 0},
     {0, 500, 1000, 500, 0}
 };
 const uint16_t dual_freq_duration[] = { 0, 2000, 2000, 2000, 2000, 8000 };
-
-LED_STRUCT1(pir_pulse_seq, 4) = {
-    {0, 1000, 1000, 0}
-};
-const uint16_t pir_pulse_duration[] = { 0, 25, 250, 25, 300 };
 
 LED_STRUCT2(green_wave_seq, 5) = {
     {0, 0, 0, 0, 0},
@@ -50,10 +55,10 @@ LED_STRUCT2(green_wave_seq, 5) = {
 };
 const uint16_t green_wave_duration[] = { 0, 1000, 1000, 2000, 1000, 5000 };
 
-const uint32_t led_num_len[] = {2, 1, 2, 2, 1, 2};
-const uint32_t led_seq_len[] = {5, 6, 3, 5, 4, 5};
-const uint16_t * const led_seq_ptr[] = {(uint16_t *) &ramp_offset_seq, (uint16_t *) &red_pulse_seq, (uint16_t *) &orange_wave_seq, (uint16_t *) &dual_freq_seq, (uint16_t *) &pir_pulse_seq, (uint16_t *) &green_wave_seq };
-const uint16_t * const led_seq_duration_ptr[] = { ramp_offset_duration, red_pulse_duration, orange_wave_duration, dual_freq_duration, pir_pulse_duration, green_wave_duration };
+const uint32_t led_num_len[] = {1, 2, 1, 2, 1, 2, 2};
+const uint32_t led_seq_len[] = {4, 5, 6, 3, 2, 5, 5};
+const uint16_t * const led_seq_ptr[] = {(uint16_t *) &detect_pulse_seq, (uint16_t *) &ramp_offset_seq, (uint16_t *) &red_pulse_seq, (uint16_t *) &orange_wave_seq, (uint16_t *) &detect_window_seq, (uint16_t *) &dual_freq_seq, (uint16_t *) &green_wave_seq };
+const uint16_t * const led_seq_duration_ptr[] = { detect_pulse_duration, ramp_offset_duration, red_pulse_duration, orange_wave_duration, detect_window_duration, dual_freq_duration, green_wave_duration };
 
 const uint32_t led_pin_num[LED_COLOR_MAX] = {LED_RED, LED_GREEN};
 
