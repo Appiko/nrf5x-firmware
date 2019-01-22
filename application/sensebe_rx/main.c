@@ -156,7 +156,7 @@ static uint32_t conn_count;
 static sensebe_config_t sensebe_ble_default_config = {
     .tssp_conf.oper_time.day_or_night = 1,
     .tssp_conf.oper_time.threshold = 0b0000000,
-    .tssp_conf.detect_window = 100,
+    .tssp_conf.detect_window = 10,
     .tssp_conf.mode = 0x00000000,
     .tssp_conf.intr_trig_timer = 50,
 
@@ -325,6 +325,7 @@ void state_change_handler(uint32_t new_state)
         break;
     case ADVERTISING:
         {
+            sensebe_rx_detect_stop ();
             conn_count = 0;
 
             device_tick_cfg tick_cfg =
@@ -403,7 +404,6 @@ void button_handler(button_ui_steps step, button_ui_action act)
                 DEVICE_TICK_FAST
             };
             device_tick_init(&tick_cfg);
-            sensebe_rx_detect_stop ();
             break;
         case BUTTON_UI_STEP_PRESS:
             if(current_state == SENSING)
