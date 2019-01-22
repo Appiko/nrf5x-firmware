@@ -47,15 +47,6 @@ enum
     TIMER30s_FLAG,    
 }TIMER_FLAGS;
 
-
-#ifndef TSSP_DETECT_FREQ
-#ifdef MS_TIMER_FREQ
-#define TSSP_DETECT_FREQ MS_TIMER_FREQ
-#else
-#define TSSP_DETECT_FREQ 32768
-#endif
-#endif
-
 /** Channel 2 of RTC0 is used here */
 #define RTC_CHANNEL_USED 2
 /** Channel 2 of GPIOTE is used here */
@@ -84,14 +75,18 @@ uint32_t tssp_en_pin;
 /** Pin number of Rx pin present on TSSP module */
 uint32_t tssp_rx_pin;
 
+/** Flag to check if GPIOTE is required for pulse detection */
+static bool is_pulse_detect_req = false;
 
+/** Flag to check if GPIOTE is required for window detection */
+static bool is_window_detect_req = false;
 
 /** Function pointer which is to be called if it doesn't detect any pulse in\
  *  given window of time */
 void (*missed_handler)(void);
 
 /**Function pointer which is to be called if module detects the pulse*/
-void (*detect_handler)(void);
+void (*detect_handler)(uint32_t ticks);
 
 void tssp_detect_init (tssp_detect_config_t * tssp_detect_config)
 {
@@ -103,6 +98,7 @@ void tssp_detect_init (tssp_detect_config_t * tssp_detect_config)
 
     if(tssp_detect_config->tssp_missed_handler != NULL)
     {
+        is_window_detect_req = true;
         missed_handler = tssp_detect_config->tssp_missed_handler;
         TSSP_DETECT_RTC_USED->PRESCALER = ROUNDED_DIV(LFCLK_FREQ, TSSP_DETECT_FREQ) - 1;
         TSSP_DETECT_RTC_USED->CC[RTC_CHANNEL_USED] = tssp_detect_config->window_duration_ticks;
@@ -112,8 +108,13 @@ void tssp_detect_init (tssp_detect_config_t * tssp_detect_config)
         NRF_PPI->CH[PPI_CHANNEL_USED_RTC].TEP = (uint32_t) &TSSP_DETECT_RTC_USED->TASKS_CLEAR;
         
     }
+    else
+    {
+        is_window_detect_req = false;
+    }
     if(tssp_detect_config->tssp_detect_handler != NULL)
     {
+        is_pulse_detect_req = true;
         
         detect_handler = tssp_detect_config->tssp_detect_handler;
 
@@ -124,6 +125,10 @@ void tssp_detect_init (tssp_detect_config_t * tssp_detect_config)
 
         NRF_PPI->CH[PPI_CHANNEL_USED_EGU].EEP = (uint32_t) &NRF_GPIOTE->EVENTS_IN[GPIOTE_CHANNEL_USED];
         NRF_PPI->CH[PPI_CHANNEL_USED_EGU].TEP = (uint32_t) &TSSP_DETECT_EGU_USED->TASKS_TRIGGER[EGU_CHANNEL_USED];
+    }
+    else
+    {
+        is_pulse_detect_req = false;
     }
     
 }
@@ -144,24 +149,39 @@ void tssp_detect_window_detect ()
          & GPIOTE_CONFIG_PSEL_Msk);
 
     NRF_PPI->CHENSET |= 1 << PPI_CHANNEL_USED_RTC;
-    TSSP_DETECT_RTC_USED->TASKS_CLEAR = 1;
-    (void) TSSP_DETECT_RTC_USED->TASKS_CLEAR;
     TSSP_DETECT_RTC_USED->TASKS_START = 1;
 }
 
-void tssp_detect_stop ()
+void tssp_detect_pulse_stop ()
 {
-    NRF_GPIOTE->CONFIG[GPIOTE_CHANNEL_USED] =
-        GPIOTE_CONFIG_MODE_Disabled << GPIOTE_CONFIG_MODE_Pos|
-        GPIOTE_CONFIG_POLARITY_None << GPIOTE_CONFIG_POLARITY_Pos| 
-        ((tssp_rx_pin << GPIOTE_CONFIG_PSEL_Pos) 
-         & GPIOTE_CONFIG_PSEL_Msk);
+    is_pulse_detect_req = false;
+    if((is_pulse_detect_req == false) && (is_window_detect_req == false))
+    {
+        NRF_GPIOTE->CONFIG[GPIOTE_CHANNEL_USED] =
+            GPIOTE_CONFIG_MODE_Disabled << GPIOTE_CONFIG_MODE_Pos|
+            GPIOTE_CONFIG_POLARITY_None << GPIOTE_CONFIG_POLARITY_Pos| 
+            ((tssp_rx_pin << GPIOTE_CONFIG_PSEL_Pos) 
+             & GPIOTE_CONFIG_PSEL_Msk);
 
-    hal_gpio_pin_write (tssp_en_pin, DISABLE);
-
-    NRF_PPI->CHENCLR |= 1 << PPI_CHANNEL_USED_RTC;
+        hal_gpio_pin_write (tssp_en_pin, DISABLE);
+    }
     NRF_PPI->CHENCLR |= 1 << PPI_CHANNEL_USED_EGU;
+}
 
+void tssp_detect_window_stop (void)
+{
+    is_window_detect_req = false;
+    if((is_pulse_detect_req == false) && (is_window_detect_req == false))
+    {
+        NRF_GPIOTE->CONFIG[GPIOTE_CHANNEL_USED] =
+            GPIOTE_CONFIG_MODE_Disabled << GPIOTE_CONFIG_MODE_Pos|
+            GPIOTE_CONFIG_POLARITY_None << GPIOTE_CONFIG_POLARITY_Pos| 
+            ((tssp_rx_pin << GPIOTE_CONFIG_PSEL_Pos) 
+             & GPIOTE_CONFIG_PSEL_Msk);
+
+        hal_gpio_pin_write (tssp_en_pin, DISABLE);
+    }
+    NRF_PPI->CHENCLR |= 1 << PPI_CHANNEL_USED_RTC;
     NVIC_DisableIRQ  (RTC0_IRQn);
 
     TSSP_DETECT_RTC_USED->TASKS_CLEAR = 1;
@@ -171,6 +191,7 @@ void tssp_detect_stop ()
 
 void tssp_detect_pulse_detect ()
 {
+    TSSP_DETECT_RTC_USED->TASKS_START = 1;
     NRF_GPIOTE->EVENTS_IN[GPIOTE_CHANNEL_USED] = 0;
     
     NRF_GPIOTE->CONFIG[GPIOTE_CHANNEL_USED] =
@@ -190,12 +211,11 @@ void SWI0_IRQHandler ()
     TSSP_DETECT_EGU_USED->EVENTS_TRIGGERED[EGU_CHANNEL_USED] = 0;
     (void) TSSP_DETECT_EGU_USED->EVENTS_TRIGGERED[EGU_CHANNEL_USED];
     NRF_PPI->CHENCLR |= 1 << PPI_CHANNEL_USED_EGU;
-    detect_handler ();
+    detect_handler ( TSSP_DETECT_RTC_USED->COUNTER );
 }
 
 void RTC0_IRQHandler (void)
 {
-    
     TSSP_DETECT_RTC_USED->EVENTS_COMPARE[RTC_CHANNEL_USED] = 0;
     (void) TSSP_DETECT_RTC_USED->EVENTS_COMPARE[RTC_CHANNEL_USED];
     missed_handler ();

@@ -74,7 +74,7 @@
 #define PHOTODIODE_LIGHT_SENSE     5
 
 /** Photodiode Enable Pin */
-#define PHOTODIODE_ENABLE_PIN GPIO2_PIN
+#define PHOTODIODE_ENABLE_PIN GPIO1_PIN
 
 /** @anchor sensebe_rx_rev2_config_enable
  * @name Definition of configuration mode enable button pin
