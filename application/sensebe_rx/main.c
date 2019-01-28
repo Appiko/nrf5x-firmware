@@ -156,9 +156,9 @@ static uint32_t conn_count;
 static sensebe_config_t sensebe_ble_default_config = {
     .tssp_conf.oper_time.day_or_night = 1,
     .tssp_conf.oper_time.threshold = 0b0000000,
-    .tssp_conf.detect_window = 10,
+    .tssp_conf.detect_window = 5,
     .tssp_conf.mode = 0x00000000,
-    .tssp_conf.intr_trig_timer = 50,
+    .tssp_conf.intr_trig_timer = 15,
 
     .timer_conf.oper_time.day_or_night = 1,
     .timer_conf.oper_time.threshold = 0b0000000,
