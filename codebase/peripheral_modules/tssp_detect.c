@@ -137,8 +137,14 @@ void tssp_detect_window_detect ()
 {
     hal_gpio_pin_write (tssp_en_pin, ENABLE);
 
-    NVIC_SetPriority (RTC0_IRQn, APP_IRQ_PRIORITY_HIGHEST);
-    NVIC_EnableIRQ (RTC0_IRQn);
+    
+    is_window_detect_req = true;
+    TSSP_DETECT_RTC_USED->TASKS_STOP = 1;
+    
+    TSSP_DETECT_RTC_USED->TASKS_CLEAR = 1;
+    while(TSSP_DETECT_RTC_USED->COUNTER != 0);
+    
+    NRF_PPI->CHENSET |= 1 << PPI_CHANNEL_USED_RTC;
 
     NRF_GPIOTE->EVENTS_IN[GPIOTE_CHANNEL_USED] = 0;
     
@@ -148,8 +154,13 @@ void tssp_detect_window_detect ()
         ((tssp_rx_pin << GPIOTE_CONFIG_PSEL_Pos) 
          & GPIOTE_CONFIG_PSEL_Msk);
 
-    NRF_PPI->CHENSET |= 1 << PPI_CHANNEL_USED_RTC;
+    TSSP_DETECT_RTC_USED->EVENTS_COMPARE[RTC_CHANNEL_USED] = 0;
+    (void) TSSP_DETECT_RTC_USED->EVENTS_COMPARE[RTC_CHANNEL_USED];
+    
     TSSP_DETECT_RTC_USED->TASKS_START = 1;
+    log_printf("RTC_Counter at start : %d\n", TSSP_DETECT_RTC_USED->COUNTER );
+    NVIC_SetPriority (RTC0_IRQn, APP_IRQ_PRIORITY_HIGHEST);
+    NVIC_EnableIRQ (RTC0_IRQn);
 }
 
 void tssp_detect_pulse_stop ()
@@ -191,6 +202,7 @@ void tssp_detect_window_stop (void)
 
 void tssp_detect_pulse_detect ()
 {
+    is_pulse_detect_req = true;
     TSSP_DETECT_RTC_USED->TASKS_START = 1;
     NRF_GPIOTE->EVENTS_IN[GPIOTE_CHANNEL_USED] = 0;
     
@@ -212,6 +224,8 @@ void SWI0_IRQHandler ()
     (void) TSSP_DETECT_EGU_USED->EVENTS_TRIGGERED[EGU_CHANNEL_USED];
     NRF_PPI->CHENCLR |= 1 << PPI_CHANNEL_USED_EGU;
     detect_handler ( TSSP_DETECT_RTC_USED->COUNTER );
+//    TSSP_DETECT_RTC_USED->TASKS_CLEAR = 1;
+//    (void) TSSP_DETECT_RTC_USED->TASKS_CLEAR;
 }
 
 void RTC0_IRQHandler (void)

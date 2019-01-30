@@ -102,6 +102,7 @@ void state_control_motion_idle (uint32_t interval)
 
     log_printf ("%d : %s\n", state,__func__);
 
+    tssp_detect_pulse_stop ();
     ms_timer_stop (SENSEBE_OPERATION_MS_TIMER);
     tssp_detect_window_detect ();
 
@@ -155,7 +156,8 @@ bool compare_percent(uint32_t data, uint32_t ref, float per)
     }
     else
     {
-        return false;    
+//        return false;    
+        return true;    
     }
 }
 
@@ -227,7 +229,7 @@ void sensebe_rx_detect_init (sensebe_rx_detect_config_t * sensebe_rx_detect_conf
         .tssp_detect_handler = pulse_detect_handler,
         .rx_en_pin = sensebe_rx_detect_config->rx_en_pin,
         .rx_in_pin = sensebe_rx_detect_config->rx_out_pin,
-        .window_duration_ticks = 5,
+        .window_duration_ticks = 10,
     };
     tssp_detect_init (&tssp_detect_config);
     
