@@ -48,11 +48,8 @@
 
 typedef enum
 {
-    MOTION_FEEDBACK,
-    MOTION_WAIT_FOR_TIMEOUT,
     MOTION_SYNC,
     MOTION_IDLE,
-    MOTION_STOP,
     MOTION_MAX_STATE
 }motion_detection_states_t;
 
@@ -65,7 +62,7 @@ typedef enum {
 }shot_count_t;
 
 /** The fast tick interval in ms in the Sense mode */
-#define SENSE_FAST_TICK_INTERVAL_MS      1000
+#define SENSE_FAST_TICK_INTERVAL_MS      1
 /** The slow tick interval in ms in the Sense mode */
 #define SENSE_SLOW_TICK_INTERVAL_MS      300000
 
@@ -75,7 +72,7 @@ typedef enum {
 
 #define PULSE_REQ_FOR_SYNC 3
 
-static motion_detection_states_t state = MOTION_IDLE;
+volatile motion_detection_states_t state = MOTION_IDLE;
 
 static shot_count_t shot_count = ONE_SHOT;
 
@@ -89,69 +86,30 @@ static uint32_t wait_window_timepassed = 0;
 void timer_1s_handler (void);
 void timer_200ms_handler (void);
 
-void add_tick_motion_feedback (uint32_t interval)
+void state_control_motion_sync (uint32_t interval)
 {
-    log_printf ("%s\n", __func__);
-    feedback_timepassed += interval;
-    if(feedback_timepassed >= DETECT_FEEDBACK_TIMEOUT_TICKS)
-    {
-        led_ui_stop_seq (LED_UI_LOOP_SEQ, LED_SEQ_DETECT_PULSE);
-        feedback_timepassed = 0;
-        state = MOTION_IDLE;
-    }
-}
+    log_printf ("%d : %s\n", state,__func__);
 
-void add_tick_motion_timeout (uint32_t interval)
-{
-    log_printf ("%s\n", __func__);
-    wait_window_timepassed += interval;
-    if(wait_window_timepassed >= CAMERA_TIMEOUT_30S)
-    {
-        device_tick_switch_mode (DEVICE_TICK_SLOW);
-        tssp_detect_window_stop ();
-        wait_window_timepassed = 0;
-        state = MOTION_SYNC;
-        tssp_detect_pulse_detect ();
-    }
-}
-
-void add_tick_motion_sync (uint32_t interval)
-{
-    log_printf ("%s\n", __func__);
-    {
-        {
-            tssp_detect_pulse_detect ();
-            ms_timer_start (SENSEBE_OPERATION_MS_TIMER, MS_SINGLE_CALL, 
-                            MS_TIMER_TICKS_MS(1000), timer_1s_handler);
-        }
-    }
-
-}
-
-void add_tick_motion_idle (uint32_t interval)
-{
-    log_printf ("%s\n", __func__);
-    {
-        tssp_detect_window_detect ();
-    }
-}
-
-
-void add_tick_motion_stop (uint32_t interval)
-{
-    
-    log_printf ("%s\n", __func__);
     tssp_detect_window_stop ();
-    tssp_detect_pulse_stop ();
-    ms_timer_stop (SENSEBE_OPERATION_MS_TIMER);
+
+    ms_timer_start (SENSEBE_OPERATION_MS_TIMER, MS_SINGLE_CALL, 
+                    MS_TIMER_TICKS_MS(300), timer_1s_handler);
+
 }
 
-void (* arr_add_tick_motion[]) (uint32_t interval) = {
-    add_tick_motion_feedback,
-    add_tick_motion_timeout,
-    add_tick_motion_sync,
-    add_tick_motion_idle,
-    add_tick_motion_stop
+void state_control_motion_idle (uint32_t interval)
+{
+
+    log_printf ("%d : %s\n", state,__func__);
+
+    ms_timer_stop (SENSEBE_OPERATION_MS_TIMER);
+    tssp_detect_window_detect ();
+
+}
+
+void (* arr_state_control_motion[]) (uint32_t interval) = {
+    state_control_motion_sync,
+    state_control_motion_idle,
 };
 
 
@@ -172,34 +130,19 @@ void timer_1s_handler (void)
 void camera_unit_handler(uint32_t trigger)
 {
     log_printf("%s\n", __func__);
-    if (state != MOTION_FEEDBACK)  
     {
-        device_tick_process ();
     }
     
 }
 
-//void timer_trigger_handler ()
-//{
-//    
-//    if(cam_trigger_is_on () == false)
-//    {
-//        cam_trigger (TIMER_ONLY);
-//    }
-//}
-
 void window_detect_handler ()
 {
+//    log_printf ("%s\n", __func__);
     {
         led_ui_stop_seq (LED_UI_LOOP_SEQ, LED_SEQ_DETECT_PULSE);
         led_ui_single_start (LED_SEQ_DETECT_WINDOW, LED_UI_MID_PRIORITY, true);
-        tssp_detect_pulse_stop ();
-        if(state != MOTION_FEEDBACK)
-        {
-            device_tick_switch_mode (DEVICE_TICK_FAST);
-            state = MOTION_WAIT_FOR_TIMEOUT;
-        }
-        tssp_detect_pulse_detect ();
+        state = MOTION_SYNC;
+        arr_state_control_motion[state] (0);
         cam_trigger (shot_count);
     }
 }
@@ -249,33 +192,27 @@ bool two_window_sync (uint32_t ticks)
 
 void pulse_detect_handler (uint32_t ticks_count)
 {
-    log_printf("%s\n", __func__);
+//    log_printf("%s\n", __func__);
     if(state == MOTION_SYNC)
     {
         if(two_window_sync (ticks_count))
         {
             state = MOTION_IDLE;
-            tssp_detect_window_detect ();
-            device_tick_switch_mode (DEVICE_TICK_SLOW);
-            ms_timer_stop(SENSEBE_OPERATION_MS_TIMER);
+            arr_state_control_motion[state] (0);
+//            return;
         }
         else
         {
             tssp_detect_pulse_detect ();
+            led_ui_stop_seq (LED_UI_LOOP_SEQ, LED_SEQ_DETECT_PULSE);
         }
     }
-    else if (state == MOTION_FEEDBACK)
+    else if(state == MOTION_IDLE)
     {
-        wait_window_timepassed = 0;
-        led_ui_loop_start (LED_SEQ_DETECT_PULSE, LED_UI_LOW_PRIORITY);
-        tssp_detect_window_detect ();
-    }
-    else
-    {
-        wait_window_timepassed = 0;
-        device_tick_switch_mode (DEVICE_TICK_SLOW);
-        state = MOTION_IDLE;
-        device_tick_process ();
+        if(feedback_timepassed < DETECT_FEEDBACK_TIMEOUT_TICKS)
+        {
+            led_ui_loop_start (LED_SEQ_DETECT_PULSE, LED_UI_LOW_PRIORITY);
+        }
     }
 }
 
@@ -305,9 +242,9 @@ void sensebe_rx_detect_init (sensebe_rx_detect_config_t * sensebe_rx_detect_conf
     cam_trigger_config_t one_shot_config = 
     {
         .setup_number = ONE_SHOT,
-        .trig_duration_100ms = 10,
-        .trig_mode = CAM_TRIGGER_SINGLE_SHOT,
-        .trig_param1 = 0,
+        .trig_duration_100ms = 30,
+        .trig_mode = CAM_TRIGGER_LONG_PRESS,
+        .trig_param1 = 30,
         .trig_param2 = 0,
     };
     cam_trigger_set_trigger (&one_shot_config);
@@ -339,7 +276,8 @@ void sensebe_rx_detect_start (void)
     led_ui_single_start (arr_button_seq[shot_count], LED_UI_HIGH_PRIORITY, true);
     feedback_timepassed = 0;
     wait_window_timepassed = 0;
-    state = MOTION_FEEDBACK;
+    state = MOTION_SYNC;
+    arr_state_control_motion[state] (0);
     
     
     device_tick_cfg tick_cfg =
@@ -349,8 +287,6 @@ void sensebe_rx_detect_start (void)
         DEVICE_TICK_SLOW
     };
     device_tick_init(&tick_cfg);
-    tssp_detect_window_detect ();        
-
     
 }
 
@@ -366,7 +302,14 @@ void sensebe_rx_detect_stop (void)
 void sensebe_rx_detect_add_ticks (uint32_t interval)
 {
     log_printf("Machine State : %d\n", state);
-    arr_add_tick_motion[state](interval);
+    feedback_timepassed += interval;
+    if(feedback_timepassed >= DETECT_FEEDBACK_TIMEOUT_TICKS)
+    {
+        led_ui_stop_seq (LED_UI_LOOP_SEQ, LED_SEQ_DETECT_PULSE);
+        feedback_timepassed = 0;
+    }
+    
+//    arr_state_control_motion[state](interval);
 }
 
 void sensebe_rx_detect_next_setup (void)

@@ -265,7 +265,7 @@ static void get_sensebe_config_t(sensebe_config_t *config)
 void next_interval_handler(uint32_t interval)
 {
     log_printf("in %d\n", interval);
-    button_ui_add_tick(interval);
+//    button_ui_add_tick(interval);
     switch(current_state)
     {
     case SENSING:
@@ -560,8 +560,8 @@ int main(void)
     hal_wdt_start();
 #endif
 
-    button_ui_init(BUTTON_PIN, APP_IRQ_PRIORITY_LOW,
-            button_handler);
+//    button_ui_init(BUTTON_PIN, APP_IRQ_PRIORITY_LOW,
+//            button_handler);
 
     {
         irq_msg_callbacks cb =
