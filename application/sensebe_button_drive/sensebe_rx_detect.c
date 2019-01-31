@@ -61,12 +61,7 @@ typedef enum {
     MAX_SHOTS
 }shot_count_t;
 
-/** The fast tick interval in ms in the Sense mode */
-#define SENSE_FAST_TICK_INTERVAL_MS      1
-/** The slow tick interval in ms in the Sense mode */
-#define SENSE_SLOW_TICK_INTERVAL_MS      300000
-
-#define DETECT_FEEDBACK_TIMEOUT_TICKS MS_TIMER_TICKS_MS(300000)
+#define DETECT_FEEDBACK_TIMEOUT_TICKS MS_TIMER_TICKS_MS(270000)
 
 #define PULSE_REQ_FOR_SYNC 3
 
@@ -205,7 +200,10 @@ void pulse_detect_handler (uint32_t ticks_count)
         else
         {
             tssp_detect_pulse_detect ();
-            led_ui_single_start (LED_SEQ_GREEN_PULSE, LED_UI_MID_PRIORITY, true);
+            if(feedback_timepassed < DETECT_FEEDBACK_TIMEOUT_TICKS)
+            {
+                led_ui_single_start (LED_SEQ_GREEN_PULSE, LED_UI_MID_PRIORITY, true);
+            }
             led_ui_stop_seq (LED_UI_LOOP_SEQ, LED_SEQ_DETECT_PULSE);
         }
     }
@@ -268,21 +266,11 @@ void sensebe_rx_detect_init (sensebe_rx_detect_config_t * sensebe_rx_detect_conf
 void sensebe_rx_detect_start (void)
 {
     log_printf("%s\n", __func__);
-    led_ui_single_start (arr_button_seq[shot_count], LED_UI_HIGH_PRIORITY, true);
     feedback_timepassed = 0;
     wait_window_timepassed = 0;
     state = MOTION_SYNC;
     arr_state_control_motion[state] (0);
-    
-    
-    device_tick_cfg tick_cfg =
-    {
-        MS_TIMER_TICKS_MS(SENSE_FAST_TICK_INTERVAL_MS),
-        MS_TIMER_TICKS_MS(SENSE_SLOW_TICK_INTERVAL_MS),
-        DEVICE_TICK_SLOW
-    };
-    device_tick_init(&tick_cfg);
-    
+        
 }
 
 void sensebe_rx_detect_stop (void)
@@ -301,10 +289,7 @@ void sensebe_rx_detect_add_ticks (uint32_t interval)
     if(feedback_timepassed >= DETECT_FEEDBACK_TIMEOUT_TICKS)
     {
         led_ui_stop_seq (LED_UI_LOOP_SEQ, LED_SEQ_DETECT_PULSE);
-        feedback_timepassed = 0;
     }
-    
-//    arr_state_control_motion[state](interval);
 }
 
 void sensebe_rx_detect_next_setup (void)
