@@ -205,6 +205,7 @@ void pulse_detect_handler (uint32_t ticks_count)
         else
         {
             tssp_detect_pulse_detect ();
+            led_ui_single_start (LED_SEQ_GREEN_PULSE, LED_UI_MID_PRIORITY, true);
             led_ui_stop_seq (LED_UI_LOOP_SEQ, LED_SEQ_DETECT_PULSE);
         }
     }
