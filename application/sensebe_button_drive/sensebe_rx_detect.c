@@ -197,16 +197,16 @@ void pulse_detect_handler (uint32_t ticks_count)
         {
             state = MOTION_IDLE;
             arr_state_control_motion[state] (0);
+            if(feedback_timepassed < DETECT_FEEDBACK_TIMEOUT_TICKS)
+            {
+                led_ui_loop_start (LED_SEQ_DETECT_PULSE, LED_UI_LOW_PRIORITY);
+            }
         }
         else
         {
             tssp_detect_pulse_detect ();
             led_ui_stop_seq (LED_UI_LOOP_SEQ, LED_SEQ_DETECT_PULSE);
         }
-    }
-    if(feedback_timepassed < DETECT_FEEDBACK_TIMEOUT_TICKS)
-    {
-        led_ui_loop_start (LED_SEQ_DETECT_PULSE, LED_UI_LOW_PRIORITY);
     }
 }
 
