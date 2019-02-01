@@ -63,7 +63,7 @@ typedef enum {
 
 #define DETECT_FEEDBACK_TIMEOUT_TICKS MS_TIMER_TICKS_MS(270000)
 
-#define PULSE_REQ_FOR_SYNC 3
+#define PULSE_REQ_FOR_SYNC 4
 
 volatile motion_detection_states_t state = MOTION_IDLE;
 
@@ -141,9 +141,9 @@ void window_detect_handler ()
     }
 }
 
-bool compare_percent(uint32_t data, uint32_t ref, float per)
+bool compare_percent(uint32_t data, uint32_t ref, int num )
 {
-    if((ref-(ref*per/100))<=data && data<=(ref+(ref*per/100)))
+    if((ref-num)<=data && data<=(ref + num) )
     {
         return true;
     }
@@ -156,7 +156,7 @@ bool compare_percent(uint32_t data, uint32_t ref, float per)
 bool two_window_sync (uint32_t ticks)
 {
     static uint32_t previous_pulse_tick = 0, current_pulse_tick = 0;
-    static uint32_t pulse_diff_window[] = {0,0}, pulse_diff_window_cnt = 0;
+    static uint32_t pulse_diff_window[] = {0,0,0}, pulse_diff_window_cnt = 0;
     static uint32_t pulse_cnt = PULSE_REQ_FOR_SYNC;
     if(pulse_cnt == PULSE_REQ_FOR_SYNC)
     {
@@ -177,8 +177,10 @@ bool two_window_sync (uint32_t ticks)
         pulse_diff_window_cnt = 0;
         log_printf("Window[0]: %d\n", pulse_diff_window[0]);
         log_printf("Window[1]: %d\n", pulse_diff_window[1]);
+        log_printf("Window[2]: %d\n", pulse_diff_window[2]);
         pulse_cnt = PULSE_REQ_FOR_SYNC;
-        return compare_percent (pulse_diff_window[1], pulse_diff_window[0], 10);
+        return (compare_percent (pulse_diff_window[1], pulse_diff_window[0], 1) 
+            && compare_percent (pulse_diff_window[2], pulse_diff_window[1], 1));
     }
     
     return false;
