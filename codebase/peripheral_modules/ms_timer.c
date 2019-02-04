@@ -225,7 +225,7 @@ void RTC_IRQ_Handler()
             {
                 ms_timer[id].timer_ticks_after_overflow = 
                     extended_ticks (counter_val, ms_timer[id].timer_mode, id);
-                if(ms_timer[id].timer_over_flow_num == -1)
+                if(ms_timer[id].timer_over_flow_num == 0)
                 {
                     RTC_ID->CC[id] = counter_val
                         + ms_timer[id].timer_ticks_after_overflow;
