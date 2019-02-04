@@ -111,7 +111,7 @@ void ms_timer_init(uint32_t irq_priority);
  * @note Starting an already started will restart the timer with the current number of ticks passed.
  * @ref ms_timer_get_on_status can be used to check if a timer is already running.
  */
-void ms_timer_start(ms_timer_num id, ms_timer_mode mode, uint32_t ticks, void (*handler)(void));
+void ms_timer_start(ms_timer_num id, ms_timer_mode mode, uint64_t ticks, void (*handler)(void));
 
 /**
  * Stop a milli-second timer

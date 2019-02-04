@@ -48,7 +48,7 @@
  */
 static struct ms_timer_t
 {
-    volatile uint32_t timer_mode;
+    volatile uint64_t timer_mode;
     volatile uint32_t timer_over_flow_num;
     volatile uint32_t timer_ticks_after_overflow;
     void (*timer_handler)(void);
@@ -64,7 +64,7 @@ static volatile uint32_t ms_timers_status;
  * @param id MS_TIMER_ID which is to be started
  * @return Number of ticks after number of overflows are done
  */
-static uint32_t extended_ticks (uint32_t counter_val, uint32_t ticks, uint32_t id)
+static uint32_t extended_ticks (uint32_t counter_val, uint64_t ticks, uint32_t id)
 {
     //Check if ticks can counted before overflow happens
     if((RTC_MAX_COUNT - counter_val) > ticks)
@@ -126,10 +126,10 @@ void ms_timer_init(uint32_t irq_priority)
  * @warning Works only for input less than 512000 milli-seconds or 8.5 min when
  *  @ref MS_TIMER_FREQ is 32768. In other cases the max time must be calculated.
  */
-void ms_timer_start(ms_timer_num id, ms_timer_mode mode, uint32_t ticks, void (*handler)(void))
+void ms_timer_start(ms_timer_num id, ms_timer_mode mode, uint64_t ticks, void (*handler)(void))
 {
-
-    /* make sure the number of ticks to interrupt is less than 2^24 */
+    /* make sure the number of ticks to interrupt is less than 2^56 */
+    ticks = ticks & 0x00FFFFFFFFFFFFFF;
     ASSERT((ticks == 0 && mode == MS_REPEATED_CALL) == false);
     if(ticks == 0)
     {
