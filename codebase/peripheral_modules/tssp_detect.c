@@ -49,15 +49,6 @@ enum
 
 /** Channel 2 of RTC0 is used here */
 #define RTC_CHANNEL_USED 2
-/** Channel 2 of GPIOTE is used here */
-#define GPIOTE_CHANNEL_USED 2
-
-/** Channel 1 of PPI is used here for RTC */
-#define PPI_CHANNEL_USED_RTC 1
-
-/** Channel 2 of PPI is used here for EGU */
-#define PPI_CHANNEL_USED_EGU 2
-
 /** Channel 0 of EGU0 is used here */
 #define EGU_CHANNEL_USED 0
 

@@ -55,6 +55,15 @@
 /** EGU channel used by this module */
 #define TSSP_DETECT_EGU_USED NRF_EGU0
 
+/** Channel 1 of PPI is used here for RTC */
+#define PPI_CHANNEL_USED_RTC 7
+
+/** Channel 2 of PPI is used here for EGU */
+#define PPI_CHANNEL_USED_EGU 8
+
+/** Channel 2 of GPIOTE is used here */
+#define GPIOTE_CHANNEL_USED 7
+
 #ifndef TSSP_DETECT_FREQ
 #ifdef MS_TIMER_FREQ
 #define TSSP_DETECT_FREQ MS_TIMER_FREQ
