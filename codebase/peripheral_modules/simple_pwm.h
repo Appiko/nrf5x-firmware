@@ -57,6 +57,8 @@
 /// Three GPIOTE channels are used from this number for this module
 #define SIMPLE_PWM_GPIOTE_START_CH    0
 
+#define SIMPLE_PWM_PPI_CHS_USED 6
+
 /**
  * @brief Defines for the frequency at which the timer should run
  *  for the PWM generation
@@ -84,31 +86,33 @@ typedef enum
     SIMPLE_PWM_CHANNEL1,//!< SIMPLE_PWM_CHANNEL1
     SIMPLE_PWM_CHANNEL2,//!< SIMPLE_PWM_CHANNEL2
     SIMPLE_PWM_MAX_CHANNEL
-}simple_pwm_channels;
+}simple_pwm_channel_t;
 
 /**
- * @brief The format of the PWM configuration data
+ * @brief Function to initiate PWM module with clock frequency and total time of pulse
+ * @param freq Frequency at which driving clock works.
+ * @param max_count Max number of pulses possible. i.e. total time in ticks
  */
-typedef struct
-{
-    uint32_t pin[SIMPLE_PWM_MAX_CHANNEL]; ///Specify's the three pins
-    simple_pwm_timer_freq_t freq;         ///Freq of timer running the PWM
-    ///Max count of the PWM timer, implies the resolution
-    uint32_t max_count;
-}simple_pwm_config;
+void simple_pwm_init (simple_pwm_timer_freq_t freq,uint32_t max_count);
 
 /**
- * @brief Initializes the simple PWM module
- * @param config The PWM configuration data
+ * @brief Function to setup a channel
+ * @param channel Channel which is to be set.
+ * @param pwm_out_pin Output GPIO pin where PWM signal is desired
+ * @param value Number of pulses. i.e. on time in ticks
  */
-void simple_pwm_init(simple_pwm_config * config);
+void simple_pwm_channel_setup(simple_pwm_channel_t channel, uint32_t pwm_out_pin, 
+                                uint32_t value);
 
 /**
- * @brief Set a new value to a PWM channel
- * @param channel The channel whose PWM value is updated
- * @param value The new PWM value
+ * @brief Function to start PWM signals
  */
-void simple_pwm_set_value(simple_pwm_channels channel, uint32_t value);
+void simple_pwm_start ();
+
+/**
+ * @brief Function to stop PWM signals
+ */
+void simple_pwm_stop ();
 
 #endif /* CODEBASE_PERIPHERAL_MODULES_SIMPLE_PWM_H_ */
 /**
