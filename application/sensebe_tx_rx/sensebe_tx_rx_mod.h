@@ -66,14 +66,21 @@ typedef struct
 {
     uint32_t tx_en_pin;
     uint32_t tx_in_pin;
+    uint32_t tx_pwr1;
+    uint32_t tx_pwr2;
 }tx_transmit_config_t;
 
 typedef struct
 {
-    rx_detect_config_t * rx_detect_config;
-    tx_transmit_config_t * tx_transmit_config;
+    rx_detect_config_t rx_detect_config;
+    tx_transmit_config_t tx_transmit_config;
     sensebe_config_t * sensebe_config;
 }sensebe_tx_rx_config_t;
+
+/**
+ * @breif Function to change the range of IR transmission
+ */
+void sensebe_tx_rx_swicht_range ();
 
 /**
  * @brief Function to initialize the Rx detect module
@@ -85,12 +92,12 @@ void sensebe_tx_rx_init (sensebe_tx_rx_config_t * sensebe_rx_detect_config);
 /**
  * @brief Function to enable detection for SenseBe Rx
  */
-void sensebe_rx_start (void);
+void sensebe_tx_rx_start (void);
 
 /**
  * @brief Function to disable detection for SenseBe Rx
  */
-void sensebe_rx_stop (void);
+void sensebe_tx_rx_stop (void);
 
 /**
  * @brief Function to handle add tick event.

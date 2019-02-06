@@ -1,12 +1,12 @@
 
-BOARD           := BOARD_SENSEBE_RX_REV2
+BOARD           := BOARD_SENSEBE_REV1
 SLNO            := 682073614
 BLE_REQD        := BLE_STACK_SUPPORT_REQD
 PINRESET_REQD   := CONFIG_GPIO_AS_PINRESET
 DEBUGGER        := BMP
 LOGGER          := LOG_UART_PRINTF
 FW_VER_VAL      := 0
-MS_TIMER_FREQ   := 100
+MS_TIMER_FREQ   := 32768
 TSSP_DETECT_FREQ := 1000
 SD_USED         := s112
 SD_VER          := 6.0.0
@@ -63,6 +63,7 @@ C_SRC += led_seq.c
 C_SRC += tssp_detect.c
 C_SRC += cam_trigger.c
 C_SRC += simple_pwm.c
+C_SRC += tssp_ir_tx.c
 #Gets the name of the application folder
 APPLN = $(shell basename $(PWD))
 
