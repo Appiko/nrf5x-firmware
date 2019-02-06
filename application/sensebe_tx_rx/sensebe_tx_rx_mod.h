@@ -42,9 +42,7 @@
 #ifdef __cplusplus
 extern "C" {
 #endif
-    
-#define SENSEBE_TIMER_MODE_MS_TIMER MS_TIMER3
-    
+        
 #define SENSEBE_OPERATION_MS_TIMER MS_TIMER2
 
 /** Structure containing all the values required for sensebe_rx_detect module */
@@ -62,46 +60,57 @@ typedef struct
     uint32_t photodiode_pin;
     /** Enable pin for Photodiode */
     uint32_t photodiode_en_pin;
-    /** sensebe_config_t pointer which points to default configuration */
-    sensebe_config_t * init_sensebe_config;
-}sensebe_rx_detect_config_t;
+}rx_detect_config_t;
+
+typedef struct
+{
+    uint32_t tx_en_pin;
+    uint32_t tx_in_pin;
+}tx_transmit_config_t;
+
+typedef struct
+{
+    rx_detect_config_t * rx_detect_config;
+    tx_transmit_config_t * tx_transmit_config;
+    sensebe_config_t * sensebe_config;
+}sensebe_tx_rx_config_t;
 
 /**
  * @brief Function to initialize the Rx detect module
  * @param sensebe_rx_detect_config COnfiguration required for sensbe_rx_detect module
  * @ref sensebe_rx_detect_config_t
  */    
-void sensebe_rx_detect_init (sensebe_rx_detect_config_t * sensebe_rx_detect_config);
+void sensebe_tx_rx_init (sensebe_tx_rx_config_t * sensebe_rx_detect_config);
 
 /**
  * @brief Function to enable detection for SenseBe Rx
  */
-void sensebe_rx_detect_start (void);
+void sensebe_rx_start (void);
 
 /**
  * @brief Function to disable detection for SenseBe Rx
  */
-void sensebe_rx_detect_stop (void);
+void sensebe_rx_stop (void);
 
 /**
  * @brief Function to handle add tick event.
  * 
  * @param interval Ticks since the last occurance of add tick event.
  */
-void sensebe_rx_detect_add_ticks (uint32_t interval);
+void sensebe_tx_rx_add_ticks (uint32_t interval);
 
 /**
  * @brief Function to update SenseBe Rx configuration to config received over BLE
  * 
  * @param sensebe_config Pointer to the Configuration received over BLE
  */
-void sensebe_rx_detect_update_config (sensebe_config_t * update_sensebe_config);
+void sensebe_tx_rx_update_config (sensebe_config_t * update_sensebe_config);
 
 /**
  * @brief Function to get last config which is being used.
  * @return Configuration pointer to the configuration which is being used.
  */
-sensebe_config_t * sensebe_rx_detect_last_config ();
+sensebe_config_t * sensebe_tx_rx_last_config ();
 #ifdef __cplusplus
 }
 #endif

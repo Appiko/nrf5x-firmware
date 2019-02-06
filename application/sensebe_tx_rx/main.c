@@ -71,7 +71,7 @@
 #include "app_error.h"
 #include "out_pattern_gen.h"
 #include "sensebe_ble.h"
-#include "sensebe_rx_detect.h"
+#include "sensebe_tx_rx_mod.h"
 #include "dev_id_fw_ver.h"
 #include "led_seq.h"
 #include "led_ui.h"

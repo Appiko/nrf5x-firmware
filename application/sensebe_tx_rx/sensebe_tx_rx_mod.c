@@ -32,10 +32,11 @@
  * POSSIBILITY OF SUCH DAMAGE
  */
 
+#include "sensebe_ble.h"
+#include "sensebe_tx_rx_mod.h"
+
 #include "hal_gpio.h"
 #include "ms_timer.h"
-#include "sensebe_ble.h"
-#include "sensebe_rx_detect.h"
 #include "log.h"
 #include "led_ui.h"
 #include "led_seq.h"
@@ -68,6 +69,10 @@ typedef enum
 #define LIGHT_SENSE_INTERVAL_TICKS MS_TIMER_TICKS_MS(300000)
 
 #define PULSE_REQ_FOR_SYNC 4
+
+#define MOTION_SYNC_ON_TIME 150
+
+#define MOTION_SYNC_OFF_TIME 850
 
 static motion_detection_states_t state = MOTION_IDLE;
 
@@ -172,6 +177,7 @@ void timer_trigger_handler ()
         cam_trigger (TIMER_ONLY);
     }
 }
+
 void window_detect_handler ()
 {
     {
@@ -396,7 +402,8 @@ void timer_module_add_ticks ()
         ms_timer_stop (SENSEBE_TIMER_MODE_MS_TIMER);
     }
 }
-void sensebe_rx_detect_init (sensebe_rx_detect_config_t * sensebe_rx_detect_config)
+
+void sensebe_tx_rx_init (sensebe_tx_rx_config_t * sensebe_rx_detect_config)
 {
     log_printf("%s\n", __func__);
     
@@ -431,7 +438,7 @@ void sensebe_rx_detect_init (sensebe_rx_detect_config_t * sensebe_rx_detect_conf
     cam_trigger_init (&cam_trig_setup);    
 }
 
-void sensebe_rx_detect_start (void)
+void sensebe_rx_start (void)
 {
     log_printf("%s\n", __func__);
     feedback_timepassed = 0;
@@ -462,7 +469,7 @@ void sensebe_rx_detect_start (void)
     
 }
 
-void sensebe_rx_detect_stop (void)
+void sensebe_rx_stop (void)
 {
     log_printf("%s\n", __func__);
     cam_trigger_stop ();
@@ -472,7 +479,7 @@ void sensebe_rx_detect_stop (void)
     ms_timer_stop (SENSEBE_OPERATION_MS_TIMER);
 }
 
-void sensebe_rx_detect_add_ticks (uint32_t interval)
+void sensebe_tx_rx_add_ticks (uint32_t interval)
 {
     add_ticks_feedback (interval);
 
@@ -492,13 +499,12 @@ void sensebe_rx_detect_add_ticks (uint32_t interval)
     }
 }
 
-void sensebe_rx_detect_update_config (sensebe_config_t * update_sensebe_config)
+void sensebe_tx_rx_update_config (sensebe_config_t * update_sensebe_config)
 {
     memcpy (&sensebe_config, update_sensebe_config, sizeof(sensebe_config_t));
 }
 
-sensebe_config_t * sensebe_rx_detect_last_config ()
+sensebe_config_t * sensebe_tx_rx_last_config ()
 {
     return &sensebe_config;
 }
-
