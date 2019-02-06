@@ -45,7 +45,8 @@
 #endif
 
 /** PPI Channel which is being used by this module */
-#define TSSP_TX_PPI_CHANNEL_USED 9
+#define TSSP_TX_PPI_CHANNEL_USED_1 9
+#define TSSP_TX_PPI_CHANNEL_USED_2 10
 
 /** Timer peripheral used by this module */
 #define TSSP_TX_TIMER_USED 2
@@ -53,6 +54,7 @@
 /** SIMPLE_PWM channel used by this module */
 #define TSSP_TX_SIMPLE_PWM_CHANNEL_USED SIMPLE_PWM_CHANNEL0
 
+#define TSSP_TX_GPIOTE_USED 6
 /**
  * @brief Function to initiate the IR transmitter compatible with TSSP receiver.
  * @param tssp_tx_en Enable pin for IR transmitter circuitry. 

@@ -44,7 +44,8 @@
 #define TIMER_CHANNEL_USED 0
 
 
-uint32_t tx_en;
+static uint32_t tx_en;
+
 void tssp_ir_tx_init (uint32_t tssp_tx_en, uint32_t tssp_tx_in)
 {
     tx_en = tssp_tx_en;
@@ -60,20 +61,33 @@ void tssp_ir_tx_init (uint32_t tssp_tx_en, uint32_t tssp_tx_in)
                             << TIMER_SHORTS_COMPARE0_CLEAR_Pos;
     TIMER_ID->SHORTS |= TIMER_SHORTS_COMPARE0_STOP_Enabled
                             << TIMER_SHORTS_COMPARE0_STOP_Pos;
-    NRF_PPI->CH[TSSP_TX_PPI_CHANNEL_USED].EEP = (uint32_t) &TIMER_ID->EVENTS_COMPARE[TIMER_CHANNEL_USED];
-    NRF_PPI->CH[TSSP_TX_PPI_CHANNEL_USED].TEP = (uint32_t) &TIMER_ID->TASKS_SHUTDOWN;
+  
     
-    NRF_PPI->FORK[TSSP_TX_PPI_CHANNEL_USED].TEP =  (uint32_t) &PWM_TIMER_ID->TASKS_SHUTDOWN;
+    NRF_GPIOTE->CONFIG[TSSP_TX_GPIOTE_USED] = 
+                (GPIOTE_CONFIG_MODE_Task << GPIOTE_CONFIG_MODE_Pos)
+                | ((tx_en << GPIOTE_CONFIG_PSEL_Pos)& GPIOTE_CONFIG_PSEL_Msk)
+                | (GPIOTE_CONFIG_POLARITY_HiToLo << GPIOTE_CONFIG_POLARITY_Pos);
+
+    
+    NRF_PPI->CH[TSSP_TX_PPI_CHANNEL_USED_1].EEP = (uint32_t) &TIMER_ID->EVENTS_COMPARE[TIMER_CHANNEL_USED];
+    NRF_PPI->CH[TSSP_TX_PPI_CHANNEL_USED_1].TEP = (uint32_t) &TIMER_ID->TASKS_SHUTDOWN;
+    
+    NRF_PPI->FORK[TSSP_TX_PPI_CHANNEL_USED_1].TEP =  (uint32_t) &PWM_TIMER_ID->TASKS_SHUTDOWN;
+    
+    NRF_PPI->CH[TSSP_TX_PPI_CHANNEL_USED_2].EEP = (uint32_t) &TIMER_ID->EVENTS_COMPARE[TIMER_CHANNEL_USED];
+    NRF_PPI->CH[TSSP_TX_PPI_CHANNEL_USED_2].TEP = (uint32_t) &(NRF_GPIOTE->TASKS_CLR[TSSP_TX_GPIOTE_USED]);
     
     
 }
 
 void tssp_ir_tx_start (void)
 {
+    NRF_GPIOTE->TASKS_SET[TSSP_TX_GPIOTE_USED] = 1;
     TIMER_ID->INTENSET |= TIMER_INTENSET_COMPARE0_Msk;
     TIMER_ID->TASKS_CLEAR = 1;
     
-    NRF_PPI->CHENSET |= 1 << TSSP_TX_PPI_CHANNEL_USED;
+    NRF_PPI->CHENSET |= 1 << TSSP_TX_PPI_CHANNEL_USED_1;
+    NRF_PPI->CHENSET |= 1 << TSSP_TX_PPI_CHANNEL_USED_2;
 
     TIMER_ID->TASKS_START = 1;
     simple_pwm_start ();
