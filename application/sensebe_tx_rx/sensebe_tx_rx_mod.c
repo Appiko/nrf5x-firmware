@@ -59,10 +59,10 @@ typedef enum
 typedef enum
 {
     MOD_TIMER,
-    MOD_MOTION_SYNC,
+    MOD_MOTION,
     MOD_IR_TX,
     MAX_MODS,
-}timer_contorl_mods_t;
+}modules_t;
 
 typedef enum 
 {
@@ -72,10 +72,13 @@ typedef enum
     IR_MAX_RANGES,
 }ir_ranges_t;
 
-/** The fast tick interval in ms in the Sense mode */
-#define SENSE_FAST_TICK_INTERVAL_MS      1000
-/** The slow tick interval in ms in the Sense mode */
-#define SENSE_SLOW_TICK_INTERVAL_MS      300000
+typedef enum
+{
+    IR_SPEED0 = 5,
+    IR_SPEED1 = 25,
+    IR_SPEED2 = 50,
+    IR_SPEED3 = 100,
+}ir_speed_t;
 
 #define DETECT_FEEDBACK_TIMEOUT_TICKS MS_TIMER_TICKS_MS(270000)
 
@@ -99,9 +102,9 @@ static sensebe_config_t sensebe_config;
 
 static tssp_detect_config_t tssp_detect_config;
 
-static bool arr_is_light_ok [MOTION_AND_TIMER];
+static bool arr_is_light_ok [MAX_MODS];
 
-static bool arr_is_light_sense_req [MOTION_AND_TIMER];
+static bool arr_is_light_sense_req [MAX_MODS];
 
 static bool arr_is_mod_on[MAX_MODS];
 
@@ -109,11 +112,12 @@ static uint32_t light_check_sense_pin = 0;
 
 static uint32_t light_check_en_pin = 0;
 
-static uint32_t module_tick_duration = 25;
+static uint32_t module_tick_duration[] = {IR_SPEED0, IR_SPEED1, IR_SPEED2, IR_SPEED3};
 
 static uint32_t timer_module_value = 0;
 
-static led_sequences range_indicator[] = {LED_SEQ_RED_PULSE, LED_SEQ_ORANGE_PULSE, LED_SEQ_GREEN_PULSE};
+static led_sequences range_indicator[] =
+            {LED_SEQ_RED_PULSE, LED_SEQ_ORANGE_PULSE, LED_SEQ_GREEN_PULSE,};
 
 static ir_ranges_t tx_range = IR_SHORT;
 
@@ -124,13 +128,8 @@ void light_check (uint32_t interval);
 
 void module_tick_handler ();
 
-
-void timer_1s_handler (void);
-void timer_200ms_handler (void);
-
 void add_ticks_feedback (uint32_t interval)
 {
-    log_printf ("%s\n", __func__);
     feedback_timepassed += interval;
     if(feedback_timepassed >= DETECT_FEEDBACK_TIMEOUT_TICKS)
     {
@@ -141,21 +140,13 @@ void add_ticks_feedback (uint32_t interval)
 void state_change_sync ()
 {
     log_printf ("%s\n", __func__);
-    {
-        {
-            tssp_detect_window_stop ();
-            arr_is_mod_on[MOD_MOTION_SYNC] = true;
-
-        }
-    }
-
+    tssp_detect_window_stop ();
 }
 
 void state_change_idle ()
 {
     log_printf ("%s\n", __func__);
     tssp_detect_pulse_stop ();
-    arr_is_mod_on[MOD_MOTION_SYNC] = false;
     tssp_detect_window_detect ();
 }
 
@@ -165,7 +156,6 @@ void state_change_stop ()
     log_printf ("%s\n", __func__);
     tssp_detect_window_stop ();
     tssp_detect_pulse_stop ();
-    arr_is_mod_on[MOD_MOTION_SYNC] = false;
 }
 
 void (* arr_state_change[]) () = {
@@ -198,26 +188,17 @@ void ir_range_long ()
 void (* ir_range_select[]) () ={
     ir_range_short,
     ir_range_mid,
-    ir_range_long
+    ir_range_long,
 };
-void timer_200ms_handler (void)
-{
-    tssp_detect_pulse_stop ();
-}
-
-void timer_1s_handler (void)
-{
-    tssp_detect_pulse_detect ();
-}
 
 void camera_unit_handler(uint32_t trigger)
 {
     log_printf("%s\n", __func__);
     switch(trigger)
     {
-        case MOTION_ONLY : 
+        case MOD_MOTION : 
             break;
-        case TIMER_ONLY :
+        case MOD_TIMER :
             break;
     }
     
@@ -228,7 +209,7 @@ void timer_trigger_handler ()
     
     if(cam_trigger_is_on () == false)
     {
-        cam_trigger (TIMER_ONLY);
+        cam_trigger (MOD_TIMER);
     }
 }
 
@@ -240,7 +221,7 @@ void window_detect_handler ()
         motion_state = MOTION_SYNC;
         arr_state_change[motion_state] ();
         tssp_detect_pulse_detect ();
-        cam_trigger (MOTION_ONLY);
+        cam_trigger (MOD_MOTION);
     }
 }
 
@@ -349,15 +330,20 @@ void light_check (uint32_t interval)
         light_intensity = (MAX_ADC_OUTPUT - simple_adc_get_value (SIMPLE_ADC_GAIN1_6,
                                                 light_check_sense_pin));
         //motion light check
-        if(arr_is_light_sense_req[MOTION_ONLY])
+        if(arr_is_light_sense_req[MOD_MOTION])
         {
-            light_sense (sensebe_config.tssp_conf.oper_time, light_intensity, MOTION_ONLY);
+            light_sense (sensebe_config.tssp_conf.oper_time, light_intensity, MOD_MOTION);
         }
         
         //timer light check
-        if(arr_is_light_sense_req[TIMER_ONLY])
+        if(arr_is_light_sense_req[MOD_TIMER])
         {
-            light_sense (sensebe_config.timer_conf.oper_time, light_intensity, TIMER_ONLY);
+            light_sense (sensebe_config.timer_conf.oper_time, light_intensity, MOD_TIMER);
+        }
+        
+        if(arr_is_light_sense_req[MOD_IR_TX])
+        {
+            light_sense (sensebe_config.ir_tx_conf.oper_time, light_intensity, MOD_IR_TX);
         }
         
         //Disable light sense module
@@ -373,16 +359,16 @@ void motion_module_start ()
     if((motion_oper_time.day_or_night == 1 && motion_oper_time.threshold == 0b0000000)||
     (motion_oper_time.day_or_night == 0 && motion_oper_time.threshold == 0b1111111))
     {
-        arr_is_light_sense_req[MOTION_ONLY] = false;
-        arr_is_light_ok [MOTION_ONLY] = true; 
+        arr_is_light_sense_req[MOD_MOTION] = false;
+        arr_is_light_ok [MOD_MOTION] = true; 
     }
     else
     {
-        arr_is_light_sense_req[MOTION_ONLY] = true;
+        arr_is_light_sense_req[MOD_MOTION] = true;
     }      
     cam_trigger_config_t motion_cam_trig_config = 
     {
-        .setup_number = MOTION_ONLY,
+        .setup_number = MOD_MOTION,
         .trig_duration_100ms = sensebe_config.tssp_conf.intr_trig_timer,
         .trig_mode = sensebe_config.tssp_conf.mode,
         .trig_param1 = sensebe_config.tssp_conf.larger_value,
@@ -395,13 +381,13 @@ void motion_module_start ()
     tssp_detect_init (&tssp_detect_config);
 
     motion_state = MOTION_SYNC;
-    arr_state_change[motion_state] ();
+    arr_is_mod_on[MOD_MOTION] = true;
 }
 
 void motion_module_add_ticks ()
 {
     log_printf("Machine State : %d\n", motion_state);
-    if(arr_is_light_ok [MOTION_ONLY] == false)
+    if(arr_is_light_ok [MOD_MOTION] == false)
     {
         motion_state = MOTION_STOP;
     }
@@ -416,8 +402,8 @@ void motion_module_add_mod_ticks ()
 {
     static bool is_rx_on = true;
     static uint32_t mod_ticks;
-    mod_ticks += module_tick_duration;
-    if(arr_is_mod_on[MOD_MOTION_SYNC])
+    mod_ticks += module_tick_duration[sensebe_config.ir_tx_conf.ir_tx_speed];
+    if(motion_state == MOTION_SYNC)
     {
         if(is_rx_on == true && mod_ticks >= MOTION_SYNC_ON_TIME)
         {
@@ -432,6 +418,20 @@ void motion_module_add_mod_ticks ()
             mod_ticks = 0;
         }
     }
+    else if(motion_state == MOTION_IDLE)
+    {
+        mod_ticks = 0;
+    }
+}
+
+void motion_module_stop ()
+{
+    motion_state = MOTION_STOP;
+    arr_state_change[motion_state] ();
+
+    arr_is_mod_on [MOD_MOTION] = false;
+    arr_is_light_sense_req[MOD_MOTION] = false;
+    arr_is_light_ok[MOD_MOTION] = false;
 }
 
 void timer_module_start ()
@@ -441,16 +441,16 @@ void timer_module_start ()
     if((timer_oper_time.day_or_night == 1 && timer_oper_time.threshold == 0b0000000)||
     (timer_oper_time.day_or_night == 0 && timer_oper_time.threshold == 0b1111111))
     {
-        arr_is_light_sense_req[TIMER_ONLY] = false;
-        arr_is_light_ok [TIMER_ONLY] = true; 
+        arr_is_light_sense_req[MOD_TIMER] = false;
+        arr_is_light_ok [MOD_TIMER] = true; 
     }
     else
     {
-        arr_is_light_sense_req[TIMER_ONLY] = true;
+        arr_is_light_sense_req[MOD_TIMER] = true;
     }      
     cam_trigger_config_t timer_cam_trig_config = 
     {
-        .setup_number = TIMER_ONLY,
+        .setup_number = MOD_TIMER,
         .trig_duration_100ms = 0,
         .trig_mode = sensebe_config.timer_conf.mode,
         .trig_param1 = sensebe_config.timer_conf.larger_value,
@@ -460,11 +460,13 @@ void timer_module_start ()
     
     timer_module_value = sensebe_config.timer_conf.timer_interval * 100;
     
+    arr_is_mod_on[MOD_TIMER] = true;
+    
 }
 
 void timer_module_add_ticks ()
 {
-    if(arr_is_light_ok [TIMER_ONLY] == true)
+    if(arr_is_light_ok [MOD_TIMER] == true)
     {
         arr_is_mod_on[MOD_TIMER] = true;
     }
@@ -477,40 +479,88 @@ void timer_module_add_ticks ()
 void timer_module_add_mod_ticks ()
 {
     static uint32_t mod_ticks;
-    if(arr_is_mod_on[MOD_TIMER] == true)
+    mod_ticks += module_tick_duration[sensebe_config.ir_tx_conf.ir_tx_speed];
+    if(mod_ticks > timer_module_value)
     {
-        mod_ticks += module_tick_duration;
-        if(mod_ticks > timer_module_value)
-        {
-            timer_trigger_handler ();
-        }
+        timer_trigger_handler ();
     }
+}
+
+void timer_module_stop ()
+{
+    arr_is_mod_on [MOD_TIMER] = false;
+    arr_is_light_sense_req[MOD_TIMER] = false;
+    arr_is_light_ok[MOD_TIMER] = false;
 }
 
 void ir_tx_module_start ()
 {
-    tssp_ir_tx_start ();
+    oper_time_t ir_tx_oper_time = sensebe_config.ir_tx_conf.oper_time;
+
+    if((ir_tx_oper_time.day_or_night == 1 && ir_tx_oper_time.threshold == 0b0000000)||
+    (ir_tx_oper_time.day_or_night == 0 && ir_tx_oper_time.threshold == 0b1111111))
+    {
+        arr_is_light_sense_req[MOD_IR_TX] = false;
+        arr_is_light_ok [MOD_IR_TX] = true; 
+    }
+    else
+    {
+        arr_is_light_sense_req[MOD_IR_TX] = true;
+    }      
+    
+    if(sensebe_config.ir_tx_conf.ir_tx_pwr == IR_MAX_RANGES)
+    {
+        sensebe_config.ir_tx_conf.ir_tx_pwr = IR_LONG;
+    }
+
+    tx_range = sensebe_config.ir_tx_conf.ir_tx_pwr;
+    ir_range_select[tx_range]();    
+    led_ui_single_start (range_indicator[tx_range], LED_UI_LOW_PRIORITY, true);
+
     arr_is_mod_on[MOD_IR_TX] = true;
 }
 
 void ir_tx_module_add_ticks ()
 {
+    if(arr_is_light_ok[MOD_IR_TX] == true)
+    {
+        arr_is_mod_on[MOD_IR_TX] = true;
+    }
+    else
+    {
+        arr_is_mod_on[MOD_IR_TX] = false;
+    }
 }
 
 void ir_tx_module_add_mod_ticks ()
 {
-    if(arr_is_mod_on[MOD_IR_TX] == true)
-    {
-        tssp_ir_tx_start ();
-    }
+    tssp_ir_tx_start ();
+}
+
+void ir_tx_module_stop ()
+{
+    tssp_ir_tx_stop ();
+    arr_is_mod_on[MOD_IR_TX] = false;
+    arr_is_light_sense_req[MOD_IR_TX] = false;
+    arr_is_light_ok[MOD_IR_TX] = false;
 }
 
 void module_tick_handler ()
 {
-    motion_module_add_mod_ticks ();
-    timer_module_add_mod_ticks ();
-    ir_tx_module_add_mod_ticks ();
+    if(arr_is_mod_on[MOD_TIMER] == true)
+    {
+        timer_module_add_mod_ticks ();
+    }
+    if(arr_is_mod_on[MOD_MOTION] == true)
+    {
+        motion_module_add_mod_ticks ();
+    }
+    if(arr_is_mod_on[MOD_IR_TX] == true)
+    {
+        ir_tx_module_add_mod_ticks ();
+    }
 }
+
 void sensebe_tx_rx_init (sensebe_tx_rx_config_t * sensebe_rx_detect_config)
 {
     log_printf("%s\n", __func__);
@@ -548,14 +598,13 @@ void sensebe_tx_rx_init (sensebe_tx_rx_config_t * sensebe_rx_detect_config)
     tssp_ir_tx_init (sensebe_rx_detect_config->tx_transmit_config.tx_en_pin,
                      sensebe_rx_detect_config->tx_transmit_config.tx_in_pin);
     
-    led_ui_single_start (range_indicator[tx_range], LED_UI_LOW_PRIORITY, true);
     ir_pwr1 = sensebe_rx_detect_config->tx_transmit_config.tx_pwr1;
     ir_pwr2 = sensebe_rx_detect_config->tx_transmit_config.tx_pwr2;
+    
 
     hal_gpio_cfg_output (ir_pwr1, 0);
     hal_gpio_cfg_output (ir_pwr2, 0);
-    ir_range_select[tx_range]();
-    
+        
 }
 
 void sensebe_tx_rx_start (void)
@@ -573,7 +622,7 @@ void sensebe_tx_rx_start (void)
     }
     else
     {
-        arr_is_light_sense_req[TIMER_ONLY] = false;
+        timer_module_stop ();
     }
     
     if(sensebe_config.trig_conf != TIMER_ONLY)
@@ -582,24 +631,32 @@ void sensebe_tx_rx_start (void)
     }
     else
     {
-        arr_is_light_sense_req[MOTION_ONLY] = false;
+        motion_module_stop ();
     }
     
-    light_check (LIGHT_SENSE_INTERVAL_TICKS);
+    if(sensebe_config.ir_tx_conf.is_enable == 1)
+    {
+        ir_tx_module_start ();
+    }
+    else
+    {
+        ir_tx_module_stop ();
+    }
     
     ms_timer_start (SENSEBE_OPERATION_MS_TIMER, MS_REPEATED_CALL,
-                    MS_TIMER_TICKS_MS(module_tick_duration), module_tick_handler);
+        MS_TIMER_TICKS_MS(module_tick_duration[sensebe_config.ir_tx_conf.ir_tx_speed])
+        , module_tick_handler);
     
-    ir_tx_module_start ();
-    
+    light_check (LIGHT_SENSE_INTERVAL_TICKS);
 }
 
 void sensebe_tx_rx_stop (void)
 {
     log_printf("%s\n", __func__);
     cam_trigger_stop ();
-    tssp_detect_pulse_stop ();
-    tssp_detect_window_stop ();
+    motion_module_stop ();
+    timer_module_stop ();
+    ir_tx_module_stop ();
     ms_timer_stop (SENSEBE_OPERATION_MS_TIMER);
 }
 
@@ -607,8 +664,9 @@ void sensebe_tx_rx_add_ticks (uint32_t interval)
 {
     add_ticks_feedback (interval);
 
-    if(arr_is_light_sense_req[MOTION_ONLY] == true ||
-       arr_is_light_sense_req [TIMER_ONLY] == true)
+    if(arr_is_light_sense_req [MOD_MOTION] == true ||
+       arr_is_light_sense_req [MOD_TIMER] == true ||
+       arr_is_light_sense_req [MOD_IR_TX])
     {
         light_check (interval);
     }
@@ -620,6 +678,10 @@ void sensebe_tx_rx_add_ticks (uint32_t interval)
     if(sensebe_config.trig_conf != MOTION_ONLY)
     {
         timer_module_add_ticks (); 
+    }
+    if(sensebe_config.ir_tx_conf.is_enable == 1)
+    {
+        ir_tx_module_add_ticks ();
     }
 }
 
@@ -639,4 +701,5 @@ void sensebe_tx_rx_swicht_range ()
     led_ui_single_start (range_indicator[tx_range], LED_UI_LOW_PRIORITY, true);
 
     ir_range_select[tx_range]();
+    sensebe_config.ir_tx_conf.ir_tx_pwr = tx_range;
 }
