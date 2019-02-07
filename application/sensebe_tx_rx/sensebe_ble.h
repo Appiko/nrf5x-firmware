@@ -88,7 +88,7 @@ typedef struct
  */
 typedef struct
 {
-    /** To decide in which light condition PIR should operate. */
+    /** To decide in which light condition TSSP should operate. */
     oper_time_t oper_time;     
     /**
      * MODE DATA FORMAT:
@@ -131,11 +131,38 @@ typedef struct
 {
     /** In timer_conf: Interval between two triggers. */
     uint16_t timer_interval;
+    /** To decide in which light condition timer should operate. */
     oper_time_t oper_time;
     uint8_t mode;
     uint16_t larger_value;
     uint8_t smaller_value;
 }__attribute__ ((packed)) timer_conf_t;
+
+/***/
+typedef struct
+{
+    /** To decide in which light condition IR transmitter should operate. */
+    oper_time_t oper_time;
+    /** To decide if IR transmitter should be Enabled */
+    uint8_t is_enable: 1;
+    /**
+     * @brief To decide the time between 2 signals for IR transmitter. 
+     * @TIME 
+     * 0  5ms\
+     * 1  25ms\
+     * 2  50ms\
+     * 3  100ms\
+     */
+    uint8_t ir_tx_speed: 2;
+    /**
+     * @breif To decide the transmission power for IR transmitter.
+     * @POWER
+     * 0    Low\
+     * 1    Mid\
+     * 2,3  High\ 
+     */
+    uint8_t ir_tx_pwr: 2;
+}__attribute__ ((packed)) ir_tx_conf_t;
 
 /**
  * @brief Strcture which is used for data transfer over BLE.
@@ -146,8 +173,10 @@ typedef struct
     trigger_conf_t trig_conf;
     /** In sensebe_conf: TSSP Configuration */
     tssp_conf_t  tssp_conf;
-    /** In sensebe_conf: Time configuration */
+    /** In sensebe_conf: Timer Configuration */
     timer_conf_t  timer_conf;
+    /** In sensebe_conf: IR transmitter Configuration*/
+    ir_tx_conf_t ir_tx_conf;
 }__attribute__ ((packed)) sensebe_config_t ;
 
 typedef struct

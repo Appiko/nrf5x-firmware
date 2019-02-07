@@ -171,6 +171,12 @@ static sensebe_config_t sensebe_ble_default_config = {
     .timer_conf.timer_interval = 50,
     
     .trig_conf = MOTION_ONLY,
+    
+    .ir_tx_conf.oper_time.day_or_night = 1,
+    .ir_tx_conf.oper_time.threshold = 0b0000000,
+    .ir_tx_conf.is_enable = 1,
+    .ir_tx_conf.ir_tx_speed = 1,
+    .ir_tx_conf.ir_tx_pwr = 0,
 
 };
 
@@ -187,6 +193,8 @@ sensebe_tx_rx_config_t default_sensebe_tx_rx_config =
     
 //    .tx_transmit_config.tx_en_pin = JACK_INSERTED_PIN,
 //    .tx_transmit_config.tx_in_pin = GPIO2_PIN,
+//    .tx_transmit_config.tx_pwr1 = JACK_INSERTED_PIN,
+//    .tx_transmit_config.tx_pwr2 = GPIO2_PIN,
     .tx_transmit_config.tx_en_pin = IR_TX_REG_EN,
     .tx_transmit_config.tx_in_pin = IR_TX_LED_EN,
     .tx_transmit_config.tx_pwr1 = IR_TX_PWR1,
