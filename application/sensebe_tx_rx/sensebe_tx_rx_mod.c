@@ -135,6 +135,8 @@ static bool arr_is_light_sense_req [MAX_MODS];
 static bool arr_is_mod_on[MAX_MODS];
 /**Global TSSP configuration which is to be modified and reused.*/
 static tssp_detect_config_t tssp_detect_config;
+/**Global variable to store synchronization time for TSSP detect module*/
+static uint32_t tssp_detect_sync_time;
 /**Global variable used to keep track of motion detection module's state*/
 static motion_detection_states_t motion_state = MOTION_IDLE;
 /**Global variable used to store value after which timer trigger should be generated*/
@@ -392,6 +394,7 @@ bool three_window_sync (uint32_t ticks)
         log_printf("Window[0]: %d\n", pulse_diff_window[0]);
         log_printf("Window[1]: %d\n", pulse_diff_window[1]);
         log_printf("Window[2]: %d\n", pulse_diff_window[2]);
+        tssp_detect_sync_time = pulse_diff_window[1];
         pulse_cnt = PULSE_REQ_FOR_SYNC;
         return (compare_margin (pulse_diff_window[1], pulse_diff_window[0], 2)
             && compare_margin (pulse_diff_window[2], pulse_diff_window[1], 2));
@@ -406,6 +409,7 @@ void pulse_detect_handler (uint32_t ticks_count)
     {
         if(three_window_sync (ticks_count))
         {
+            tssp_detect_window_sync (tssp_detect_sync_time);
             motion_state = MOTION_IDLE;
             arr_state_change[motion_state] ();
             if(feedback_timepassed < DETECT_FEEDBACK_TIMEOUT_TICKS)

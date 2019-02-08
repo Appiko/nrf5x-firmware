@@ -128,6 +128,12 @@ void tssp_detect_window_stop (void);
  */
 void tssp_detect_pulse_detect (void);
 
+/**
+ * @brief Function to Synchronize TSSP detector to IR transmitter which is being used
+ * @param sync_ms Synchronization time in ms
+ */
+void tssp_detect_window_sync (uint32_t sync_ms);
+
 #endif /* TSSP_DETECT_H */
 /**
  * @}
