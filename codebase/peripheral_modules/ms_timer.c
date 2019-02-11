@@ -39,17 +39,69 @@
 #define RTC_IRQ_Handler     CONCAT_3(RTC, MS_TIMER_RTC_USED, _IRQHandler)
 /** @} */
 
+
+/** Maximum value which can be counted with 24 bit RTC counter */
+#define RTC_MAX_COUNT 0xFFFFFF
+
 /**
  * Structure to hold the @ref timer_mode and handler to be called on expiration
  */
 static struct ms_timer_t
 {
-    volatile uint32_t timer_mode;
+    volatile uint64_t timer_mode;
+    volatile uint32_t timer_over_flow_num;
+    volatile uint32_t timer_ticks_after_overflow;
     void (*timer_handler)(void);
 } ms_timer[MS_TIMER_MAX];
 
 /** Timers currently used based on the first four bits from LSB */
 static volatile uint32_t ms_timers_status;
+
+/**
+ * @brief Function to check number of overflow required and ticks after overflows are done 
+ * @param counter_val Current RTC counter value.
+ * @param ticks Ticks for which MS_TIMER has been started 
+ * @param id MS_TIMER_ID which is to be started
+ * @return Number of ticks after number of overflows are done
+ */
+static uint32_t extended_ticks (uint32_t counter_val, uint64_t ticks, uint32_t id)
+{
+    //Check if ticks can counted before overflow happens
+    if((RTC_MAX_COUNT - counter_val) > ticks)
+    {
+        
+        ms_timer[id].timer_over_flow_num = 0;
+        return ticks;
+    }
+    else
+    {
+        ms_timer[id].timer_over_flow_num = (ticks - 
+                        (RTC_MAX_COUNT - counter_val)) / (1<<24) + 1;
+        return (ticks - (RTC_MAX_COUNT - counter_val)) % (0x1 << 24);
+    }
+}
+
+/**
+ * @brief Function to handle RTC_EVENT_OVRFLW
+ */
+void rtc_overflow_handler ()
+{
+    RTC_ID->EVENTS_OVRFLW = 0;
+    for (ms_timer_num id = MS_TIMER0; id < MS_TIMER_MAX; id++)
+    {
+        if(ms_timer[id].timer_over_flow_num != 0)
+        {
+            if(ms_timer[id].timer_over_flow_num == 1)
+            {
+                RTC_ID->CC[id] = ms_timer[id].timer_ticks_after_overflow;
+                RTC_ID->EVTENSET = 1 << (RTC_INTENSET_COMPARE0_Pos + id);
+                RTC_ID->INTENSET = 1 << (RTC_INTENSET_COMPARE0_Pos + id);
+            }
+            ms_timer[id].timer_over_flow_num--;
+        }
+    }
+    
+}
 
 void ms_timer_init(uint32_t irq_priority)
 {
@@ -58,6 +110,7 @@ void ms_timer_init(uint32_t irq_priority)
     for (ms_timer_num i = MS_TIMER0; i < MS_TIMER_MAX; i++)
     {
         ms_timer[i].timer_mode = MS_SINGLE_CALL;
+        ms_timer[i].timer_over_flow_num = -1;
         ms_timer[i].timer_handler = NULL;
     }
 
@@ -73,11 +126,10 @@ void ms_timer_init(uint32_t irq_priority)
  * @warning Works only for input less than 512000 milli-seconds or 8.5 min when
  *  @ref MS_TIMER_FREQ is 32768. In other cases the max time must be calculated.
  */
-void ms_timer_start(ms_timer_num id, ms_timer_mode mode, uint32_t ticks, void (*handler)(void))
+void ms_timer_start(ms_timer_num id, ms_timer_mode mode, uint64_t ticks, void (*handler)(void))
 {
-
-    /* make sure the number of ticks to interrupt is less than 2^24 */
-    ticks = (ticks & RTC_COUNTER_COUNTER_Msk);
+    /* make sure the number of ticks to interrupt is less than 2^56 */
+    ticks = ticks & 0x00FFFFFFFFFFFFFF;
     ASSERT((ticks == 0 && mode == MS_REPEATED_CALL) == false);
     if(ticks == 0)
     {
@@ -88,6 +140,7 @@ void ms_timer_start(ms_timer_num id, ms_timer_mode mode, uint32_t ticks, void (*
             return;
         }
     }
+    uint32_t counter_val = RTC_ID->COUNTER;
 
     ms_timer[id].timer_handler = handler;
     if (mode == MS_SINGLE_CALL)
@@ -98,15 +151,23 @@ void ms_timer_start(ms_timer_num id, ms_timer_mode mode, uint32_t ticks, void (*
     {
         ms_timer[id].timer_mode = ticks;
     }
-
-    RTC_ID->CC[id] = RTC_ID->COUNTER + ticks;
+    
+    ms_timer[id].timer_ticks_after_overflow = extended_ticks (counter_val, ticks, id);
 
     RTC_ID->EVENTS_COMPARE[id] = 0;
-    RTC_ID->EVTENSET = 1 << (RTC_INTENSET_COMPARE0_Pos + id);
-    RTC_ID->INTENSET = 1 << (RTC_INTENSET_COMPARE0_Pos + id);
-
+    
+    if(ms_timer[id].timer_over_flow_num == 0)
+    {
+        RTC_ID->CC[id] = counter_val + ticks;
+        RTC_ID->EVTENSET = 1 << (RTC_INTENSET_COMPARE0_Pos + id);
+        RTC_ID->INTENSET = 1 << (RTC_INTENSET_COMPARE0_Pos + id);
+    }
+ 
     if (ms_timers_status == 0)
     {
+        RTC_ID->EVENTS_OVRFLW = 0;
+        RTC_ID->INTENSET = RTC_INTENSET_OVRFLW_Msk;
+        RTC_ID->EVTENSET = RTC_EVTENSET_OVRFLW_Msk;
         RTC_ID->TASKS_START = 1;
     }
     ms_timers_status |= 1 << id;
@@ -136,10 +197,17 @@ bool ms_timer_get_on_status(ms_timer_num id)
 __attribute__((optimize("unroll-loops")))
 void RTC_IRQ_Handler()
 {
+    uint32_t counter_val = RTC_ID->COUNTER;
+    if(RTC_ID->EVENTS_OVRFLW)
+    {
+        rtc_overflow_handler ();
+    }
     for (ms_timer_num id = MS_TIMER0; id < MS_TIMER_MAX; id++)
     {
         if (RTC_ID->EVENTS_COMPARE[id])
         {
+            RTC_ID->EVTENCLR = 1 << (RTC_INTENSET_COMPARE0_Pos + id);
+            RTC_ID->INTENCLR = 1 << (RTC_INTENSET_COMPARE0_Pos + id);
             RTC_ID->EVENTS_COMPARE[id] = 0;
             (void)RTC_ID->EVENTS_COMPARE[id];
 
@@ -155,7 +223,15 @@ void RTC_IRQ_Handler()
             }
             else
             {
-                RTC_ID->CC[id] += ms_timer[id].timer_mode;
+                ms_timer[id].timer_ticks_after_overflow = 
+                    extended_ticks (counter_val, ms_timer[id].timer_mode, id);
+                if(ms_timer[id].timer_over_flow_num == 0)
+                {
+                    RTC_ID->CC[id] = counter_val
+                        + ms_timer[id].timer_ticks_after_overflow;
+                    RTC_ID->EVTENSET = 1 << (RTC_INTENSET_COMPARE0_Pos + id);
+                    RTC_ID->INTENSET = 1 << (RTC_INTENSET_COMPARE0_Pos + id);
+                }
             }
 
             if(cb_handler != NULL)
