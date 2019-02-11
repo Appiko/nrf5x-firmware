@@ -53,17 +53,23 @@ sd_ver_int=""
 fw_ver_int=""
 bl_ver="1.0.0"
 
-board_used="$(awk '/BOARD /{print $3}' Makefile | tr '_' ' ' | awk '{print $2}')"
+
+board_used="$(awk '/BOARD /{print $3}' Makefile)"
+
+board_name="$(awk '/BOARD /{print $3}' Makefile | tr '_' ' ' | awk '{print $2}')"
+
+global_pwd="$(pwd)"
+echo $global_pwd
 
 pwd="$(pwd | tr '/' ' ' | awk '{print $NF}')"
 echo $pwd
 
-if [ "$board_used" = "SENSEPI" ]
+if [ "$board_name" = "SENSEPI" ]
 then
     fw_ver="$(git tag --list "SensePi_"[00-99]"."[00-99]"."[00-99] | sort | tail -n1 )"
-elif [ "$board_used" = "SENSEBE" ]
+elif [ "$board_name" = "SENSEBE" ]
 then 
-    fw_ver="$(git tag --list "SenseBe_Rx_"[00-99]"."[00-99]"."[00-99] | sort | tail -n1)"
+    fw_ver="$(git tag --list "SenseBe_"[00-99]"."[00-99]"."[00-99] | sort | tail -n1)"
 fi
 echo "FW_VER = "$fw_ver
 fw_ver="$(echo $fw_ver | tr '_' ' ' | awk '{print $NF}')"
@@ -80,6 +86,11 @@ hw_ver_major=` expr $hw_ver_major \* 100 `
 hw_ver_int=`expr $hw_ver_major + $hw_ver_minor`
 echo "HW_VER_INT = "$hw_ver_int
 
+make_bootloader="$(echo make -C ../../../dfu_nrf_sdk15/examples/dfu/secure_bootloader/pca10040e_ble/armgcc/ DFU_BOARD=$board_used NRF_DFU_HW_VERSION=$hw_ver_int V=1)"
+
+echo "Make bootloader with "$board_used" and  "$hw_ver_int
+
+echo $make_bootloader
 sd_used="$(awk '/SD_USED /{print $3}' Makefile)"
 echo "SD_USED = "$sd_used
 sd_ver="$(awk '/SD_VER /{print $3}' Makefile)"

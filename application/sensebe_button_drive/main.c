@@ -153,21 +153,21 @@ sense_states current_state;
 /** To keep track of the amount of time in the connected state */
 static uint32_t conn_count;
 
-static sensebe_config_t sensebe_ble_default_config = {
-    .tssp_conf.oper_time.day_or_night = 1,
-    .tssp_conf.oper_time.threshold = 0b0000000,
-    .tssp_conf.detect_window = 5,
-    .tssp_conf.mode = 0x00000000,
-    .tssp_conf.intr_trig_timer = 15,
-
-    .timer_conf.oper_time.day_or_night = 1,
-    .timer_conf.oper_time.threshold = 0b0000000,
-    .timer_conf.mode = 0x00000000,
-    .timer_conf.timer_interval = 50,
-    
-    .trig_conf = MOTION_ONLY,
-
-};
+//static sensebe_config_t sensebe_ble_default_config = {
+//    .tssp_conf.oper_time.day_or_night = 1,
+//    .tssp_conf.oper_time.threshold = 0b0000000,
+//    .tssp_conf.detect_window = 5,
+//    .tssp_conf.mode = 0x00000000,
+//    .tssp_conf.intr_trig_timer = 15,
+//
+//    .timer_conf.oper_time.day_or_night = 1,
+//    .timer_conf.oper_time.threshold = 0b0000000,
+//    .timer_conf.mode = 0x00000000,
+//    .timer_conf.timer_interval = 50,
+//    
+//    .trig_conf = MOTION_ONLY,
+//
+//};
 
 
 sensebe_rx_detect_config_t default_sensebe_rx_detect_config = 
@@ -178,7 +178,7 @@ sensebe_rx_detect_config_t default_sensebe_rx_detect_config =
     .trigger_pin_no = JACK_TRIGGER_PIN,
     .photodiode_pin = PIN_TO_ANALOG_INPUT(PHOTODIODE_LIGHT_SENSE),
     .photodiode_en_pin = PHOTODIODE_ENABLE_PIN,
-    .init_sensebe_config = &sensebe_ble_default_config,
+//    .init_sensebe_config = &sensebe_ble_default_config,
     
 };
 
@@ -224,13 +224,13 @@ static void ble_evt_handler(ble_evt_t * evt)
     switch (evt->header.evt_id)
     {
     case BLE_GAP_EVT_CONNECTED:
-        irq_msg_push(MSG_STATE_CHANGE, (void *) CONNECTED);
+//        irq_msg_push(MSG_STATE_CHANGE, (void *) CONNECTED);
         break;
     case BLE_GAP_EVT_DISCONNECTED:
-        irq_msg_push(MSG_STATE_CHANGE, (void *) SENSING);
+//        irq_msg_push(MSG_STATE_CHANGE, (void *) SENSING);
         break;
     case BLE_GAP_EVT_ADV_SET_TERMINATED:
-        irq_msg_push(MSG_STATE_CHANGE, (void *) SENSING);
+//        irq_msg_push(MSG_STATE_CHANGE, (void *) SENSING);
         break;
     case BLE_GAP_EVT_CONN_PARAM_UPDATE:
         log_printf("sup time %d s, max intvl %d ms, min intvl %d ms, slave lat %d\n",
@@ -254,7 +254,7 @@ static void get_sensebe_config_t(sensebe_config_t *config)
 //            config->tssp_conf.amplification, config->tssp_conf.threshold,
 //            config->tssp_conf.intr_trig_timer,
 //            config->timer_conf.oper_time, config->timer_conf.mode, config->timer_conf.timer_interval);
-    sensebe_rx_detect_update_config (config);
+//    sensebe_rx_detect_update_config (config);
 }
 
 /**
@@ -265,7 +265,7 @@ static void get_sensebe_config_t(sensebe_config_t *config)
 void next_interval_handler(uint32_t interval)
 {
     log_printf("in %d\n", interval);
-    button_ui_add_tick(interval);
+//    button_ui_add_tick(interval);
     switch(current_state)
     {
     case SENSING:
@@ -353,8 +353,8 @@ void state_change_handler(uint32_t new_state)
                 memcpy(&sysinfo.fw_ver, fw_ver_get(), sizeof(fw_ver_t));
                 sensebe_ble_update_sysinfo(&sysinfo);
 
-                sensebe_config_t * config = sensebe_rx_detect_last_config ();
-                sensebe_ble_update_config (config);
+//                sensebe_config_t * config = sensebe_rx_detect_last_config ();
+//                sensebe_ble_update_config (config);
 
                 ///Get config from sensebe_cam_trigger and send to the BLE module
             }
@@ -408,24 +408,24 @@ void button_handler(button_ui_steps step, button_ui_action act)
         case BUTTON_UI_STEP_PRESS:
             if(current_state == SENSING)
             {
-                irq_msg_push(MSG_STATE_CHANGE, (void *) ADVERTISING);
+//                irq_msg_push(MSG_STATE_CHANGE, (void *) ADVERTISING);
             }
 
             break;
         case BUTTON_UI_STEP_LONG:
             {
-                NRF_POWER->GPREGRET = 0xB1;
-                log_printf("Trying to do system reset..!!");
-                uint8_t is_sd_enabled;
-                sd_softdevice_is_enabled(&is_sd_enabled);
-                if(is_sd_enabled == 0)
-                {
-                    sd_nvic_SystemReset();
-                }
-                else
-                {
-                    NVIC_SystemReset ();
-                }
+//                NRF_POWER->GPREGRET = 0xB1;
+//                log_printf("Trying to do system reset..!!");
+//                uint8_t is_sd_enabled;
+//                sd_softdevice_is_enabled(&is_sd_enabled);
+//                if(is_sd_enabled == 0)
+//                {
+//                    sd_nvic_SystemReset();
+//                }
+//                else
+//                {
+//                    NVIC_SystemReset ();
+//                }
             }
             break;
         }
@@ -440,6 +440,7 @@ void button_handler(button_ui_steps step, button_ui_action act)
         case BUTTON_UI_STEP_WAKE:
             break;
         case BUTTON_UI_STEP_PRESS:
+            sensebe_rx_detect_next_setup ();
             break;
         case BUTTON_UI_STEP_LONG:
             break;
@@ -535,6 +536,11 @@ void slumber(void)
     }
 }
 
+void HardFault_IRQHandler (void)
+{
+    log_printf("%s\n", __func__);
+}
+
 /**
  * @brief Function for application main entry.
  */
@@ -554,8 +560,8 @@ int main(void)
     hal_wdt_start();
 #endif
 
-    button_ui_init(BUTTON_PIN, APP_IRQ_PRIORITY_LOW,
-            button_handler);
+//    button_ui_init(BUTTON_PIN, APP_IRQ_PRIORITY_LOW,
+//            button_handler);
 
     {
         irq_msg_callbacks cb =

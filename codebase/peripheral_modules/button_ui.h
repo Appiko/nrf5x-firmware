@@ -66,7 +66,8 @@ typedef enum
  */
 typedef enum
 {
-    BUTTON_UI_STEP_PRESS,//!< For a short button press
+    BUTTON_UI_STEP_QUICK,//!< For a short button press
+    BUTTON_UI_STEP_SHORT,//!< For a short button press
     BUTTON_UI_STEP_LONG, //!< For a long button press
     BUTTON_UI_STEP_WAKE, //!< For the moment a button is pressed
 }button_ui_steps;
@@ -79,6 +80,7 @@ typedef enum
  */
 const static uint32_t press_duration[] = {
     MS_TIMER_TICKS_MS(100),
+    MS_TIMER_TICKS_MS(5000),
     MS_TIMER_TICKS_MS(15000),
     0xFFFFFFFF  ///This should never be reached
 };

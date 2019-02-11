@@ -71,10 +71,11 @@
 #include "app_error.h"
 #include "out_pattern_gen.h"
 #include "sensebe_ble.h"
-#include "sensebe_rx_detect.h"
+#include "sensebe_tx_rx_mod.h"
 #include "dev_id_fw_ver.h"
 #include "led_seq.h"
 #include "led_ui.h"
+#include "cam_trigger.h"
 /* ----- Defines ----- */
 
 /**< Name of device, to be included in the advertising data. */
@@ -156,29 +157,46 @@ static uint32_t conn_count;
 static sensebe_config_t sensebe_ble_default_config = {
     .tssp_conf.oper_time.day_or_night = 1,
     .tssp_conf.oper_time.threshold = 0b0000000,
-    .tssp_conf.detect_window = 5,
-    .tssp_conf.mode = 0x00000000,
-    .tssp_conf.intr_trig_timer = 15,
+    .tssp_conf.detect_window = 100,
+    .tssp_conf.mode = CAM_TRIGGER_SINGLE_SHOT,
+    .tssp_conf.larger_value = 0,
+    .tssp_conf.smaller_value = 0,
+    .tssp_conf.intr_trig_timer = 50,
 
     .timer_conf.oper_time.day_or_night = 1,
     .timer_conf.oper_time.threshold = 0b0000000,
-    .timer_conf.mode = 0x00000000,
+    .timer_conf.mode = CAM_TRIGGER_SINGLE_SHOT,
+    .timer_conf.larger_value = 0,
+    .timer_conf.smaller_value = 0,
     .timer_conf.timer_interval = 50,
     
     .trig_conf = MOTION_ONLY,
+    
+    .ir_tx_conf.oper_time.day_or_night = 1,
+    .ir_tx_conf.oper_time.threshold = 0b0000000,
+    .ir_tx_conf.is_enable = 1,
+    .ir_tx_conf.ir_tx_speed = 1,
+    .ir_tx_conf.ir_tx_pwr = 0,
 
 };
 
 
-sensebe_rx_detect_config_t default_sensebe_rx_detect_config = 
+sensebe_tx_rx_config_t default_sensebe_tx_rx_config = 
 {
-    .rx_en_pin = TSSP_RX_EN,
-    .rx_out_pin = TSSP_RX_OUT,
-    .focus_pin_no = JACK_FOCUS_PIN,
-    .trigger_pin_no = JACK_TRIGGER_PIN,
-    .photodiode_pin = PIN_TO_ANALOG_INPUT(PHOTODIODE_LIGHT_SENSE),
-    .photodiode_en_pin = PHOTODIODE_ENABLE_PIN,
-    .init_sensebe_config = &sensebe_ble_default_config,
+    
+    .rx_detect_config.rx_en_pin = TSSP_RX_EN,
+    .rx_detect_config.rx_out_pin = TSSP_RX_OUT,
+    .rx_detect_config.focus_pin_no = JACK_FOCUS_PIN,
+    .rx_detect_config.trigger_pin_no = JACK_TRIGGER_PIN,
+    .rx_detect_config.photodiode_pin = PIN_TO_ANALOG_INPUT(PHOTODIODE_LIGHT_SENSE),
+    .rx_detect_config.photodiode_en_pin = PHOTODIODE_LIGHT_SENSE_EN,
+    
+    .tx_transmit_config.tx_en_pin = IR_TX_REG_EN,
+    .tx_transmit_config.tx_in_pin = IR_TX_LED_EN,
+    .tx_transmit_config.tx_pwr1 = IR_TX_PWR1,
+    .tx_transmit_config.tx_pwr2 = IR_TX_PWR2,
+
+    .sensebe_config = &sensebe_ble_default_config,
     
 };
 
@@ -254,7 +272,7 @@ static void get_sensebe_config_t(sensebe_config_t *config)
 //            config->tssp_conf.amplification, config->tssp_conf.threshold,
 //            config->tssp_conf.intr_trig_timer,
 //            config->timer_conf.oper_time, config->timer_conf.mode, config->timer_conf.timer_interval);
-    sensebe_rx_detect_update_config (config);
+    sensebe_tx_rx_update_config (config);
 }
 
 /**
@@ -271,7 +289,7 @@ void next_interval_handler(uint32_t interval)
     case SENSING:
     {
         log_printf("Nxt Evt Hndlr : SENSING\n");
-        sensebe_rx_detect_add_ticks (interval);
+        sensebe_tx_rx_add_ticks (interval);
 
     }
         break;
@@ -319,13 +337,13 @@ void state_change_handler(uint32_t new_state)
             led_ui_type_stop_all(LED_UI_LOOP_SEQ);
            
             device_tick_init(&tick_cfg);
-            sensebe_rx_detect_start();
+            sensebe_tx_rx_start();
 
         }
         break;
     case ADVERTISING:
         {
-            sensebe_rx_detect_stop ();
+            sensebe_tx_rx_stop ();
             conn_count = 0;
 
             device_tick_cfg tick_cfg =
@@ -353,7 +371,7 @@ void state_change_handler(uint32_t new_state)
                 memcpy(&sysinfo.fw_ver, fw_ver_get(), sizeof(fw_ver_t));
                 sensebe_ble_update_sysinfo(&sysinfo);
 
-                sensebe_config_t * config = sensebe_rx_detect_last_config ();
+                sensebe_config_t * config = sensebe_tx_rx_last_config ();
                 sensebe_ble_update_config (config);
 
                 ///Get config from sensebe_cam_trigger and send to the BLE module
@@ -405,7 +423,9 @@ void button_handler(button_ui_steps step, button_ui_action act)
             };
             device_tick_init(&tick_cfg);
             break;
-        case BUTTON_UI_STEP_PRESS:
+        case BUTTON_UI_STEP_QUICK:
+                break;
+        case BUTTON_UI_STEP_SHORT:
             if(current_state == SENSING)
             {
                 irq_msg_push(MSG_STATE_CHANGE, (void *) ADVERTISING);
@@ -439,8 +459,11 @@ void button_handler(button_ui_steps step, button_ui_action act)
         {
         case BUTTON_UI_STEP_WAKE:
             break;
-        case BUTTON_UI_STEP_PRESS:
+        case BUTTON_UI_STEP_QUICK:
+            sensebe_tx_rx_swicht_range ();
             break;
+        case BUTTON_UI_STEP_SHORT:
+                break;
         case BUTTON_UI_STEP_LONG:
             break;
         }
@@ -563,7 +586,7 @@ int main(void)
         irq_msg_init(&cb);
     }  
 
-    sensebe_rx_detect_init(&default_sensebe_rx_detect_config);
+    sensebe_tx_rx_init(&default_sensebe_tx_rx_config);
 
     current_state = ADVERTISING; //So that a state change happens
     irq_msg_push(MSG_STATE_CHANGE, (void *)SENSING);

@@ -215,7 +215,7 @@ void single_shot (cam_trigger_config_t * cam_trigger_config)
     
     if(time_remain <= 0)
     {
-        time_remain = 1;
+        time_remain = 2;
     }
 
     out_gen_config_t local_out_gen_config = 
@@ -272,7 +272,7 @@ void multi_shot (cam_trigger_config_t * cam_trigger_config, uint32_t time_betwee
         *(no_of_shots - 1));    
     if(time_remain <= 0)
     {
-        time_remain = 1;
+        time_remain = 2;
     }
     local_out_gen_config.transitions_durations[number_of_transition - 1] = time_remain;
 
@@ -291,7 +291,7 @@ void long_press (cam_trigger_config_t * cam_trigger_config, uint32_t expousure_t
     time_remain = MS_TIMER_TICKS_MS(cam_trigger_config->trig_duration_100ms * 100) - bulb_time_ticks;    
     if(time_remain <= 0)
     {
-        time_remain = 1;
+        time_remain = 2;
     }
 
     out_gen_config_t local_out_gen_config =
@@ -322,7 +322,7 @@ void video_without_extn (cam_trigger_config_t * cam_trigger_config, uint32_t vid
 
     if(time_remain <= 0)
     {
-        time_remain = 1;
+        time_remain = 2;
     }
     out_gen_config_t local_out_gen_config =
     {
