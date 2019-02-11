@@ -140,6 +140,7 @@ void ms_timer_start(ms_timer_num id, ms_timer_mode mode, uint64_t ticks, void (*
             return;
         }
     }
+    ticks = (ticks < 2) ? 2 : ticks;
     uint32_t counter_val = RTC_ID->COUNTER;
 
     ms_timer[id].timer_handler = handler;
