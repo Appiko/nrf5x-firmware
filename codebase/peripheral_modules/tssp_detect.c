@@ -91,7 +91,7 @@ void tssp_detect_init (tssp_detect_config_t * tssp_detect_config)
         is_window_detect_req = true;
         missed_handler = tssp_detect_config->tssp_missed_handler;
         TSSP_DETECT_RTC_USED->PRESCALER = ROUNDED_DIV(LFCLK_FREQ, TSSP_DETECT_FREQ) - 1;
-        TSSP_DETECT_RTC_USED->CC[WINDOW_RTC_CHANNEL] = tssp_detect_config->window_duration_ticks;
+        TSSP_DETECT_RTC_USED->CC[WINDOW_RTC_CHANNEL] = (tssp_detect_config->window_duration_ticks);
         TSSP_DETECT_RTC_USED->INTENSET |= ENABLE << (WINDOW_RTC_CHANNEL+16);
                     
         NRF_PPI->CH[PPI_CHANNEL_USED_RTC].EEP = (uint32_t) &NRF_GPIOTE->EVENTS_IN[GPIOTE_CHANNEL_USED];
@@ -206,28 +206,20 @@ void tssp_detect_pulse_detect ()
 
 void tssp_detect_window_sync (uint32_t sync_ms)
 {
-    tssp_sync_ms = sync_ms;
+    tssp_sync_ms = (sync_ms);
     uint32_t rtc_counter;
     rtc_counter = TSSP_DETECT_RTC_USED->COUNTER;
     TSSP_DETECT_RTC_USED->CC[SYNC_ON_RTC_CHANNEL] =
-        (rtc_counter + (sync_ms - 2)) ;
+        (rtc_counter + (tssp_sync_ms - (2))) ;
     (void)    TSSP_DETECT_RTC_USED->CC[SYNC_ON_RTC_CHANNEL];
     TSSP_DETECT_RTC_USED->INTENSET |= ENABLE << (SYNC_ON_RTC_CHANNEL+16);
-    TSSP_DETECT_RTC_USED->EVTENSET |= ENABLE << (SYNC_ON_RTC_CHANNEL+16);
     TSSP_DETECT_RTC_USED->EVENTS_COMPARE[SYNC_ON_RTC_CHANNEL] = 0;
-    (void) TSSP_DETECT_RTC_USED->EVENTS_COMPARE[SYNC_ON_RTC_CHANNEL];
 
-    TSSP_DETECT_RTC_USED->CC[SYNC_OFF_RTC_CHANNEL] =
-        (rtc_counter + (sync_ms + 2));
+    TSSP_DETECT_RTC_USED->CC[SYNC_OFF_RTC_CHANNEL] = 2;
     (void)    TSSP_DETECT_RTC_USED->CC[SYNC_OFF_RTC_CHANNEL];
     TSSP_DETECT_RTC_USED->INTENSET |= ENABLE << (SYNC_OFF_RTC_CHANNEL+16);
-    TSSP_DETECT_RTC_USED->EVTENSET |= ENABLE << (SYNC_OFF_RTC_CHANNEL+16);
     TSSP_DETECT_RTC_USED->EVENTS_COMPARE[SYNC_OFF_RTC_CHANNEL] = 0;
-    (void) TSSP_DETECT_RTC_USED->EVENTS_COMPARE[SYNC_OFF_RTC_CHANNEL];
     
-    log_printf("Current : %d, ON : %d, OFF : %d\n", rtc_counter,
-               TSSP_DETECT_RTC_USED->CC[SYNC_ON_RTC_CHANNEL],TSSP_DETECT_RTC_USED->CC[SYNC_OFF_RTC_CHANNEL]);
-
 }
 
 
@@ -243,24 +235,18 @@ void RTC0_IRQHandler (void)
 {
     if(TSSP_DETECT_RTC_USED->EVENTS_COMPARE[SYNC_ON_RTC_CHANNEL] == 1)
     {
-        log_printf("En\n");
         TSSP_DETECT_RTC_USED->EVENTS_COMPARE[SYNC_ON_RTC_CHANNEL] = 0;
         hal_gpio_pin_write (tssp_en_pin, ENABLE);
-        TSSP_DETECT_RTC_USED->CC[SYNC_ON_RTC_CHANNEL] += tssp_sync_ms;
+        TSSP_DETECT_RTC_USED->CC[SYNC_OFF_RTC_CHANNEL] = 2;
+        
         (void) TSSP_DETECT_RTC_USED->EVENTS_COMPARE[SYNC_ON_RTC_CHANNEL];
-        TSSP_DETECT_RTC_USED->INTENSET |= ENABLE << (SYNC_ON_RTC_CHANNEL+16);
-        TSSP_DETECT_RTC_USED->EVTENSET |= ENABLE << (SYNC_ON_RTC_CHANNEL+16);
-        log_printf("New On : %d\n", TSSP_DETECT_RTC_USED->EVENTS_COMPARE[SYNC_ON_RTC_CHANNEL] );
     }
     if(TSSP_DETECT_RTC_USED->EVENTS_COMPARE[SYNC_OFF_RTC_CHANNEL] == 1)
     {
-        log_printf("Dis\n");
         TSSP_DETECT_RTC_USED->EVENTS_COMPARE[SYNC_OFF_RTC_CHANNEL] = 0;
         (void) TSSP_DETECT_RTC_USED->EVENTS_COMPARE[SYNC_OFF_RTC_CHANNEL];
         hal_gpio_pin_write (tssp_en_pin, DISABLE);
-        TSSP_DETECT_RTC_USED->CC[SYNC_OFF_RTC_CHANNEL] += tssp_sync_ms ;
-        TSSP_DETECT_RTC_USED->INTENSET |= ENABLE << (SYNC_OFF_RTC_CHANNEL+16);
-        TSSP_DETECT_RTC_USED->EVTENSET |= ENABLE << (SYNC_OFF_RTC_CHANNEL+16);
+        TSSP_DETECT_RTC_USED->CC[SYNC_ON_RTC_CHANNEL] = (tssp_sync_ms - 2);
     }
     if(TSSP_DETECT_RTC_USED->EVENTS_COMPARE[WINDOW_RTC_CHANNEL] == 1)
     {
