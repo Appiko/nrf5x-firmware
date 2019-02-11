@@ -157,7 +157,7 @@ static uint32_t conn_count;
 static sensebe_config_t sensebe_ble_default_config = {
     .tssp_conf.oper_time.day_or_night = 1,
     .tssp_conf.oper_time.threshold = 0b0000000,
-    .tssp_conf.detect_window = 50,
+    .tssp_conf.detect_window = 100,
     .tssp_conf.mode = CAM_TRIGGER_LONG_PRESS,
     .tssp_conf.larger_value = 30,
     .tssp_conf.smaller_value = 0,
