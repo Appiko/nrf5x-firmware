@@ -40,6 +40,21 @@
 #include "stddef.h"
 #include "log.h"
 
+/** RTC used by this module */
+#define TSSP_DETECT_RTC_USED CONCAT_2(NRF_RTC, RTC_USED_TSSP_DETECT)
+
+/** EGU channel used by this module */
+#define TSSP_DETECT_EGU_USED CONCAT_2(NRF_EGU,EGU_USED_TSSP_DETECT)
+
+/** Channel 1 of PPI is used here for RTC */
+#define PPI_CHANNEL_USED_RTC PPI_CH_USED_TSSP_DETECT_1
+
+/** Channel 2 of PPI is used here for EGU */
+#define PPI_CHANNEL_USED_EGU PPI_CH_USED_TSSP_DETECT_2
+
+/** Channel 2 of GPIOTE is used here */
+#define GPIOTE_CHANNEL_USED GPIOTE_CH_USED_TSSP_DETECT
+
 /** Channel 2 of RTC0 is used for window detection */
 #define WINDOW_RTC_CHANNEL 2
 /** Channel 0 of RTC0 is used for Synchronization */

@@ -35,26 +35,59 @@
 #ifndef TSSP_IR_TX_H
 #define TSSP_IR_TX_H
 
-#include "simple_pwm.h"
 #include "nrf.h"
 #include "stdint.h"
+
+/**
+ * @brief Defines for the frequency at which the timer should run
+ *  for the PWM generation
+ */
+typedef enum
+{
+    TSSP_IR_TX_TIMER_FREQ_16MHz = 0, ///< PWM timer frequency of 16 MHz.
+    TSSP_IR_TX_TIMER_FREQ_8MHz,      ///< PWM timer frequency of 8 MHz.
+    TSSP_IR_TX_TIMER_FREQ_4MHz,      ///< PWM timer frequency of 4 MHz.
+    TSSP_IR_TX_TIMER_FREQ_2MHz,      ///< PWM timer frequency of 2 MHz.
+    TSSP_IR_TX_TIMER_FREQ_1MHz,      ///< PWM timer frequency of 1 MHz.
+    TSSP_IR_TX_TIMER_FREQ_500kHz,    ///< PWM timer frequency of 500 kHz.
+    TSSP_IR_TX_TIMER_FREQ_250kHz,    ///< PWM timer frequency of 250 kHz.
+    TSSP_IR_TX_TIMER_FREQ_125kHz,    ///< PWM timer frequency of 125 kHz.
+    TSSP_IR_TX_TIMER_FREQ_62500Hz,   ///< PWM timer frequency of 62500 Hz.
+    TSSP_IR_TX_TIMER_FREQ_31250Hz    ///< PWM timer frequency of 31250 Hz.
+} tssp_ir_tx_timer_freq_t;
+
+#ifdef MAIN_H_PRESENT
+#include "main.h"
+#else
+
+/** PPI Channel which is being used by this module */
+#define PPI_CH_USED_TSSP_IR_TX_1 9
+#define PPI_CH_USED_TSSP_IR_TX_2 10
+#define PPI_CH_USED_TSSP_IR_TX_3 0
+#define PPI_CH_USED_TSSP_IR_TX_4 1
+
+/** Timer peripheral used by this module */
+#define TIMER_USED_TSSP_IR_TX_1 2
+#define TIMER_USED_TSSP_IR_TX_2 1
+
+/** TIMER channel used by this module */
+#define TIMER_CHANNEL_USED_TSSP_IR_TX_1_1 0
+
+#define TIMER_CHANNEL_USED_TSSP_IR_TX_2_1 0
+
+#define TIMER_CHANNEL_USED_TSSP_IR_TX_2_2 3
+
+#define GPIOTE_CH_USED_TSSP_IR_TX_1 6
+
+#define GPIOTE_CH_USED_TSSP_IR_TX_2 0
+//All expected defines
+#endif
+
 
 
 #ifndef TSSP_IR_TX_ON_TIME_MS
 #define TSSP_IR_TX_ON_TIME_MS 1
 #endif
-
-/** PPI Channel which is being used by this module */
-#define TSSP_TX_PPI_CHANNEL_USED_1 9
-#define TSSP_TX_PPI_CHANNEL_USED_2 10
-
-/** Timer peripheral used by this module */
-#define TSSP_TX_TIMER_USED 2
-
-/** SIMPLE_PWM channel used by this module */
-#define TSSP_TX_SIMPLE_PWM_CHANNEL_USED SIMPLE_PWM_CHANNEL0
-
-#define TSSP_TX_GPIOTE_USED 6
 /**
  * @brief Function to initiate the IR transmitter compatible with TSSP receiver.
  * @param tssp_tx_en Enable pin for IR transmitter circuitry. 

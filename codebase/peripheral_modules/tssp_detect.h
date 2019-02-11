@@ -48,21 +48,20 @@
 #include "stdint.h"
 #include "stdbool.h"
 #include "boards.h"
+#include "nrf_util.h"
 
-/** RTC used by this module */
-#define TSSP_DETECT_RTC_USED NRF_RTC0
+#if MAIN_H_PRESENT
+#include "main.h"
+#else
 
-/** EGU channel used by this module */
-#define TSSP_DETECT_EGU_USED NRF_EGU0
+#define RTC_USED_TSSP_DETECT 0
+#define EGU_USED_TSSP_DETECT 0
 
-/** Channel 1 of PPI is used here for RTC */
-#define PPI_CHANNEL_USED_RTC 7
+#define PPI_CH_USED_TSSP_DETECT_1 7
+#define PPI_CH_USED_TSSP_DETECT_2 8
+#define GPIOTE_CH_USED_TSSP_DETECT 7
 
-/** Channel 2 of PPI is used here for EGU */
-#define PPI_CHANNEL_USED_EGU 8
-
-/** Channel 2 of GPIOTE is used here */
-#define GPIOTE_CHANNEL_USED 7
+#endif
 
 #ifndef TSSP_DETECT_FREQ
 #ifdef MS_TIMER_FREQ
