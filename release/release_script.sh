@@ -69,7 +69,7 @@ then
     fw_ver="$(git tag --list "SensePi_"[00-99]"."[00-99]"."[00-99] | sort | tail -n1 )"
 elif [ "$board_name" = "SENSEBE" ]
 then 
-    fw_ver="$(git tag --list "SenseBe_Rx_"[00-99]"."[00-99]"."[00-99] | sort | tail -n1)"
+    fw_ver="$(git tag --list "SenseBe_"[00-99]"."[00-99]"."[00-99] | sort | tail -n1)"
 fi
 echo "FW_VER = "$fw_ver
 fw_ver="$(echo $fw_ver | tr '_' ' ' | awk '{print $NF}')"
