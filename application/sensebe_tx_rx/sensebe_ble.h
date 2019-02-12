@@ -1,7 +1,7 @@
 /*
  *  sensebe_ble.h
  *
- *  Created on: 09-May-2018
+ *  Created on: 29-Oct-2018
  *
  *  Copyright (c) 2018, Appiko
  *  All rights reserved.
@@ -33,18 +33,18 @@
  */
 
 /**
- * @addtogroup sense_appln
+ * @addtogroup sensebe_appln
  * @{
  *
- * @defgroup ble_support The support code for the PIR based Sense units.
- * @brief The PIR sense application's support file that handles ble operations.
+ * @defgroup ble_support The support code for the active IR based Sense units.
+ * @brief The active IR sense application's support file that handles ble operations.
  *
  * @{
  *
  */
 
-#ifndef APPLICATION_SENSE_PIR_SENSEBE_BLE_H_
-#define APPLICATION_SENSE_PIR_SENSEBE_BLE_H_
+#ifndef APPLICATION_SENSEBE_BLE_H_
+#define APPLICATION_SENSEBE_BLE_H_
 
 #include "stdint.h"
 #include "stdbool.h"
@@ -84,7 +84,7 @@ typedef struct
 }__attribute__ ((packed)) oper_time_t;
 
 /**
- * @brief Strcture to configure PIR sensing. 
+ * @brief Strcture to configure TSSP sensing. 
  */
 typedef struct
 {
@@ -120,7 +120,7 @@ typedef struct
     uint8_t smaller_value;
     /** In tssp_Conf: Detection window duration in resolution of 100ms. */
     uint16_t detect_window;
-    /** In tssp_Conf: Time between triggers by a PIR in s (with a resolution of 0.1s). */
+    /** In tssp_Conf: Time between triggers by a TSSP window detect in s (with a resolution of 0.1s). */
     uint16_t intr_trig_timer; 
 }__attribute__ ((packed)) tssp_conf_t;
 
@@ -247,7 +247,7 @@ void sensebe_ble_adv_init(sensebe_ble_adv_data_t * sensebe_ble_adv_data);
  */
 void sensebe_ble_adv_start(void);
 
-#endif /* APPLICATION_SENSE_PIR_SENSEBE_BLE_H_ */
+#endif /* APPLICATION_SENSEBE_BLE_H_ */
 
 /**
  * @}

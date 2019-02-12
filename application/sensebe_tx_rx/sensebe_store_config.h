@@ -32,6 +32,17 @@
  * POSSIBILITY OF SUCH DAMAGE
  */
 
+/**
+ * @addtogroup sensebe_appln
+ * @{
+ *
+ * @defgroup store_config The support code to store configurations.
+ * @brief The support code to store configurations received from other BLE device
+ * @{
+ *
+ */
+
+
 #ifndef SENSEBE_STORE_CONFIG_H
 #define SENSEBE_STORE_CONFIG_H
 #include "sensebe_ble.h"
@@ -75,3 +86,8 @@ void sensebe_store_config_check_fw_ver ();
 
 
 #endif /* SENSEBE_STORE_CONFIG_H */
+/**
+ * @}
+ * @}
+ */
+

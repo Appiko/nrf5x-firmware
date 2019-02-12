@@ -1,7 +1,7 @@
 /*
  *  main.c
  *
- *  Created on: 30-Jan-2018
+ *  Created on: 29-Oct-2018
  *
  *  Copyright (c) 2018, Appiko
  *  Copyright (c) 2013, Nordic Semiconductor ASA
@@ -37,8 +37,8 @@
  * @addtogroup group_appln
  * @{
  *
- * @defgroup sense_appln The code for the PIR based Sense units.
- * @brief The PIR sense application's main file that makes it operate.
+ * @defgroup sensebe_appln The code for the active IR based Sense units.
+ * @brief The active IR sense application's main file that makes it operate.
  *
  * @{
  *

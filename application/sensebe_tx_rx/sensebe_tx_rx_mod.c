@@ -1,5 +1,5 @@
 /* 
- * File:   sensebe_rx_detect.c
+ * File:   sensebe_tx_rx_mod.c
  * Copyright (c) 2018 Appiko
  * Created on 29 October, 2018, 12:22 PM
  * Author:  Tejas Vasekar (https://github.com/tejas-tj)

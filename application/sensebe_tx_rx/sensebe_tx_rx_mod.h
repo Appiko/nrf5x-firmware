@@ -1,5 +1,5 @@
 /* 
- * File:   sensebe_rx_detect.h
+ * File:   sensebe_tx_rx_mod.h
  * Copyright (c) 2018 Appiko
  * Created on 29 October, 2018, 12:23 PM
  * Author:  Tejas Vasekar (https://github.com/tejas-tj)
@@ -32,16 +32,29 @@
  * POSSIBILITY OF SUCH DAMAGE
  */
 
+/**
+ * @addtogroup sensebe_appln
+ * @{
+ *
+ * @defgroup tx_rx_ctrl The support code to control IR transmission and reception.
+ * @brief The active IR sense application's support file that handles motion detection\ 
+ * and timer based operations.
+ *
+ * @{
+ *
+ */
 
-#ifndef SENSEBE_RX_DETECT_H
-#define SENSEBE_RX_DETECT_H
+
+#ifndef SENSEBE_TX_RX_MOD_H
+#define SENSEBE_TX_RX_MOD_H
 
 #include "ms_timer.h"
 #include "sensebe_ble.h"
 
 #if MAIN_H_PRESENT == 1
 #include "main.h"
-#else 
+#endif
+#ifndef MS_TIMER_USED_SENSBE_TX_RX 
 #define MS_TIMER_USED_SENSBE_TX_RX 2
 #endif
 
@@ -129,5 +142,9 @@ sensebe_config_t * sensebe_tx_rx_last_config ();
 }
 #endif
 
-#endif /* SENSEBE_RX_DETECT_H */
+#endif /* SENSEBE_TX_RX_MOD_H */
+/**
+ * @}
+ * @}
+ */
 
