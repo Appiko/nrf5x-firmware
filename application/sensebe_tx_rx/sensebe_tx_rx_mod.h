@@ -51,8 +51,8 @@
 #include "ms_timer.h"
 #include "sensebe_ble.h"
 
-#if MAIN_H_PRESENT == 1
-#include "main.h"
+#if SYS_CFG_PRESENT == 1
+#include "sys_config.h"
 #endif
 #ifndef MS_TIMER_USED_SENSBE_TX_RX 
 #define MS_TIMER_USED_SENSBE_TX_RX 2

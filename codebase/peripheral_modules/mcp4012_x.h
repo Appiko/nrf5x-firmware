@@ -44,8 +44,8 @@
 #define MCP4012_X_H
 #include "stdint.h"
 
-#if MAIN_H_PRESENT == 1
-#include "main.h"
+#if SYS_CFG_PRESENT == 1
+#include "sys_config.h"
 #endif
 #ifndef SPIM_USED_MCP4012_DRIVER 
 #define SPIM_USED_MCP4012_DRIVER 0

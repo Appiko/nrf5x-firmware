@@ -52,8 +52,8 @@
 #include "nrf_peripherals.h"
 #include "common_util.h"
 
-#if MAIN_H_PRESENT == 1
-#include "main.h"
+#if SYS_CFG_PRESENT == 1
+#include "sys_config.h"
 #endif
 #ifndef TIMER_USED_US_TIMER 
 #define TIMER_USED_US_TIMER 3

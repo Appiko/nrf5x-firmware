@@ -1,5 +1,5 @@
 /* 
- * File:   main.h
+ * File:   sys_config.h
  * Copyright (c) 2018 Appiko
  * Created on 11 February, 2019, 4:24 PM
  * Author:  Tejas Vasekar (https://github.com/tejas-tj)
@@ -46,8 +46,8 @@
 /**
  * @brief File to keep track of all the peripheral devices used by this module.
  */
-#ifndef MAIN_H
-#define MAIN_H
+#ifndef SYS_CONFIG_H
+#define SYS_CONFIG_H
 /** RTC used for MS_TIMER module */
 #define RTC_USED_MS_TIMER 1
 /** RTC used for TSSP detect module */
@@ -97,7 +97,7 @@
 /** SAADC channel used for Simple ADC module */
 #define SAADC_CHANNEL_USED_SIMPLE_ADC 1
 
-#endif /* MAIN_H */
+#endif /* SYS_CONFIG_H */
 /**
  * @}
  * @}

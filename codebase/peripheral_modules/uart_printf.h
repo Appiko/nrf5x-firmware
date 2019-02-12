@@ -54,8 +54,8 @@
     Use the UART peripheral."
 #endif
 
-#if MAIN_H_PRESENT == 1
-#include "main.h"
+#if SYS_CFG_PRESENT == 1
+#include "sys_config.h"
 #endif
 #ifndef UARTE_USED_UART_PRINTF
 #define UARTE_USED_UART_PRINTF 0

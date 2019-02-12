@@ -50,8 +50,8 @@
 #include "stdint.h"
 #include "nrf.h"
 
-#if MAIN_H_PRESENT == 1
-#include "main.h"
+#if SYS_CFG_PRESENT == 1
+#include "sys_config.h"
 #endif
 
 #ifndef SAADC_CHANNEL_USED_SIMPLE_ADC 

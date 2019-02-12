@@ -48,8 +48,8 @@
 
 #include "stdint.h"
 
-#if MAIN_H_PRESENT == 1
-#include "main.h"
+#if SYS_CFG_PRESENT == 1
+#include "sys_config.h"
 #endif
 #ifndef TIMER_USED_SIMPLE_PWM 
 #define TIMER_USED_SIMPLE_PWM 1

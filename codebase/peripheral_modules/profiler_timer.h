@@ -52,8 +52,8 @@
 #include "nrf.h"
 #include "log.h"
 
-#if MAIN_H_PRESENT == 1
-#include "main.h"
+#if SYS_CFG_PRESENT == 1
+#include "sys_config.h"
 #endif
 #ifndef TIMER_USED_PROFILE_TIMER 
 #define TIMER_USED_PROFILE_TIMER 0

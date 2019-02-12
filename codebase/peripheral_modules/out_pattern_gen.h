@@ -50,8 +50,8 @@
 #include "stdint.h"
 #include "stdbool.h"
 
-#if MAIN_H_PRESENT == 1
-#include "main.h"
+#if SYS_CFG_PRESENT == 1
+#include "sys_config.h"
 #endif
 #ifndef MS_TIMER_USED_OUT_GEN 
 #define MS_TIMER_USED_OUT_GEN 1

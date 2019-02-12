@@ -56,8 +56,8 @@ typedef enum
     TSSP_IR_TX_TIMER_FREQ_31250Hz    ///< PWM timer frequency of 31250 Hz.
 } tssp_ir_tx_timer_freq_t;
 
-#if MAIN_H_PRESENT == 1
-#include "main.h"
+#if SYS_CFG_PRESENT == 1
+#include "sys_config.h"
 #endif
 
 /** PPI Channel which is being used by this module */

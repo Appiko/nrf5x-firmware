@@ -36,7 +36,7 @@
 #include "tssp_ir_tx.h"
 #include "hal_gpio.h"
 #include "common_util.h"
-#include "main.h"
+#include "sys_config.h"
 
 
 #define TIMER_ID_1KHZ CONCAT_2(NRF_TIMER, TIMER_USED_TSSP_IR_TX_1)

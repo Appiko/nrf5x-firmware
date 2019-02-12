@@ -53,8 +53,8 @@
 #include "nrf.h"
 #include "hal_clocks.h"
 
-#if MAIN_H_PRESENT == 1
-#include "main.h"
+#if SYS_CFG_PRESENT == 1
+#include "sys_config.h"
 #endif
 #ifndef RTC_USED_MS_TIMER 
 #define RTC_USED_MS_TIMER 1

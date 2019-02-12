@@ -82,8 +82,8 @@
 #include "stdint.h"
 #include "stdbool.h"
 
-#if MAIN_H_PRESENT == 1
-#include "main.h"
+#if SYS_CFG_PRESENT == 1
+#include "sys_config.h"
 #endif 
 #ifndef SAADC_CHANNEL_USED_PIR_SENSE
 #define SAADC_CHANNEL_USED_PIR_SENSE 0
