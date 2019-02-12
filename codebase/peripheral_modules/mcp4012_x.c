@@ -49,6 +49,7 @@
 #error "The SoC does not have the SPIM peripheral needed for this module"
 #endif
 
+#define SPIM_ID CONCAT_2(NRF_SPIM,SPIM_USED_MCP4012_DRIVER)
 /**
  * @brief This function is used to define a simple SPI based two wire protocol.
  */
@@ -144,27 +145,27 @@ void mcp4012_set_value(uint32_t value_sent_by_user)
 
 static void simple_spi_init()
 {
-	NRF_SPIM0->TASKS_SUSPEND  = 1;
-	NRF_SPIM0->TASKS_STOP = 1;
-   	NRF_SPIM0->PSEL.MOSI = UD_bar | (0 << 31);//UD_bar selected as MOSI
-	NRF_SPIM0->PSEL.SCK = SCK_pin | (0 << 31);
-	NRF_SPIM0->CONFIG = (SPIM_CONFIG_ORDER_MsbFirst << SPIM_CONFIG_ORDER_Pos)
+	SPIM_ID->TASKS_SUSPEND  = 1;
+	SPIM_ID->TASKS_STOP = 1;
+   	SPIM_ID->PSEL.MOSI = UD_bar | (0 << 31);//UD_bar selected as MOSI
+	SPIM_ID->PSEL.SCK = SCK_pin | (0 << 31);
+	SPIM_ID->CONFIG = (SPIM_CONFIG_ORDER_MsbFirst << SPIM_CONFIG_ORDER_Pos)
 						|(SPIM_CONFIG_CPHA_Trailing << SPIM_CONFIG_CPHA_Pos)
 						|(SPIM_CONFIG_CPOL_ActiveHigh << SPIM_CONFIG_CPOL_Pos);
 	//Data line frequency will be 500 kHz
-	NRF_SPIM0->FREQUENCY = SPIM_FREQUENCY_FREQUENCY_M1 << SPIM_FREQUENCY_FREQUENCY_Pos;
-	NRF_SPIM0->TXD.LIST = 1 << 0;
+	SPIM_ID->FREQUENCY = SPIM_FREQUENCY_FREQUENCY_M1 << SPIM_FREQUENCY_FREQUENCY_Pos;
+	SPIM_ID->TXD.LIST = 1 << 0;
 }
 
 static void simple_spi_transmit(uint8_t *data, uint32_t len)
 {
 	simple_spi_init();
-	NRF_SPIM0->TXD.PTR = (uint32_t ) data;
-	NRF_SPIM0->TXD.MAXCNT = len;
-	NRF_SPIM0->ENABLE = SPIM_ENABLE_ENABLE_Enabled << SPIM_ENABLE_ENABLE_Pos;
-	NRF_SPIM0->TASKS_START = 0x01;
-	while(!(NRF_SPIM0->EVENTS_ENDTX));
-	NRF_SPIM0->EVENTS_ENDTX = 0;
-	NRF_SPIM0->ENABLE = SPIM_ENABLE_ENABLE_Disabled << SPIM_ENABLE_ENABLE_Pos;
-	NRF_SPIM0->TASKS_STOP = 0x01;
+	SPIM_ID->TXD.PTR = (uint32_t ) data;
+	SPIM_ID->TXD.MAXCNT = len;
+	SPIM_ID->ENABLE = SPIM_ENABLE_ENABLE_Enabled << SPIM_ENABLE_ENABLE_Pos;
+	SPIM_ID->TASKS_START = 0x01;
+	while(!(SPIM_ID->EVENTS_ENDTX));
+	SPIM_ID->EVENTS_ENDTX = 0;
+	SPIM_ID->ENABLE = SPIM_ENABLE_ENABLE_Disabled << SPIM_ENABLE_ENABLE_Pos;
+	SPIM_ID->TASKS_STOP = 0x01;
 }

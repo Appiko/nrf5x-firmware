@@ -48,8 +48,15 @@
 
 #include "stdint.h"
 
+#if SYS_CFG_PRESENT == 1
+#include "sys_config.h"
+#endif
+#ifndef TIMER_USED_SIMPLE_PWM 
+#define TIMER_USED_SIMPLE_PWM 1
+#endif
+
 /** Specify which Timer peripheral would be used for the simple PWM module */
-#define SIMPLE_PWM_TIMER_USED           1
+#define SIMPLE_PWM_TIMER_USED           TIMER_USED_SIMPLE_PWM
 
 ///The number of CC registers in the RTC peripheral used for MS timer
 #define SIMPLE_PWM_CC_COUNT           CONCAT_3(TIMER, SIMPLE_PWM_TIMER_USED, _CC_NUM)

@@ -1,5 +1,5 @@
 /* 
- * File:   sensebe_rx_detect.c
+ * File:   sensebe_tx_rx_mod.c
  * Copyright (c) 2018 Appiko
  * Created on 29 October, 2018, 12:22 PM
  * Author:  Tejas Vasekar (https://github.com/tejas-tj)
@@ -35,6 +35,7 @@
 
 #include "sensebe_ble.h"
 #include "sensebe_tx_rx_mod.h"
+#include "sensebe_store_config.h"
 
 #include "hal_gpio.h"
 #include "ms_timer.h"
@@ -746,7 +747,12 @@ void sensebe_tx_rx_start (void)
 {
     log_printf("%s\n", __func__);
     feedback_timepassed = 0;
-    
+    if(memcmp (&sensebe_config, sensebe_store_config_get_last_config(),
+               sizeof(sensebe_config_t)) != 0)
+    {
+        sensebe_store_config_write (&sensebe_config);
+    }
+
     //Check if light sense is required
     
     log_printf(" Trig Config : %d\n ", sensebe_config.trig_conf);

@@ -52,8 +52,15 @@
 #include "nrf.h"
 #include "log.h"
 
+#if SYS_CFG_PRESENT == 1
+#include "sys_config.h"
+#endif
+#ifndef TIMER_USED_PROFILE_TIMER 
+#define TIMER_USED_PROFILE_TIMER 0
+#endif
+
 /** Specify which timer would be used for the profiler timer module */
-#define PROFILER_TIMER  NRF_TIMER0
+#define PROFILER_TIMER  CONCAT_2(NRF_TIMER,TIMER_USED_PROFILE_TIMER)
 
 /** Print the current time in micro-seconds from the startup (beginning of TIMER0).
  * This is used for time stamping at different parts in the code

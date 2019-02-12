@@ -41,9 +41,10 @@
 #include "string.h"
 #include "log.h"
 #include "stddef.h"
+#include "common_util.h"
 
 /** Specify the MS_TIMER used for the output pattern generator module */
-#define OUT_GEN_MS_TIMER_USED           MS_TIMER1
+#define OUT_GEN_MS_TIMER_USED           CONCAT_2(MS_TIMER, MS_TIMER_USED_OUT_GEN) 
 
 static struct
 {

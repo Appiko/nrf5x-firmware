@@ -1,7 +1,7 @@
 /*
  *  sensebe_ble.c
  *
- *  Created on: 09-May-2018
+ *  Created on: 29-Oct-2018
  *
  *  Copyright (c) 2018, Appiko
  *  All rights reserved.
@@ -52,16 +52,16 @@ const uint8_t device_name[] = { DEVICE_NAME_CHAR };
 
 
 /** Complete 128 bit UUID of the SenseBe service
- * 3c73dc50-07f5-480d-b066-837407fbde0a */
-#define SENSEBE_UUID_COMPLETE        0x0a, 0xde, 0xfb, 0x07, 0x74, 0x83, 0x66, 0xb0, 0x0d, 0x48, 0xf5, 0x07, 0x50, 0xdc, 0x73, 0x3c
+ * 3c73dc60-07f5-480d-b066-837407fbde0a */
+#define SENSEBE_UUID_COMPLETE        0x0a, 0xde, 0xfb, 0x07, 0x74, 0x83, 0x66, 0xb0, 0x0d, 0x48, 0xf5, 0x07, 0x60, 0xdc, 0x73, 0x3c
 
-/** The 16 bit UUID of the Sense Pi service */
-#define SENSEBE_UUID_SERVICE         0xdc50
+/** The 16 bit UUID of the Sense Be service */
+#define SENSEBE_UUID_SERVICE         0xdc60
 
 /** The 16 bit UUID of the read-only System Info characteristic */
-#define SENSEBE_UUID_SYSINFO         0xdc51
+#define SENSEBE_UUID_SYSINFO         0xdc61
 /** The 16 bit UUID of the read-write Config characteristic */
-#define SENSEBE_UUID_CONFIG          0xdc52
+#define SENSEBE_UUID_CONFIG          0xdc62
 
 /**< Interval between advertisement packets (0.5 seconds). */
 #define ADVERTISING_INTERVAL       MSEC_TO_UNITS(500, UNIT_0_625_MS)

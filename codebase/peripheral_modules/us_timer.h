@@ -52,8 +52,16 @@
 #include "nrf_peripherals.h"
 #include "common_util.h"
 
+#if SYS_CFG_PRESENT == 1
+#include "sys_config.h"
+#endif
+#ifndef TIMER_USED_US_TIMER 
+#define TIMER_USED_US_TIMER 3
+#endif
+
+
 /** Specify which TIMER peripheral would be used for the us timer module */
-#define US_TIMER_USED           3
+#define US_TIMER_USED           TIMER_USED_US_TIMER
 
 ///The number of CC registers in the TIMER peripheral used for us timer
 #define US_TIMER_CC_COUNT       CONCAT_3(TIMER, US_TIMER_USED, _CC_NUM)

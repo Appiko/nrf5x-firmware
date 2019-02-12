@@ -1,7 +1,7 @@
 /*
  *  main.c
  *
- *  Created on: 30-Jan-2018
+ *  Created on: 29-Oct-2018
  *
  *  Copyright (c) 2018, Appiko
  *  Copyright (c) 2013, Nordic Semiconductor ASA
@@ -37,8 +37,8 @@
  * @addtogroup group_appln
  * @{
  *
- * @defgroup sense_appln The code for the PIR based Sense units.
- * @brief The PIR sense application's main file that makes it operate.
+ * @defgroup sensebe_appln The code for the active IR based Sense units.
+ * @brief The active IR sense application's main file that makes it operate.
  *
  * @{
  *
@@ -72,6 +72,7 @@
 #include "out_pattern_gen.h"
 #include "sensebe_ble.h"
 #include "sensebe_tx_rx_mod.h"
+#include "sensebe_store_config.h"
 #include "dev_id_fw_ver.h"
 #include "led_seq.h"
 #include "led_ui.h"
@@ -83,9 +84,9 @@
 #define APP_DEVICE_NAME_CHAR           'S','e','n','s','e','B','e'
 const uint8_t app_device_name[] = { APP_DEVICE_NAME_CHAR };
 
-/** Complete 128 bit UUID of the SensePi service
- * 3c73dc50-07f5-480d-b066-837407fbde0a */
-#define APP_UUID_COMPLETE        0x0a, 0xde, 0xfb, 0x07, 0x74, 0x83, 0x66, 0xb0, 0x0d, 0x48, 0xf5, 0x07, 0x50, 0xdc, 0x73, 0x3c
+/** Complete 128 bit UUID of the SenseBe service
+ * 3c73dc60-07f5-480d-b066-837407fbde0a */
+#define APP_UUID_COMPLETE        0x0a, 0xde, 0xfb, 0x07, 0x74, 0x83, 0x66, 0xb0, 0x0d, 0x48, 0xf5, 0x07, 0x60, 0xdc, 0x73, 0x3c
 
 /** The data to be sent in the advertising payload. It is of the format
  *  of a sequence of {Len, type, data} */
@@ -111,13 +112,6 @@ const uint8_t app_device_name[] = { APP_DEVICE_NAME_CHAR };
 /** Flag to specify if the Watchdog timer is used or not */
 #define ENABLE_WDT                 1
 
-/** The interval at which the PIR sensor's signal is sampled.
- * 20 Hz interval is chosen so that as per Nyquist's criterion
- * signals up to 10 Hz can be sensed. */
-#define PIR_SENSE_INTERVAL_MS      50
-/** The static threshold above and below which PIR detects motion */
-#define PIR_SENSE_THRESHOLD        600
-
 /** The fast tick interval in ms in the Sense mode */
 #define SENSE_FAST_TICK_INTERVAL_MS      60
 /** The slow tick interval in ms in the Sense mode */
@@ -139,8 +133,7 @@ const uint8_t app_device_name[] = { APP_DEVICE_NAME_CHAR };
 /** Defines the states possible in the SensePi device */
 typedef enum
 {
-     //!< Use PIR sensor to sense motion based on the set configuration
-    SENSING,
+    SENSING,    //!< Use IR Tx-Rx to sense motion based on the set configuration
     ADVERTISING,//!< BLE advertising to get connected to an app
     CONNECTED   //!< BLE connection established with an app
 }sense_states;
@@ -266,12 +259,6 @@ static void ble_evt_handler(ble_evt_t * evt)
  */
 static void get_sensebe_config_t(sensebe_config_t *config)
 {
-//    log_printf("Trig mode %d, PIR ope time %08x, PIR mode %08x, PIR amp %d, PIR thres %d, 
-//             PIR int trig time %04d, Timer oper %x, Timer mode %x, timer interval %04d \n",
-//            config->trig_conf, config->tssp_conf.oper_time, config->tssp_conf.mode,
-//            config->tssp_conf.amplification, config->tssp_conf.threshold,
-//            config->tssp_conf.intr_trig_timer,
-//            config->timer_conf.oper_time, config->timer_conf.mode, config->timer_conf.timer_interval);
     sensebe_tx_rx_update_config (config);
 }
 
@@ -539,6 +526,17 @@ void boot_pwr_config(void)
     NRF_POWER->TASKS_LOWPWR = 1;
 }
 
+/**
+ * @brief function to load previous sensebe configuration present in flash memory
+ */
+void load_last_config()
+{
+    if(sensebe_store_config_is_memory_empty())
+    {
+        sensebe_store_config_write (&sensebe_ble_default_config);
+    }
+    sensebe_tx_rx_update_config (sensebe_store_config_get_last_config ());
+}
 
 /**
  * Different calls to sleep depending on the status of Softdevice
@@ -591,6 +589,8 @@ int main(void)
     current_state = ADVERTISING; //So that a state change happens
     irq_msg_push(MSG_STATE_CHANGE, (void *)SENSING);
     sensebe_ble_init(ble_evt_handler, get_sensebe_config_t);
+    sensebe_store_config_check_fw_ver ();
+    load_last_config ();
 
     while (true)
     {

@@ -50,6 +50,14 @@
 #include "stdint.h"
 #include "stdbool.h"
 
+#if SYS_CFG_PRESENT == 1
+#include "sys_config.h"
+#endif
+#ifndef MS_TIMER_USED_OUT_GEN 
+#define MS_TIMER_USED_OUT_GEN 1
+#endif
+
+
 /** The maximum number of transitions that can occur in the generated pattern */
 #define OUT_GEN_MAX_TRANSITIONS 64
 

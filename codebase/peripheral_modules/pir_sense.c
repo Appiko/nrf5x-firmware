@@ -38,9 +38,11 @@
 #include "nrf_util.h"
 
 /** Specify which RTC peripheral would be used for the PIR Sense module */
-#define PIR_SENSE_RTC_USED           0
+#define PIR_SENSE_RTC_USED           RTC_USED_PIR_SENSE
 
-#define SAADC_CHANNEL                0
+#define SAADC_CHANNEL                SAADC_CHANNEL_USED_PIR_SENSE
+
+#define RTC_ID                       CONCAT_2(NRF_RTC,RTC_USED_PIR_SENSE)
 
 /** @brief The single length array that stores the SAADC converted value */
 static int16_t saadc_result[1];
@@ -93,33 +95,33 @@ void pir_sense_start(pir_sense_cfg * init)
     NVIC_ClearPendingIRQ(SAADC_IRQn);
 
     NRF_SAADC->INTENCLR = 0xFFFFFFFF;
-    NRF_SAADC->INTENSET = (SAADC_INTENSET_CH0LIMITH_Msk | SAADC_INTENSET_CH0LIMITL_Msk );
+    NRF_SAADC->INTENSET = ((1 << (SAADC_CHANNEL*2 + 6)) | (1 << (SAADC_CHANNEL*2 + 7)));
 
     //On ADC start event, trigger the ADC sampling
-    NRF_PPI->CH[PPI_CHEN_CH0_Pos].EEP = (uint32_t) &(NRF_SAADC->EVENTS_STARTED);
-    NRF_PPI->CH[PPI_CHEN_CH0_Pos].TEP = (uint32_t) &(NRF_SAADC->TASKS_SAMPLE);
+    NRF_PPI->CH[PPI_CHANNEL_USED_PIR_SENSE_1].EEP = (uint32_t) &(NRF_SAADC->EVENTS_STARTED);
+    NRF_PPI->CH[PPI_CHANNEL_USED_PIR_SENSE_1].TEP = (uint32_t) &(NRF_SAADC->TASKS_SAMPLE);
 
     //On RTC0 Compare0 event, trigger ADC start task and also clear the RTC0 counter
-    NRF_PPI->CH[PPI_CHEN_CH1_Pos].EEP = (uint32_t) &(NRF_RTC0->EVENTS_COMPARE[0]);
-    NRF_PPI->CH[PPI_CHEN_CH1_Pos].TEP = (uint32_t) &(NRF_SAADC->TASKS_START);
-    NRF_PPI->FORK[PPI_CHEN_CH1_Pos].TEP = (uint32_t) &(NRF_RTC0->TASKS_CLEAR);
+    NRF_PPI->CH[PPI_CHANNEL_USED_PIR_SENSE_2].EEP = (uint32_t) &(RTC_ID->EVENTS_COMPARE[0]);
+    NRF_PPI->CH[PPI_CHANNEL_USED_PIR_SENSE_2].TEP = (uint32_t) &(NRF_SAADC->TASKS_START);
+    NRF_PPI->FORK[PPI_CHANNEL_USED_PIR_SENSE_2].TEP = (uint32_t) &(RTC_ID->TASKS_CLEAR);
 
     //On ADC end event, stop the ADC to disable it and save power
-    NRF_PPI->CH[PPI_CHEN_CH2_Pos].EEP = (uint32_t) &(NRF_SAADC->EVENTS_END);
-    NRF_PPI->CH[PPI_CHEN_CH2_Pos].TEP = (uint32_t) &(NRF_SAADC->TASKS_STOP);
+    NRF_PPI->CH[PPI_CHANNEL_USED_PIR_SENSE_3].EEP = (uint32_t) &(NRF_SAADC->EVENTS_END);
+    NRF_PPI->CH[PPI_CHANNEL_USED_PIR_SENSE_3].TEP = (uint32_t) &(NRF_SAADC->TASKS_STOP);
 
     //Enable the above three PPIs
-    NRF_PPI->CHENSET = (PPI_CHENSET_CH0_Set << PPI_CHEN_CH0_Pos) |
-            (PPI_CHENSET_CH1_Set << PPI_CHEN_CH1_Pos) |
-            (PPI_CHENSET_CH2_Set << PPI_CHEN_CH2_Pos);
+    NRF_PPI->CHENSET = (1 << PPI_CHANNEL_USED_PIR_SENSE_1) |
+            (1 << PPI_CHANNEL_USED_PIR_SENSE_2) |
+            (1 << PPI_CHANNEL_USED_PIR_SENSE_3);
 
     //Start off the ADC with CC0 as the sensing interval
-    NRF_RTC0->TASKS_STOP = 1;
-    NRF_RTC0->PRESCALER = 0;
-    NRF_RTC0->CC[0] = LFCLK_TICKS_MS(init->sense_interval_ms);
-    NRF_RTC0->EVTENSET = (RTC_EVTENSET_COMPARE0_Enabled << RTC_EVTENSET_COMPARE0_Pos);
-    NRF_RTC0->EVENTS_COMPARE[0] = 0;
-    NRF_RTC0->TASKS_START = 1;
+    RTC_ID->TASKS_STOP = 1;
+    RTC_ID->PRESCALER = 0;
+    RTC_ID->CC[0] = LFCLK_TICKS_MS(init->sense_interval_ms);
+    RTC_ID->EVTENSET = (RTC_EVTENSET_COMPARE0_Enabled << RTC_EVTENSET_COMPARE0_Pos);
+    RTC_ID->EVENTS_COMPARE[0] = 0;
+    RTC_ID->TASKS_START = 1;
 
     NRF_SAADC->ENABLE = (SAADC_ENABLE_ENABLE_Enabled << SAADC_ENABLE_ENABLE_Pos);
 }
@@ -135,10 +137,10 @@ void pir_sense_stop(void)
     NRF_SAADC->INTENCLR = 0xFFFFFFFF;
     NRF_SAADC->CH[SAADC_CHANNEL].PSELP = SAADC_CH_PSELP_PSELP_NC;
 
-    NRF_PPI->CHENCLR = (PPI_CHENCLR_CH0_Clear << PPI_CHEN_CH0_Pos) |
-                (PPI_CHENCLR_CH1_Clear << PPI_CHEN_CH1_Pos) |
-                (PPI_CHENCLR_CH2_Clear << PPI_CHEN_CH2_Pos);
+    NRF_PPI->CHENCLR = (PPI_CHENCLR_CH0_Clear << PPI_CHANNEL_USED_PIR_SENSE_1) |
+                (PPI_CHENCLR_CH1_Clear << PPI_CHANNEL_USED_PIR_SENSE_2) |
+                (PPI_CHENCLR_CH2_Clear << PPI_CHANNEL_USED_PIR_SENSE_3);
 
-    NRF_RTC0->TASKS_CLEAR = 1;
-    NRF_RTC0->TASKS_STOP = 1;
+    RTC_ID->TASKS_CLEAR = 1;
+    RTC_ID->TASKS_STOP = 1;
 }

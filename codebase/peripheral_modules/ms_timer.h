@@ -53,8 +53,15 @@
 #include "nrf.h"
 #include "hal_clocks.h"
 
+#if SYS_CFG_PRESENT == 1
+#include "sys_config.h"
+#endif
+#ifndef RTC_USED_MS_TIMER 
+#define RTC_USED_MS_TIMER 1
+#endif
+
 /** Specify which RTC peripheral would be used for the ms timer module */
-#define MS_TIMER_RTC_USED           1
+#define MS_TIMER_RTC_USED           RTC_USED_MS_TIMER
 
 ///The number of CC registers in the RTC peripheral used for MS timer
 #define MS_TIMER_CC_COUNT           CONCAT_3(RTC, MS_TIMER_RTC_USED, _CC_NUM)

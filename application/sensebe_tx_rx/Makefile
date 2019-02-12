@@ -10,6 +10,7 @@ MS_TIMER_FREQ   := 32768
 TSSP_DETECT_FREQ := 1000
 SD_USED         := s112
 SD_VER          := 6.0.0
+CONFIG_HEADER	:= 1
 
 SDK_DIR         = ../../SDK_components
 DOC_DIR         = ../../doc
@@ -58,6 +59,8 @@ C_SRC += hal_pwm.c
 C_SRC += dev_id_fw_ver.c
 C_SRC += out_pattern_gen.c
 C_SRC += sensebe_tx_rx_mod.c
+C_SRC += sensebe_store_config.c
+C_SRC += hal_nvmc.c
 C_SRC += led_ui.c
 C_SRC += led_seq.c
 C_SRC += tssp_detect.c
@@ -74,6 +77,7 @@ CFLAGS_APP += -D$(LOGGER)
 CFLAGS_APP += -DFW_VER=$(FW_VER_VAL)
 CFLAGS_APP += -DMS_TIMER_FREQ=$(MS_TIMER_FREQ)
 CFLAGS_APP += -DTSSP_DETECT_FREQ=$(TSSP_DETECT_FREQ)
+CFLAGS_APP += -DSYS_CFG_PRESENT=$(CONFIG_HEADER)
 
 
 #Lower case of BOARD
