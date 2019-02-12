@@ -82,6 +82,29 @@
 #include "stdint.h"
 #include "stdbool.h"
 
+#if MAIN_H_PRESENT == 1
+#include "main.h"
+#endif 
+#ifndef SAADC_CHANNEL_USED_PIR_SENSE
+#define SAADC_CHANNEL_USED_PIR_SENSE 0
+#endif
+
+#ifndef PPI_CHANNEL_USED_PIR_SENSE_1
+#define PPI_CHANNEL_USED_PIR_SENSE_1 0
+#endif
+
+#ifndef PPI_CHANNEL_USED_PIR_SENSE_2
+#define PPI_CHANNEL_USED_PIR_SENSE_2 1
+#endif
+
+#ifndef PPI_CHANNEL_USED_PIR_SENSE_3
+#define PPI_CHANNEL_USED_PIR_SENSE_3 2
+#endif
+
+#ifndef RTC_USED_PIR_SENSE
+#define RTC_USED_PIR_SENSE 0
+#endif
+
 /**
  * @brief Stucture for passing the configuration for initializing the
  *  PIR Sense module.

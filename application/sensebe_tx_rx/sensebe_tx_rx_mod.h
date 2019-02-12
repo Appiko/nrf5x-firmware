@@ -39,11 +39,18 @@
 #include "ms_timer.h"
 #include "sensebe_ble.h"
 
+#if MAIN_H_PRESENT == 1
+#include "main.h"
+#else 
+#define MS_TIMER_USED_SENSBE_TX_RX 2
+#endif
+
+
 #ifdef __cplusplus
 extern "C" {
 #endif
         
-#define SENSEBE_OPERATION_MS_TIMER MS_TIMER2
+#define SENSEBE_OPERATION_MS_TIMER CONCAT_2(MS_TIMER,MS_TIMER_USED_SENSBE_TX_RX)
 
 /** Structure containing all the values required for sensebe_rx_detect module */
 typedef struct 

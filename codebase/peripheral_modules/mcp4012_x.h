@@ -44,6 +44,14 @@
 #define MCP4012_X_H
 #include "stdint.h"
 
+#if MAIN_H_PRESENT == 1
+#include "main.h"
+#endif
+#ifndef SPIM_USED_MCP4012_DRIVER 
+#define SPIM_USED_MCP4012_DRIVER 0
+#endif
+
+
 /**
  * @brief This function is used to initialize MCP4012 in our program. This will set
  *  wiper value of MCP4012 to zero. Which will be then increased to desired value.

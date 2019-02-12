@@ -50,18 +50,30 @@
 #include "boards.h"
 #include "nrf_util.h"
 
-#if MAIN_H_PRESENT
+#if MAIN_H_PRESENT == 1
 #include "main.h"
-#else
-
-#define RTC_USED_TSSP_DETECT 0
-#define EGU_USED_TSSP_DETECT 0
-
-#define PPI_CH_USED_TSSP_DETECT_1 7
-#define PPI_CH_USED_TSSP_DETECT_2 8
-#define GPIOTE_CH_USED_TSSP_DETECT 7
-
 #endif
+
+#ifndef RTC_USED_TSSP_DETECT 
+#define RTC_USED_TSSP_DETECT 0
+#endif
+
+#ifndef EGU_USED_TSSP_DETECT 
+#define EGU_USED_TSSP_DETECT 0
+#endif
+
+#ifndef PPI_CH_USED_TSSP_DETECT_1 
+#define PPI_CH_USED_TSSP_DETECT_1 7
+#endif
+
+#ifndef PPI_CH_USED_TSSP_DETECT_2 
+#define PPI_CH_USED_TSSP_DETECT_2 8
+#endif
+
+#ifndef GPIOTE_CH_USED_TSSP_DETECT 
+#define GPIOTE_CH_USED_TSSP_DETECT 7
+#endif
+
 
 #ifndef TSSP_DETECT_FREQ
 #ifdef MS_TIMER_FREQ

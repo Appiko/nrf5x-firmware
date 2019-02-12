@@ -56,33 +56,56 @@ typedef enum
     TSSP_IR_TX_TIMER_FREQ_31250Hz    ///< PWM timer frequency of 31250 Hz.
 } tssp_ir_tx_timer_freq_t;
 
-#ifdef MAIN_H_PRESENT
+#if MAIN_H_PRESENT == 1
 #include "main.h"
-#else
-
-/** PPI Channel which is being used by this module */
-#define PPI_CH_USED_TSSP_IR_TX_1 9
-#define PPI_CH_USED_TSSP_IR_TX_2 10
-#define PPI_CH_USED_TSSP_IR_TX_3 0
-#define PPI_CH_USED_TSSP_IR_TX_4 1
-
-/** Timer peripheral used by this module */
-#define TIMER_USED_TSSP_IR_TX_1 2
-#define TIMER_USED_TSSP_IR_TX_2 1
-
-/** TIMER channel used by this module */
-#define TIMER_CHANNEL_USED_TSSP_IR_TX_1_1 0
-
-#define TIMER_CHANNEL_USED_TSSP_IR_TX_2_1 0
-
-#define TIMER_CHANNEL_USED_TSSP_IR_TX_2_2 3
-
-#define GPIOTE_CH_USED_TSSP_IR_TX_1 6
-
-#define GPIOTE_CH_USED_TSSP_IR_TX_2 0
-//All expected defines
 #endif
 
+/** PPI Channel which is being used by this module */
+#ifndef PPI_CH_USED_TSSP_IR_TX_1 
+#define PPI_CH_USED_TSSP_IR_TX_1 9
+#endif
+
+#ifndef PPI_CH_USED_TSSP_IR_TX_2 
+#define PPI_CH_USED_TSSP_IR_TX_2 10
+#endif
+
+#ifndef PPI_CH_USED_TSSP_IR_TX_3 
+#define PPI_CH_USED_TSSP_IR_TX_3 0
+#endif
+
+#ifndef PPI_CH_USED_TSSP_IR_TX_4 
+#define PPI_CH_USED_TSSP_IR_TX_4 1
+#endif
+
+/** Timer peripheral used by this module */
+#ifndef TIMER_USED_TSSP_IR_TX_1 
+#define TIMER_USED_TSSP_IR_TX_1 2
+#endif
+
+#ifndef TIMER_USED_TSSP_IR_TX_2 
+#define TIMER_USED_TSSP_IR_TX_2 1
+#endif
+
+/** TIMER channel used by this module */
+#ifndef TIMER_CHANNEL_USED_TSSP_IR_TX_1_1 
+#define TIMER_CHANNEL_USED_TSSP_IR_TX_1_1 0
+#endif
+
+#ifndef TIMER_CHANNEL_USED_TSSP_IR_TX_2_1 
+#define TIMER_CHANNEL_USED_TSSP_IR_TX_2_1 0
+#endif
+
+#ifndef TIMER_CHANNEL_USED_TSSP_IR_TX_2_2 
+#define TIMER_CHANNEL_USED_TSSP_IR_TX_2_2 3
+#endif
+
+#ifndef GPIOTE_CH_USED_TSSP_IR_TX_1 
+#define GPIOTE_CH_USED_TSSP_IR_TX_1 6
+#endif
+
+#ifndef GPIOTE_CH_USED_TSSP_IR_TX_2 
+#define GPIOTE_CH_USED_TSSP_IR_TX_2 0
+#endif
 
 
 #ifndef TSSP_IR_TX_ON_TIME_MS

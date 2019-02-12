@@ -53,6 +53,13 @@
 #include <stdbool.h>
 #include "nrf.h"
 
+#if MAIN_H_PRESENT == 1
+#include "main.h"
+#endif
+#ifndef MS_TIMER_USED_DEVICE_TICKS 
+#define MS_TIMER_USED_DEVICE_TICKS 0
+#endif
+
 /** @brief The number of MS timer ticks elapsed for one device tick */
 #define DEVICE_TICK_MSTIMER_DIV_FACTOR        (1)
 

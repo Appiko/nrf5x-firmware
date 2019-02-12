@@ -54,6 +54,13 @@
     Use the UART peripheral."
 #endif
 
+#if MAIN_H_PRESENT == 1
+#include "main.h"
+#endif
+#ifndef UARTE_USED_UART_PRINTF
+#define UARTE_USED_UART_PRINTF 0
+#endif
+
 /**
  * Defines to specify the baudrate options for the printf messages
  */

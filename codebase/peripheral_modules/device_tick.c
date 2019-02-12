@@ -36,8 +36,9 @@
 #include "irq_msg_util.h"
 #include "ms_timer.h"
 #include "nrf_assert.h"
+#include "common_util.h"
 
-#define DEV_TICK_MSTIMER    MS_TIMER0
+#define DEV_TICK_MSTIMER    CONCAT_2(MS_TIMER,MS_TIMER_USED_DEVICE_TICKS)
 
 #define MSTIMER_TICKS_TO_DEV_TICKS(lfclk_ticks)  (lfclk_ticks/DEVICE_TICK_MSTIMER_DIV_FACTOR)
 #define DEV_TICKS_TO_MSTIMER_TICKS(dev_ticks)    (dev_ticks*DEVICE_TICK_MSTIMER_DIV_FACTOR)

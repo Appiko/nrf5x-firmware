@@ -40,6 +40,8 @@
 #include "tinyprintf.h"
 #include <stdbool.h>
 
+#define UARTE_ID CONCAT_2(NRF_UARTE,UARTE_USED_UART_PRINTF)
+
 /** Size of the PING & PONG buffer each to hold the data to be sent*/
 #define BUFFER_SIZE     128
 
@@ -86,17 +88,17 @@ static struct uart_context
 
 static void stop_uart(void)
 {
-    NRF_UARTE0->TASKS_STOPTX = 1;
+    UARTE_ID->TASKS_STOPTX = 1;
 }
 
 static void start_uart_tx(uart_buffers tx_buf)
 {
-    NRF_UARTE0->EVENTS_ENDTX = 0;
+    UARTE_ID->EVENTS_ENDTX = 0;
 
-    NRF_UARTE0->TXD.PTR = (uint32_t) uart_ctx.tx_buf[tx_buf].buf;
-    NRF_UARTE0->TXD.MAXCNT = uart_ctx.tx_buf[tx_buf].count;
+    UARTE_ID->TXD.PTR = (uint32_t) uart_ctx.tx_buf[tx_buf].buf;
+    UARTE_ID->TXD.MAXCNT = uart_ctx.tx_buf[tx_buf].count;
 
-    NRF_UARTE0->TASKS_STARTTX = 1;
+    UARTE_ID->TASKS_STARTTX = 1;
 }
 
 /**
@@ -104,10 +106,10 @@ static void start_uart_tx(uart_buffers tx_buf)
  */
 void UARTE0_UART0_IRQHandler(void)
 {
-    if (1 == NRF_UARTE0->EVENTS_ENDTX)
+    if (1 == UARTE_ID->EVENTS_ENDTX)
     {
-        NRF_UARTE0->EVENTS_ENDTX = 0;
-        (void) NRF_UARTE0->EVENTS_ENDTX;
+        UARTE_ID->EVENTS_ENDTX = 0;
+        (void) UARTE_ID->EVENTS_ENDTX;
 
         uart_buffers current_buf = PONG, other_buf = PING;
         if (BUF_STATE[PING].TX == uart_ctx.tx_state)
@@ -186,8 +188,8 @@ void uart_printf_init(uart_printf_baud_t baud_rate)
     /* Configure TX and RX pins from board.h */
     hal_gpio_cfg_output(TX_PIN_NUMBER, 0);
     hal_gpio_cfg_input(RX_PIN_NUMBER, GPIO_PIN_CNF_PULL_Disabled);
-    NRF_UARTE0->PSEL.TXD = TX_PIN_NUMBER;
-    NRF_UARTE0->PSEL.RXD = RX_PIN_NUMBER;
+    UARTE_ID->PSEL.TXD = TX_PIN_NUMBER;
+    UARTE_ID->PSEL.RXD = RX_PIN_NUMBER;
 
     /* Configure CTS and RTS pins if HWFC is true in board.h */
 
@@ -195,21 +197,21 @@ void uart_printf_init(uart_printf_baud_t baud_rate)
     {
         hal_gpio_cfg_output(RTS_PIN_NUMBER, 0);
         hal_gpio_cfg_input(CTS_PIN_NUMBER, GPIO_PIN_CNF_PULL_Disabled);
-        NRF_UARTE0->PSEL.RTS = RTS_PIN_NUMBER;
-        NRF_UARTE0->PSEL.CTS = CTS_PIN_NUMBER;
-        NRF_UARTE0->CONFIG = (UARTE_CONFIG_HWFC_Enabled << UARTE_CONFIG_HWFC_Pos);
+        UARTE_ID->PSEL.RTS = RTS_PIN_NUMBER;
+        UARTE_ID->PSEL.CTS = CTS_PIN_NUMBER;
+        UARTE_ID->CONFIG = (UARTE_CONFIG_HWFC_Enabled << UARTE_CONFIG_HWFC_Pos);
     }
 #endif
 
     /* Configure other UART parameters, BAUD rate is defined in nrf52-uart.h    */
-    NRF_UARTE0->BAUDRATE = (baud_rate << UARTE_BAUDRATE_BAUDRATE_Pos);
-    NRF_UARTE0->ENABLE = (UARTE_ENABLE_ENABLE_Enabled << UARTE_ENABLE_ENABLE_Pos);
+    UARTE_ID->BAUDRATE = (baud_rate << UARTE_BAUDRATE_BAUDRATE_Pos);
+    UARTE_ID->ENABLE = (UARTE_ENABLE_ENABLE_Enabled << UARTE_ENABLE_ENABLE_Pos);
 
     //Send in any other value other than START_TX in first argument
     init_printf((void *) !(START_TX), printf_callback);
 
     // Enable UART TX End interrupt only
-    NRF_UARTE0->INTENSET = (UARTE_INTENSET_ENDTX_Set << UARTE_INTENSET_ENDTX_Pos);
+    UARTE_ID->INTENSET = (UARTE_INTENSET_ENDTX_Set << UARTE_INTENSET_ENDTX_Pos);
 
     NVIC_SetPriority(UARTE0_UART0_IRQn, APP_IRQ_PRIORITY_LOW);
     NVIC_EnableIRQ(UARTE0_UART0_IRQn);
