@@ -114,6 +114,9 @@ typedef struct
 
     /** Serial number of current setup */
     uint32_t setup_number;
+    
+    /** Pre-Focus signal setup */
+    bool pre_focus_en;
 
 }cam_trigger_config_t;
 /**
