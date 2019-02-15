@@ -192,7 +192,9 @@ void tssp_detect_window_stop (void)
 
         hal_gpio_pin_write (tssp_en_pin, DISABLE);
     }
-    TSSP_DETECT_RTC_USED->INTENCLR |= ENABLE << (WINDOW_RTC_CHANNEL+16);
+    TSSP_DETECT_RTC_USED->INTENCLR |= ENABLE << (WINDOW_RTC_CHANNEL+16) | 
+                                      ENABLE << (SYNC_ON_RTC_CHANNEL+16) | 
+                                      ENABLE << (SYNC_OFF_RTC_CHANNEL+16);
     NRF_PPI->CHENCLR |= 1 << PPI_CHANNEL_USED_RTC;
     NVIC_DisableIRQ  (RTC0_IRQn);
 
