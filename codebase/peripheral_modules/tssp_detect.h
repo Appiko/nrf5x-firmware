@@ -48,7 +48,6 @@
 #include "stdint.h"
 #include "stdbool.h"
 #include "boards.h"
-#include "nrf_util.h"
 
 #if SYS_CFG_PRESENT == 1
 #include "sys_config.h"
