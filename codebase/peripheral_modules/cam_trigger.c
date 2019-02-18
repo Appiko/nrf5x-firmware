@@ -43,6 +43,12 @@
 #include "stdbool.h"
 #include "log.h"
 
+/** Number of transitions required for pre-focus signal */
+#define PRE_FOCUS_TRANSITIONS 1
+/** Pre focus pulse duration if pre focus is enabled */
+#define PRE_FOCUS_ON_TIME MS_TIMER_TICKS_MS(100)
+/** Pre focus pulse duration if pre focus is disabled */
+#define PRE_FOCUS_OFF_TIME 2
 /** Number of transitions required for single shot operation */
 #define SINGLE_SHOT_TRANSITIONS 2
 /** Ticks duration required for single shot operation */
@@ -208,24 +214,30 @@ void out_gen_done_handler (uint32_t out_gen_context)
 
 void single_shot (cam_trigger_config_t * cam_trigger_config)
 {
-    uint32_t number_of_transition = SINGLE_SHOT_TRANSITIONS;
+    uint32_t number_of_transition = SINGLE_SHOT_TRANSITIONS + PRE_FOCUS_TRANSITIONS;
     int32_t time_remain;
     
-    time_remain = MS_TIMER_TICKS_MS(cam_trigger_config->trig_duration_100ms * 100) - SINGLE_SHOT_DURATION;
+    uint32_t pre_focus_time = PRE_FOCUS_OFF_TIME;
+    if(cam_trigger_config->pre_focus_en == true)
+    {
+        pre_focus_time = PRE_FOCUS_ON_TIME;
+    }
+
+    time_remain = MS_TIMER_TICKS_MS(cam_trigger_config->trig_duration_100ms * 100) - SINGLE_SHOT_DURATION - pre_focus_time;
     
     if(time_remain <= 0)
     {
         time_remain = 2;
     }
-
+    
     out_gen_config_t local_out_gen_config = 
     {
         .num_transitions = number_of_transition,
         .done_handler = out_gen_done_handler,
         .out_gen_state = NON_VIDEO_EXT_RUNNING,
-        .transitions_durations = { SINGLE_SHOT_DURATION, time_remain },
-        .next_out = {{0, 1, 1},
-                     {0, 1, 1}},
+        .transitions_durations = {pre_focus_time, SINGLE_SHOT_DURATION, time_remain },
+        .next_out = {{0, 0, 1, 1},
+                     {1, 0, 1, 1}},
     };
     memcpy (&arr_out_gen_config[cam_trigger_config->setup_number], &local_out_gen_config,
             sizeof(out_gen_config_t));
@@ -239,9 +251,15 @@ void multi_shot (cam_trigger_config_t * cam_trigger_config, uint32_t time_betwee
     {
         no_of_shots = MAX_NO_OF_SHOTS;
     }
+    uint32_t pre_focus_time = PRE_FOCUS_OFF_TIME;
 
+    if(cam_trigger_config->pre_focus_en == true)
+    {
+        pre_focus_time = PRE_FOCUS_ON_TIME;
+    }
     int32_t time_remain;
-    uint32_t number_of_transition = SINGLE_SHOT_TRANSITIONS * no_of_shots;
+    uint32_t number_of_transition = (SINGLE_SHOT_TRANSITIONS * no_of_shots) 
+        + PRE_FOCUS_TRANSITIONS;
     //Time for trigger pulse and time till next trigger for each burst
     uint32_t repeat_delay_array[SINGLE_SHOT_TRANSITIONS] = 
     {SINGLE_SHOT_DURATION,
@@ -251,25 +269,29 @@ void multi_shot (cam_trigger_config_t * cam_trigger_config, uint32_t time_betwee
         .num_transitions = number_of_transition,
         .done_handler = out_gen_done_handler,
         .out_gen_state = NON_VIDEO_EXT_RUNNING,
+        .next_out = { {0}, {1}},
+        .transitions_durations = {pre_focus_time}
     };
 
     for (uint32_t i = 0; i < no_of_shots; i++)
     {
-        memcpy (local_out_gen_config.transitions_durations + i*SINGLE_SHOT_TRANSITIONS,
+        //duration assignment
+        memcpy (local_out_gen_config.transitions_durations
+            + (i*SINGLE_SHOT_TRANSITIONS) + PRE_FOCUS_TRANSITIONS,
                 repeat_delay_array, SINGLE_SHOT_TRANSITIONS * sizeof (uint32_t));
-
+        //For bool assignment
         for (uint32_t j = 0; j < NO_OF_PINS; j++)
         {
-            memcpy (*(local_out_gen_config.next_out + j), *(multishot_generic + j),
+            memcpy (&(local_out_gen_config.next_out[j][PRE_FOCUS_TRANSITIONS]), *(multishot_generic + j),
                     no_of_shots * SINGLE_SHOT_TRANSITIONS * sizeof (bool));
             //An extra '1' at the end for the remaining of the inter-trigger time
-            local_out_gen_config.next_out[j][no_of_shots * SINGLE_SHOT_TRANSITIONS] = 1;
+            local_out_gen_config.next_out[j][no_of_shots * SINGLE_SHOT_TRANSITIONS + PRE_FOCUS_TRANSITIONS] = 1;
         }
     }
     time_remain = MS_TIMER_TICKS_MS(cam_trigger_config->trig_duration_100ms * 100)
         - SINGLE_SHOT_DURATION*no_of_shots - 
         ((MS_TIMER_TICKS_MS (time_between_shots_100ms * 100) - SINGLE_SHOT_DURATION)
-        *(no_of_shots - 1));    
+        *(no_of_shots - 1) - pre_focus_time);    
     if(time_remain <= 0)
     {
         time_remain = 2;
@@ -284,27 +306,34 @@ void multi_shot (cam_trigger_config_t * cam_trigger_config, uint32_t time_betwee
 
 void long_press (cam_trigger_config_t * cam_trigger_config, uint32_t expousure_time_100ms)
 {
+    uint32_t pre_focus_time = PRE_FOCUS_OFF_TIME;
     int32_t time_remain;
-    uint32_t number_of_transition = BULB_SHOT_TRANSITIONS;
+    uint32_t number_of_transition = BULB_SHOT_TRANSITIONS + PRE_FOCUS_TRANSITIONS;
     uint32_t bulb_time_ticks = MS_TIMER_TICKS_MS ((expousure_time_100ms * 100));
 
-    time_remain = MS_TIMER_TICKS_MS(cam_trigger_config->trig_duration_100ms * 100) - bulb_time_ticks;    
+    if(cam_trigger_config->pre_focus_en == true)
+    {
+        pre_focus_time = PRE_FOCUS_ON_TIME;
+    }
+
+    time_remain = MS_TIMER_TICKS_MS(cam_trigger_config->trig_duration_100ms * 100)
+        - bulb_time_ticks - pre_focus_time;    
     if(time_remain <= 0)
     {
         time_remain = 2;
     }
-
+    
     out_gen_config_t local_out_gen_config =
     {
         .num_transitions = number_of_transition,
         .done_handler = out_gen_done_handler,
         .out_gen_state = NON_VIDEO_EXT_RUNNING,
         .transitions_durations =
-            {bulb_time_ticks, time_remain},
+            {pre_focus_time, bulb_time_ticks, time_remain},
         .next_out =
             {
-                {0, 1, 1},
-                {0, 1, 1}
+                {0, 0, 1, 1},
+                {1, 0, 1, 1}
             },
     };
     
@@ -314,11 +343,16 @@ void long_press (cam_trigger_config_t * cam_trigger_config, uint32_t expousure_t
 
 void video_without_extn (cam_trigger_config_t * cam_trigger_config, uint32_t video_len_s)
 {
+    uint32_t pre_focus_time = PRE_FOCUS_OFF_TIME;
     int32_t time_remain;
     video_len_s = MS_TIMER_TICKS_MS(video_len_s * 1000);
+    if(cam_trigger_config->pre_focus_en == true)
+    {
+        pre_focus_time = PRE_FOCUS_ON_TIME;
+    }
 
     time_remain = MS_TIMER_TICKS_MS(cam_trigger_config->trig_duration_100ms * 100) - 
-        (video_len_s);
+        (video_len_s) - pre_focus_time;
 
     if(time_remain <= 0)
     {
@@ -326,11 +360,11 @@ void video_without_extn (cam_trigger_config_t * cam_trigger_config, uint32_t vid
     }
     out_gen_config_t local_out_gen_config =
     {
-        .num_transitions = VIDEO_WITHOUT_EXTN_TRANSITIONS,
+        .num_transitions = VIDEO_WITHOUT_EXTN_TRANSITIONS + PRE_FOCUS_TRANSITIONS,
         .next_out = 
-        {{0,1,0,1,1},
-        {1,1,1,1,1}},
-        .transitions_durations = {VIDEO_START_PULSE,
+        {{0,0,1,0,1,1},
+        {1,1,1,1,1,1}},
+        .transitions_durations = {pre_focus_time, VIDEO_START_PULSE,
                     (video_len_s),
                     VIDEO_END_PULSE,  time_remain},
         .done_handler = out_gen_done_handler,
@@ -345,6 +379,12 @@ void video_without_extn (cam_trigger_config_t * cam_trigger_config, uint32_t vid
 void video_with_extn (cam_trigger_config_t * cam_trigger_config, uint32_t video_len_s,
                       uint32_t extn_len_s)
 {
+    uint32_t pre_focus_time = PRE_FOCUS_OFF_TIME;
+    if(cam_trigger_config->pre_focus_en == true)
+    {
+        pre_focus_time = PRE_FOCUS_ON_TIME;
+    }
+    
     ext[cam_trigger_config->setup_number].extend_duration =
             MS_TIMER_TICKS_MS(extn_len_s * 1000);
 
@@ -360,18 +400,18 @@ void video_with_extn (cam_trigger_config_t * cam_trigger_config, uint32_t video_
     {
         ext[cam_trigger_config->setup_number].itt_max_duration = 0;
     }
-    
     int32_t video_len_check;
     video_len_check = video_len_s - VIDEO_END_PART;
     video_len_s = (video_len_check < 0) ? 1 : video_len_check;
     
     out_gen_config_t local_out_gen_config = 
     {
-        .num_transitions = 2,
+        .num_transitions = 2 + PRE_FOCUS_TRANSITIONS,
         .next_out = 
-        {{0,1,1},
-        {1,1,1}},
-        .transitions_durations = {VIDEO_START_PULSE, MS_TIMER_TICKS_MS(video_len_s)},
+        {{0,0,1,1},
+        {1,1,1,1}},
+        .transitions_durations = {pre_focus_time, VIDEO_START_PULSE,
+            MS_TIMER_TICKS_MS(video_len_s)},
         .done_handler = out_gen_done_handler,
         .out_gen_state = VIDEO_EXT_EXTEND,
     };
@@ -382,11 +422,16 @@ void video_with_extn (cam_trigger_config_t * cam_trigger_config, uint32_t video_
 
 void half_press (cam_trigger_config_t * cam_trigger_config)
 {
+    uint32_t pre_focus_time = PRE_FOCUS_OFF_TIME;
     int32_t time_remain;
-    uint32_t number_of_transition = FOCUS_TRANSITIONS;
+    uint32_t number_of_transition = FOCUS_TRANSITIONS + PRE_FOCUS_TRANSITIONS;
+    if(cam_trigger_config->pre_focus_en == true)
+    {
+        pre_focus_time = PRE_FOCUS_ON_TIME;
+    }
     
     time_remain = MS_TIMER_TICKS_MS(cam_trigger_config->trig_duration_100ms * 100) - 
-        SINGLE_SHOT_DURATION;
+        SINGLE_SHOT_DURATION - pre_focus_time;
     if(time_remain <= 0)
     {
         time_remain =1;
@@ -397,11 +442,11 @@ void half_press (cam_trigger_config_t * cam_trigger_config)
         .done_handler = out_gen_done_handler,
         .out_gen_state = NON_VIDEO_EXT_RUNNING,
         .transitions_durations =
-            {SINGLE_SHOT_DURATION, time_remain},
+            {pre_focus_time, SINGLE_SHOT_DURATION, time_remain},
         .next_out =
             {
-                {0, 1, 1},
-                {1, 1, 1}
+                {0, 0, 1, 1},
+                {1, 1, 1, 1}
             },
     };
     

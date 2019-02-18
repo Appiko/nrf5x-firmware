@@ -505,9 +505,10 @@ void motion_module_start ()
     {
         .setup_number = MOD_MOTION,
         .trig_duration_100ms = sensebe_config.tssp_conf.intr_trig_timer,
-        .trig_mode = sensebe_config.tssp_conf.mode,
-        .trig_param1 = sensebe_config.tssp_conf.larger_value,
-        .trig_param2 = sensebe_config.tssp_conf.smaller_value,
+        .trig_mode = sensebe_config.tssp_conf.cam_oper.mode,
+        .trig_param1 = sensebe_config.tssp_conf.cam_oper.larger_value,
+        .trig_param2 = sensebe_config.tssp_conf.cam_oper.smaller_value,
+        .pre_focus_en = (bool)sensebe_config.timer_conf.cam_oper.pre_focus,
     };
     cam_trigger_set_trigger (&motion_cam_trig_config);
 
@@ -587,9 +588,10 @@ void timer_module_start ()
     {
         .setup_number = MOD_TIMER,
         .trig_duration_100ms = 0,
-        .trig_mode = sensebe_config.timer_conf.mode,
-        .trig_param1 = sensebe_config.timer_conf.larger_value,
-        .trig_param2 = sensebe_config.timer_conf.smaller_value
+        .trig_mode = sensebe_config.timer_conf.cam_oper.mode,
+        .trig_param1 = sensebe_config.timer_conf.cam_oper.larger_value,
+        .trig_param2 = sensebe_config.timer_conf.cam_oper.smaller_value,
+        .pre_focus_en = (bool)sensebe_config.timer_conf.cam_oper.pre_focus,
     };
     cam_trigger_set_trigger (&timer_cam_trig_config);
     

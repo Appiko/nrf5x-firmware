@@ -84,12 +84,12 @@ typedef struct
 }__attribute__ ((packed)) oper_time_t;
 
 /**
- * @brief Strcture to configure TSSP sensing. 
+ * @brief Structure to control camera operations
  */
 typedef struct
 {
-    /** To decide in which light condition TSSP should operate. */
-    oper_time_t oper_time;     
+    /** To decide if pre_focus pulse of 1.5 sec is required or not */
+    uint8_t pre_focus : 1;
     /**
      * MODE DATA FORMAT:
      *  |31  (bits) 24|23  (bits)     8|7 (bits) 0| 
@@ -115,11 +115,21 @@ typedef struct
      *  Larger Value    : --\n
      *  Smaller Value   : --\n
      */
-    uint8_t mode;
+    uint8_t mode : 7;
     uint16_t larger_value;
     uint8_t smaller_value;
+}__attribute__ ((packed)) cam_oper_t;
+
+/**
+ * @brief Strcture to configure TSSP sensing. 
+ */
+typedef struct
+{
+    /** To decide in which light condition TSSP should operate. */
+    oper_time_t oper_time;     
     /** In tssp_Conf: Detection window duration in resolution of 100ms. */
     uint16_t detect_window;
+    cam_oper_t cam_oper;
     /** In tssp_Conf: Time between triggers by a TSSP window detect in s (with a resolution of 0.1s). */
     uint16_t intr_trig_timer; 
 }__attribute__ ((packed)) tssp_conf_t;
@@ -133,9 +143,7 @@ typedef struct
     uint16_t timer_interval;
     /** To decide in which light condition timer should operate. */
     oper_time_t oper_time;
-    uint8_t mode;
-    uint16_t larger_value;
-    uint8_t smaller_value;
+    cam_oper_t cam_oper;
 }__attribute__ ((packed)) timer_conf_t;
 
 /***/
