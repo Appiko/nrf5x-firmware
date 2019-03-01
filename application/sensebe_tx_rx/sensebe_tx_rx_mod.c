@@ -110,15 +110,15 @@ typedef enum
 typedef enum
 {
     /**Wake up time 5ms*/
-    MOD_FREQ0 = 5,
+    MOD_FREQ0 = TSSP_DETECT_TICKS_MS(5),
     /**Wake up time 25ms*/
-    MOD_FREQ1 = 25,
+    MOD_FREQ1 = TSSP_DETECT_TICKS_MS(25),
     /**Wake up time 50ms*/
-    MOD_FREQ2 = 50,
+    MOD_FREQ2 = TSSP_DETECT_TICKS_MS(50),
     /**Wake up time 100ms*/
-    MOD_FREQ3 = 100,
+    MOD_FREQ3 = TSSP_DETECT_TICKS_MS(100),
     /**Maximum number of frequencies possible*/
-    MAX_MOD_FREQ,
+    MAX_MOD_FREQ = 4,
 }module_freq_t;
 
 /***********VARIABLE***********/
@@ -370,6 +370,18 @@ bool compare_margin(uint32_t data, uint32_t ref, uint32_t margin)
     }
 }
 
+bool validate_and_sync (uint32_t ticks)
+{
+    for(uint32_t freq_cmp = 0; freq_cmp < MAX_MOD_FREQ; freq_cmp++)
+    {
+        if(compare_margin (ticks, arr_module_tick_duration[freq_cmp], 2))
+        {
+            return true;
+        }
+    }
+    return false;
+}
+
 bool three_window_sync (uint32_t ticks)
 {
     static uint32_t previous_pulse_tick = 0, current_pulse_tick = 0;
@@ -398,7 +410,8 @@ bool three_window_sync (uint32_t ticks)
         tssp_detect_sync_time = pulse_diff_window[1];
         pulse_cnt = PULSE_REQ_FOR_SYNC;
         return (compare_margin (pulse_diff_window[1], pulse_diff_window[0], 2)
-            && compare_margin (pulse_diff_window[2], pulse_diff_window[1], 2));
+            && compare_margin (pulse_diff_window[2], pulse_diff_window[1], 2)
+            && validate_and_sync (pulse_diff_window[1]));
     }
     
     return false;

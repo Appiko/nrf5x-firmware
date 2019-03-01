@@ -82,6 +82,10 @@
 #endif
 #endif
 
+/** Macro to find out the rounded number of TSSP_DETECT ticks for the passed time in milli-seconds */
+#define TSSP_DETECT_TICKS_MS(ms)                ((uint32_t) ROUNDED_DIV( (TSSP_DETECT_FREQ*(uint64_t)(ms)) , 1000) )
+
+
 /**
  * @brief Structure to store information required to use this module.
  */
