@@ -145,6 +145,8 @@ static void ble_evt_handler(ble_evt_t * evt)
     case BLE_GAP_EVT_DISCONNECTED:
         h_conn = BLE_CONN_HANDLE_INVALID;
         bluetooth_status = false;
+        lsm_ble_adv_start(connected_callback);
+
 //        sd_softdevice_disable ();
         break;
     case BLE_GATTS_EVT_WRITE:

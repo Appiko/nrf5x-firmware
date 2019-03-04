@@ -189,6 +189,23 @@ void on_connect ()
 {
     
 }
+/**
+ * Different calls to sleep depending on the status of Softdevice
+ */
+void slumber(void)
+{
+    uint8_t is_sd_enabled;
+    sd_softdevice_is_enabled(&is_sd_enabled);
+    // Would in the SENSING mode
+    if(is_sd_enabled == 0)
+    {
+        __WFI();
+    }
+    else
+    {
+        sd_app_evt_wait();
+    }
+}
 
 /**
  * @brief Function for application main entry.
@@ -204,18 +221,17 @@ int main(void)
     ms_timer_init(APP_IRQ_PRIORITY_LOWEST);
     lfclk_init (LFCLK_SRC_Xtal);
     LSM6DS3_init();
+    {
+        lsm_ble_stack_init ();
+        lsm_ble_gap_params_init ();
+        lsm_ble_adv_init ();
+        lsm_ble_adv_start (on_connect);
+        lsm_ble_service_init ();
+    }
     ms_timer_start (MS_TIMER1, MS_REPEATED_CALL, MS_TIMER_TICKS_MS(100), ms_timer_handler);
     while (true)
     {
-        if(lsm_is_bt_on () == false)
-        {
-            sd_softdevice_disable ();
-            lsm_ble_stack_init ();
-            lsm_ble_gap_params_init ();
-            lsm_ble_adv_init ();
-            lsm_ble_adv_start (on_connect);
-            lsm_ble_service_init ();
-        }
+        slumber ();
     }
 }
 
