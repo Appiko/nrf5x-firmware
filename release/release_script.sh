@@ -72,6 +72,10 @@ hw_ver_major=` expr $hw_ver_major \* 100 `
 hw_ver_int=`expr $hw_ver_major + $hw_ver_minor`
 echo "HW_VER_INT = "$hw_ver_int
 
+make_bootloader="$(echo make -C ../../../dfu_nrf_sdk15/examples/dfu/secure_bootloader/pca10040e_ble/armgcc/ DFU_BOARD=DFU_$board_used NRF_DFU_HW_VERSION=$hw_ver_int V=1)"
+
+echo "Make bootloader with "$board_used" and  "$hw_ver_int
+
 sd_used="$(awk '/SD_USED /{print $3}' Makefile)"
 echo "SD_USED = "$sd_used
 sd_ver="$(awk '/SD_VER /{print $3}' Makefile)"
@@ -97,3 +101,4 @@ nrfutil_pkg_gen="$(nrfutil pkg generate --application build/$pwd.hex --applicati
 out_hex="$(srec_cat build/${pwd}_${sd_used}.hex --Intel ../../../dfu_nrf_sdk15/examples/dfu/secure_bootloader/pca10040e_ble/armgcc/_build/$bl_hex_name.hex --Intel ../../release/${pwd}/${pwd}_bl_settings.hex --Intel -O ../../release/${pwd}/${pwd}_${fw_ver_int}_output.hex --Intel)"
 
 (rm ../../release/${pwd}/${pwd}_bl_settings.hex)
+ls ../../release/${pwd}
