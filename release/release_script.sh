@@ -86,11 +86,10 @@ hw_ver_major=` expr $hw_ver_major \* 100 `
 hw_ver_int=`expr $hw_ver_major + $hw_ver_minor`
 echo "HW_VER_INT = "$hw_ver_int
 
-make_bootloader="$(echo make -C ../../../dfu_nrf_sdk15/examples/dfu/secure_bootloader/pca10040e_ble/armgcc/ DFU_BOARD=$board_used NRF_DFU_HW_VERSION=$hw_ver_int V=1)"
+make_bootloader="$(echo make -C ../../../dfu_nrf_sdk15/examples/dfu/secure_bootloader/pca10040e_ble/armgcc/ DFU_BOARD=DFU_$board_used NRF_DFU_HW_VERSION=$hw_ver_int V=1)"
 
 echo "Make bootloader with "$board_used" and  "$hw_ver_int
 
-echo $make_bootloader
 sd_used="$(awk '/SD_USED /{print $3}' Makefile)"
 echo "SD_USED = "$sd_used
 sd_ver="$(awk '/SD_VER /{print $3}' Makefile)"
