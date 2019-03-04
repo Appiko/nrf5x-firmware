@@ -53,10 +53,24 @@ sd_ver_int=""
 fw_ver_int=""
 bl_ver="1.0.0"
 
+
+board_used="$(awk '/BOARD /{print $3}' Makefile)"
+
+board_name="$(awk '/BOARD /{print $3}' Makefile | tr '_' ' ' | awk '{print $2}')"
+
+global_pwd="$(pwd)"
+echo $global_pwd
+
 pwd="$(pwd | tr '/' ' ' | awk '{print $NF}')"
 echo $pwd
 
-fw_ver="$(git tag --list "SensePi_"[00-99]"."[00-99]"."[00-99] | sort | tail -n1 )"
+if [ "$board_name" = "SENSEPI" ]
+then
+    fw_ver="$(git tag --list "SensePi_"[00-99]"."[00-99]"."[00-99] | sort | tail -n1 )"
+elif [ "$board_name" = "SENSEBE" ]
+then 
+    fw_ver="$(git tag --list "SenseBe_"[00-99]"."[00-99]"."[00-99] | sort | tail -n1)"
+fi
 echo "FW_VER = "$fw_ver
 fw_ver="$(echo $fw_ver | tr '_' ' ' | awk '{print $NF}')"
 fw_ver_int=$( extract_ver_int $fw_ver "." )
@@ -92,11 +106,11 @@ make_release="$(make FW_VER_VAL=$fw_ver_int LOGGER=LOG_NONE clean_all)"
 
 echo $make_release
 
-ls ../../release/${pwd} || mkdir ../../release/${pwd}
+mkdir ../../release/${pwd}
 
-nrfutil_settings_gen="$(nrfutil settings generate --family NRF52810 --application ./build/$pwd.hex --application-version $fw_ver_int --application-version-string "$fw_ver" --bootloader-version $bl_ver_int --bl-settings-version 1  ../../release/${pwd}/${pwd}_bl_settings.hex)"
+nrfutil_settings_gen="$(nrfutil settings generate --family NRF52810 --application ./build/${pwd}.hex --application-version $fw_ver_int --application-version-string "${fw_ver}" --bootloader-version $bl_ver_int --bl-settings-version 1  ../../release/${pwd}/${pwd}_bl_settings.hex)"
 
-nrfutil_pkg_gen="$(nrfutil pkg generate --application build/$pwd.hex --application-version $fw_ver_int --application-version-string "$fw_ver" --hw-version $hw_ver_int --sd-req "$sd_id" --key-file ../../../dfu_nrf_sdk15/examples/dfu/key_file.pem ../../release/${pwd}/${pwd}_${fw_ver_int}_010.zip)"
+nrfutil_pkg_gen="$(nrfutil pkg generate --application build/${pwd}.hex --application-version $fw_ver_int --application-version-string "$fw_ver" --hw-version $hw_ver_int --sd-req "$sd_id" --key-file ../../../dfu_nrf_sdk15/examples/dfu/key_file.pem ../../release/${pwd}/${pwd}_${fw_ver_int}_010.zip)"
 
 out_hex="$(srec_cat build/${pwd}_${sd_used}.hex --Intel ../../../dfu_nrf_sdk15/examples/dfu/secure_bootloader/pca10040e_ble/armgcc/_build/$bl_hex_name.hex --Intel ../../release/${pwd}/${pwd}_bl_settings.hex --Intel -O ../../release/${pwd}/${pwd}_${fw_ver_int}_output.hex --Intel)"
 
