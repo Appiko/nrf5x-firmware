@@ -143,6 +143,14 @@ void nvm_logger_feed_data (uint32_t log_id, void * data);
 void nvm_logger_get_n_data (uint32_t log_id, void * dest_loc, uint32_t n);
 
 /**
+ * @Brief Function to fetch specific entry from last
+ * @param log_id Log ID of log from which data is to be fetched
+ * @param dest_loc Pointer to location where data is to be stored
+ * @param entry_no Entry number from end.
+ */
+void nvm_logger_fetch_tail_data (uint32_t log_id, void * dest_loc, uint32_t entry_no);
+
+/**
  * @brief Function to empty the log
  * @param log_id Log ID of log which is to be emptied
  */
