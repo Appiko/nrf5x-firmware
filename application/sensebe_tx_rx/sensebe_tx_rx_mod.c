@@ -374,7 +374,7 @@ bool validate_and_sync (uint32_t ticks)
 {
     for(uint32_t freq_cmp = 0; freq_cmp < MAX_MOD_FREQ; freq_cmp++)
     {
-        if(compare_margin (ticks, arr_module_tick_duration[freq_cmp], 2))
+        if(compare_margin (ticks, arr_module_tick_duration[freq_cmp], TSSP_DETECT_TICKS_MS(1)))
         {
             return true;
         }
@@ -409,8 +409,8 @@ bool three_window_sync (uint32_t ticks)
         log_printf("Window[2]: %d\n", pulse_diff_window[2]);
         tssp_detect_sync_time = pulse_diff_window[1];
         pulse_cnt = PULSE_REQ_FOR_SYNC;
-        return (compare_margin (pulse_diff_window[1], pulse_diff_window[0], 2)
-            && compare_margin (pulse_diff_window[2], pulse_diff_window[1], 2)
+        return (compare_margin (pulse_diff_window[1], pulse_diff_window[0], TSSP_DETECT_TICKS_MS(2))
+            && compare_margin (pulse_diff_window[2], pulse_diff_window[1], TSSP_DETECT_TICKS_MS(2))
             && validate_and_sync (pulse_diff_window[1]));
     }
     
