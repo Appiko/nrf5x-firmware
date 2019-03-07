@@ -127,26 +127,22 @@ void lsm_100ms_handler ()
 
 void ms_timer_handler ()
 {
-    static int32_t arr_diff_acce[10];
     static uint32_t curr_res_acce = 0;
-    static uint32_t prev_res_acce = 0;
+    static uint32_t max_res_acce = 0;
     static uint32_t res_acce_loc = 0;
-    static uint32_t curr_avg_res_acce_x100 = 0;
     static uint32_t arr_smoke_val[10];
     static uint32_t curr_avg_smoke_val_x100 = 0;
     lsm_100ms_handler ();
     curr_res_acce = my_sqrt ((x_data * x_data) + (y_data * y_data) + (z_data * z_data))/1000;
-    arr_diff_acce[res_acce_loc] = curr_res_acce - prev_res_acce;
-    if(arr_diff_acce[res_acce_loc] < 0)
-    {
-        arr_diff_acce[res_acce_loc] = 0 - arr_diff_acce[res_acce_loc];
-    }
     arr_smoke_val[res_acce_loc] = simple_adc_get_value (SIMPLE_ADC_GAIN1_6, ANI_SMOKE_PIN);
-    prev_res_acce = curr_res_acce;
-        curr_avg_res_acce_x100 = avg_uint32_x100 ((uint32_t *)arr_diff_acce, 10);
-        ble_data.avg_acce = curr_avg_res_acce_x100 / 100;
+    if(curr_res_acce > max_res_acce)
+    {
+        max_res_acce = curr_res_acce;
+    }
     if(res_acce_loc == 9)
     {   
+        ble_data.avg_acce = max_res_acce;
+        max_res_acce = 0;
         curr_avg_smoke_val_x100 = avg_uint32_x100 (arr_smoke_val, 10);
         ble_data.avg_smoke = curr_avg_smoke_val_x100 / 100;
     }
