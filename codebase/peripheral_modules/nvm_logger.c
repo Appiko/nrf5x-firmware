@@ -58,8 +58,8 @@
 
 typedef enum
 {
-    MEMORY_FULL = 0x00000000,
-    MEMORY_AVAIL = 0xFFFFFFFF,
+    MEMORY_AVAIL = 0x00000000,
+    MEMORY_FULL = 0xFFFFFFFF,
 }page_mem_availiable_t;
 
 /** Structure to store metadata of all the logs */
@@ -140,16 +140,17 @@ void empty_page (uint32_t page_addr);
 
 void get_total_entries (uint32_t log_id)
 {
-    page_metadata_t * p_page_md = (page_metadata_t *)(LOGS[log_id].page_addrs[0]
-        + NVM_LOGGER_PAGE_METADATA_ADDR);
-    uint32_t memory_full = MEMORY_FULL;
     for(uint32_t page_no = 0; page_no < LOGS[log_id].no_pages; page_no++)
     {   
-        if(memcmp((uint32_t *)LOGS[log_id].page_addrs[page_no], p_empty_page, BYTES_PER_PAGE) != 0)
+        for(uint32_t loc = 0; loc < LOGS[log_id].last_entry_no; loc++)
         {
-            LOGS[log_id].total_entries += (memcmp(&(p_page_md->is_mem_available),&memory_full, sizeof(uint32_t)) == 0) ?
-                                        LOGS[log_id].last_entry_no : LOGS[log_id].current_entry_no;
-            p_page_md = (page_metadata_t *)((uint8_t *)p_page_md + NVM_LOGGER_PAGE_OFFSETS);
+            if(memcmp(
+               (uint32_t *)(LOGS[log_id].page_addrs[page_no]) + LOGS[log_id].entry_size*loc,
+               p_empty_page, sizeof(uint32_t) * LOGS[log_id].entry_size) != 0)
+            {
+//                log_printf();
+                LOGS[log_id].total_entries++;
+            }
         }
         log_printf("Total Entries LOGS[%d] : %d\n", log_id,LOGS[log_id].total_entries);
     }
@@ -163,39 +164,30 @@ uint32_t get_next_loc (uint32_t log_id)
      * erasing of next page */
     log_printf("%s\n",__func__);
     uint32_t page_no = 0;
-    uint32_t memory_avaible = MEMORY_AVAIL;
-    page_metadata_t * p_page_md = (page_metadata_t *) (LOGS[log_id].page_addrs[0] + 
-        NVM_LOGGER_PAGE_METADATA_ADDR);
-    while(memcmp(&(p_page_md->is_mem_available),&memory_avaible, sizeof(uint8_t)) != 0)
-    {
-        page_no = (page_no + 1) %LOGS[log_id].no_pages;
-        p_page_md = (page_metadata_t *)((uint8_t *)p_page_md + NVM_LOGGER_PAGE_OFFSETS);
-    }
     uint32_t * p_mem_loc = (uint32_t *)LOGS[log_id].page_addrs[page_no];
     bool next_loc_found = false;
     uint32_t current_page_entry_no = 0;
     while (next_loc_found == false)
     {
-        if(memcmp(p_mem_loc, p_empty_page, sizeof(uint8_t) * LOGS[log_id].entry_size) == 0)
+        if(memcmp(p_mem_loc, p_empty_page, sizeof(uint32_t) * LOGS[log_id].entry_size) == 0)
         {
             next_loc_found = true;
-            LOGS[log_id].current_loc = ((uint32_t)p_mem_loc%1000 == 0)
-                ? (uint32_t)p_mem_loc : (uint32_t)(p_mem_loc );
+            LOGS[log_id].current_loc = (uint32_t)(p_mem_loc );
             LOGS[log_id].current_page = page_no;
             LOGS[log_id].current_entry_no = current_page_entry_no;
         }
         else 
         {
-            log_printf("nxt loc %x\n", p_mem_loc);
+//            log_printf("nxt loc %x\n", p_mem_loc);
             p_mem_loc += LOGS[log_id].entry_size;
             current_page_entry_no++;
         }
-//        if(current_page_entry_no > LOGS[log_id].last_entry_no)
-//        {
-//            page_no++;
-//            p_mem_loc = (uint32_t *) LOGS[log_id].page_addrs[page_no];
-//            current_page_entry_no = 0;
-//        }
+        if(current_page_entry_no >= LOGS[log_id].last_entry_no)
+        {
+            page_no = (page_no + 1)%LOGS[log_id].no_pages;
+            p_mem_loc = (uint32_t *) LOGS[log_id].page_addrs[page_no];
+            current_page_entry_no = 0;
+        }
     }
     log_printf("Next loc : %x\n", p_mem_loc);
     return (uint32_t)p_mem_loc;
@@ -213,6 +205,7 @@ uint32_t update_log (log_config_t * log_config)
             LOGS[log_config->log_id].current_page = 0;
             LOGS[log_config->log_id].size_bytes = (log_config->entry_size );
             LOGS[log_config->log_id].entry_size = CEIL_DIV(log_config->entry_size,4);
+            log_printf("Entry size init %d\n", LOGS[log_config->log_id].entry_size);
             LOGS[log_config->log_id].no_pages = log_config->no_of_pages;
             for(uint32_t page_no; page_no < log_config->no_of_pages; page_no++)
             {
@@ -235,7 +228,7 @@ uint32_t update_log (log_config_t * log_config)
 void empty_page (uint32_t page_loc)
 {
     page_metadata_t page_metadata_buffer;
-    uint8_t * page_metadata_loc = (uint8_t *) (page_loc + NVM_LOGGER_PAGE_METADATA_ADDR); 
+    page_metadata_t * page_metadata_loc = (page_metadata_t *) (page_loc + NVM_LOGGER_PAGE_METADATA_ADDR); 
     memcpy(&page_metadata_buffer, page_metadata_loc, sizeof(page_metadata_t));
     hal_nvmc_erase_page (page_loc);
     page_metadata_buffer.is_mem_available = MEMORY_AVAIL;
@@ -245,19 +238,19 @@ void empty_page (uint32_t page_loc)
 
 void prepare_page_metadata (uint32_t log_id)
 {
-    //Prepare page metadata for new log
     page_metadata_t local_page_metadata;
     for(uint32_t page_no = 0; page_no < LOGS[log_id].no_pages; page_no++)
     {
         log_printf("%s : %x\n",__func__, LOGS[log_id].page_addrs[page_no]);
+        page_metadata_t * page_metadata_loc = (page_metadata_t *)
+            (LOGS[log_id].page_addrs[page_no] + NVM_LOGGER_PAGE_METADATA_ADDR);
         local_page_metadata.log_id = log_id;
         local_page_metadata.log_page_no = page_no;
         local_page_metadata.data_size = (uint16_t)LOGS[log_id].size_bytes;
         local_page_metadata.next_page_addr = 
             LOGS[log_id].page_addrs[(page_no+1)%LOGS[log_id].no_pages];
         local_page_metadata.is_mem_available = MEMORY_AVAIL;
-        hal_nvmc_write_data ((uint8_t *)(LOGS[log_id].page_addrs[page_no] + NVM_LOGGER_PAGE_METADATA_ADDR),
-                             &local_page_metadata, sizeof(page_metadata_t));
+        hal_nvmc_write_data (page_metadata_loc, &local_page_metadata, sizeof(page_metadata_t));
     }
 }
 
@@ -268,7 +261,6 @@ void prepare_log_metadata (uint32_t * p_mem_loc, uint32_t page_no)
     page_metadata_t * local_ptr = (page_metadata_t *) p_mem_loc;
     if(memcmp (local_ptr, &EMPTY_PAGE_METADATA, sizeof(page_metadata_t)) == 0 )
     {   
-        log_printf("Here..!!");
         return;
     }
     LOGS[local_ptr->log_id].size_bytes = (uint32_t)local_ptr->data_size;
@@ -285,17 +277,7 @@ void prepare_log_metadata (uint32_t * p_mem_loc, uint32_t page_no)
     no_avail_pages--;
     
 }
-//init logic
 
-//void trv_page (uint32_t * addr)
-//{
-//    uint32_t * p_addr =(addr - NVM_LOGGER_PAGE_METADATA_ADDR/WORD_SIZE);
-//    for(uint32_t i = 0; i < 1024; i++)
-//    {
-//        p_addr++;
-//    }
-//    
-//}
 void nvm_logger_mod_init (void)
 {
     log_printf("%s\n", __func__);
@@ -312,7 +294,6 @@ void nvm_logger_mod_init (void)
     for(uint32_t log_no = 0; log_no < NVM_LOGGER_MAX_LOGS; log_no++)
     {
         get_next_loc (log_no);
-        get_total_entries (log_no);
     }
 }
 
@@ -322,10 +303,8 @@ void nvm_logger_mod_init (void)
 uint32_t nvm_logger_log_init (log_config_t * log_config)
 {
     log_printf("%s\n", __func__);
-    //check if setup is already done
     if(no_avail_pages == 0)
     {
-        //log error here
         log_printf("Memory Full..!!\n");
         return NVM_LOGGER_MAX_LOGS;
     }
@@ -335,6 +314,7 @@ uint32_t nvm_logger_log_init (log_config_t * log_config)
         
     {
         log_printf("Log already present..!!\n");
+        get_total_entries (log_config->log_id);
         return log_config->log_id;
     }
     else if(no_avail_pages >= log_config->no_of_pages) 
@@ -342,12 +322,10 @@ uint32_t nvm_logger_log_init (log_config_t * log_config)
     {
         log_printf("New Log..!!\n");
         no_avail_pages -= log_config->no_of_pages;
-        log_printf("Start Address : %d\n");
         return update_log (log_config);
     }
     else
     {
-        //log error
         log_printf("Not enough Pages available..!!\n");
         return NVM_LOGGER_MAX_LOGS;
     }    
@@ -359,25 +337,21 @@ uint32_t nvm_logger_log_init (log_config_t * log_config)
 //Writing logic
 void nvm_logger_feed_data (uint32_t log_id, void * data)
 {
-//    log_printf("%s\n", __func__);
-    
-//    log_printf("Data To Write at %x : %d\n",LOGS[log_id].current_loc,*((uint32_t *)data));
     uint32_t * p_buff = (uint32_t *)LOGS[log_id].current_loc;
 
     hal_nvmc_write_data (p_buff, (uint8_t *)data,
                              LOGS[log_id].size_bytes);
-//    log_printf("\nc_loc %x, e_sz %d, crt %d, lst %d \n\n", LOGS[log_id].current_loc,
-//               LOGS[log_id].entry_size, LOGS[log_id].current_entry_no, LOGS[log_id].last_entry_no);
-//    log_printf(" Data :%x, %d\n",LOGS[log_id].current_loc, *(uint32_t *)LOGS[log_id].current_loc);
-    if(LOGS[log_id].current_entry_no == LOGS[log_id].last_entry_no)
+    {
+        LOGS[log_id].current_entry_no ++;
+        LOGS[log_id].current_loc += LOGS[log_id].entry_size * WORD_SIZE;
+        LOGS[log_id].total_entries++;
+    }
+    if(LOGS[log_id].current_entry_no < LOGS[log_id].last_entry_no )
+    {
+        return;
+    }
     {
         log_printf("page change..!!\n");
-        page_metadata_t * p_page_md = (page_metadata_t *) (LOGS[log_id].page_addrs[LOGS[log_id].current_page]
-                                                    + NVM_LOGGER_PAGE_METADATA_ADDR);
-        uint32_t mem_full = MEMORY_FULL;
-        hal_nvmc_write_data (&p_page_md->is_mem_available , &mem_full, sizeof(uint8_t));
-//        p_page_md->is_mem_available = MEMORY_FULL;
-        log_printf("page mem status : %x, %x\n",p_page_md->is_mem_available, &p_page_md->is_mem_available );
         LOGS[log_id].current_page = ((LOGS[log_id].current_page + 1) % LOGS[log_id].no_pages);
         
         if(memcmp((uint32_t *)LOGS[log_id].page_addrs[LOGS[log_id].current_page],
@@ -385,19 +359,12 @@ void nvm_logger_feed_data (uint32_t log_id, void * data)
         {
             log_printf("Erase page\n");
             LOGS[log_id].total_entries -= LOGS[log_id].last_entry_no;
+            empty_page (LOGS[log_id].page_addrs[LOGS[log_id].current_page]);
         }
         
-        empty_page (LOGS[log_id].page_addrs[LOGS[log_id].current_page]);
         
         LOGS[log_id].current_loc = LOGS[log_id].page_addrs[LOGS[log_id].current_page];
         LOGS[log_id].current_entry_no = 0;
-    }
-    else
-    {
-        LOGS[log_id].current_entry_no ++;
-        LOGS[log_id].current_loc += LOGS[log_id].entry_size * WORD_SIZE;
-        LOGS[log_id].total_entries++;
-//        log_printf("Current Location : %x\n", LOGS[log_id].current_loc);
     }
 }
 
@@ -414,21 +381,6 @@ void reverse_cpy (uint32_t * p_dest, uint32_t * p_src, uint32_t no_of_bytes)
 }
 
 /*
-static uint32_t get_data_validate_n (uint32_t log_id, uint32_t n)
-{
-    
-    if(n > LOGS[log_id].total_entries)
-    {
-        n = LOGS[log_id].total_entries;
-    }
-    if(n > (LOGS[log_id].last_entry_no + LOGS[log_id].current_entry_no))
-    {
-        n = LOGS[log_id].last_entry_no + LOGS[log_id].current_entry_no;
-    }
-    return n;
-    
-}
-
 //Getting n data.
 void nvm_logger_get_n_data (uint32_t log_id, void * dest_loc, uint32_t n)
 {
@@ -450,7 +402,6 @@ void nvm_logger_get_n_data (uint32_t log_id, void * dest_loc, uint32_t n)
 //            log_printf("Bytes to copy :%d \n",  bytes_to_copy);
 //            reverse_cpy ( p_dst, p_src, bytes_to_copy);
             memcpy ( p_dst, p_src, bytes_to_copy);
-//            log_printf("%x, %d, %x, %d\n", p_dst, *p_dst, p_src, *p_src);
             n--;
             p_dst += bytes_to_copy;
             p_src -=  LOGS[log_id].entry_size;
@@ -504,32 +455,38 @@ void nvm_logger_fetch_tail_data (uint32_t log_id, void * dest_loc, uint32_t entr
     uint32_t * p_src = NULL;
     if(entry_no >= LOGS[log_id].total_entries)
     {
-//        log_printf("Last Entry\n");
-        uint32_t loc = (LOGS[log_id].current_page  
+        uint32_t loc = ((LOGS[log_id].current_page) 
             + 1*(LOGS[log_id].total_entries != LOGS[log_id].current_entry_no)) 
             %LOGS[log_id].no_pages;
         p_src = (uint32_t *)(LOGS[log_id].page_addrs[loc]);
-        log_printf("p_src %x\n",p_src);
+        while(memcmp(p_src,  p_empty_page, LOGS[log_id].entry_size * WORD_SIZE) == 0)
+        {
+            loc = (loc + 1)%LOGS[log_id].no_pages;
+            p_src = (uint32_t *)(LOGS[log_id].page_addrs[loc]);
+        }
         memcpy(p_dest, p_src, LOGS[log_id].size_bytes);
         return;
     }
     if(entry_no >= LOGS[log_id].current_entry_no)
     {
-        entry_no = (entry_no - LOGS[log_id].current_entry_no);
+        entry_no = (entry_no - LOGS[log_id].current_entry_no );
+        
         uint32_t entry_page = (LOGS[log_id].current_page + 
-            LOGS[log_id].no_pages - (1 + entry_no/LOGS[log_id].last_entry_no )) % 
+            LOGS[log_id].no_pages -1 + (entry_no/(LOGS[log_id].last_entry_no )
+            *(LOGS[log_id].current_loc %1000 == 0))) % 
             LOGS[log_id].no_pages;
         entry_no = 
             (((( LOGS[log_id].current_page - entry_page + LOGS[log_id].no_pages)
-            %LOGS[log_id].no_pages) * LOGS[log_id].last_entry_no) -entry_no);  
+            %LOGS[log_id].no_pages) * (LOGS[log_id].last_entry_no )) - entry_no *
+            1);  
         p_src = (uint32_t *)(LOGS[log_id].page_addrs[entry_page]) +
-            LOGS[log_id].entry_size*entry_no;
+            LOGS[log_id].entry_size*(entry_no);
         memcpy(p_dest, p_src, LOGS[log_id].size_bytes);
         return;
  
     }
     p_src = (uint32_t *)(LOGS[log_id].current_loc) - 
-        LOGS[log_id].entry_size * (entry_no);
+        LOGS[log_id].entry_size * (entry_no) ;
     memcpy(p_dest, p_src, LOGS[log_id].size_bytes);
     return;
     
