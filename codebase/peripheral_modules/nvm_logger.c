@@ -56,17 +56,11 @@
 
 #define IN_PAGE_LOC(x)  (x && 0xFFF)
 
-typedef enum
-{
-    MEMORY_AVAIL = 0x00000000,
-    MEMORY_FULL = 0xFFFFFFFF,
-}page_mem_availiable_t;
-
 /** Structure to store metadata of all the logs */
 typedef struct
 {
     /** Size of each data entry in words */
-    uint8_t entry_size;
+    uint32_t entry_size;
     /** Address of first page of log */
     uint32_t page_addrs[NVM_LOGGER_MAX_PAGES];
     /** Number of pages required */
@@ -96,10 +90,6 @@ typedef struct
     uint8_t log_page_no;
     /** 1Byte : data_size */
     uint16_t data_size;
-    /** 4Byte : Page full flag */
-    uint32_t is_mem_available;
-    /** 4Byte : next page addr(NULL if last page) */
-    uint32_t next_page_addr;
 }__attribute__ ((packed)) page_metadata_t;
 
 /** Number of log pages currently available to use */
@@ -127,9 +117,7 @@ const page_metadata_t EMPTY_PAGE_METADATA =
 {
     .log_id = 0xFF,
     .log_page_no = 0xFF,
-    .next_page_addr = 0xFFFFFFFF,
     .data_size = 0xFFFF,
-    .is_mem_available = 0xFFFFFFFF
 };
 
 void prepare_page_metadata (uint32_t log_id);
@@ -231,7 +219,6 @@ void empty_page (uint32_t page_loc)
     page_metadata_t * page_metadata_loc = (page_metadata_t *) (page_loc + NVM_LOGGER_PAGE_METADATA_ADDR); 
     memcpy(&page_metadata_buffer, page_metadata_loc, sizeof(page_metadata_t));
     hal_nvmc_erase_page (page_loc);
-    page_metadata_buffer.is_mem_available = MEMORY_AVAIL;
     hal_nvmc_write_data (page_metadata_loc, &page_metadata_buffer, sizeof(page_metadata_t));
 
 }
@@ -247,9 +234,6 @@ void prepare_page_metadata (uint32_t log_id)
         local_page_metadata.log_id = log_id;
         local_page_metadata.log_page_no = page_no;
         local_page_metadata.data_size = (uint16_t)LOGS[log_id].size_bytes;
-        local_page_metadata.next_page_addr = 
-            LOGS[log_id].page_addrs[(page_no+1)%LOGS[log_id].no_pages];
-        local_page_metadata.is_mem_available = MEMORY_AVAIL;
         hal_nvmc_write_data (page_metadata_loc, &local_page_metadata, sizeof(page_metadata_t));
     }
 }
@@ -367,87 +351,6 @@ void nvm_logger_feed_data (uint32_t log_id, void * data)
         LOGS[log_id].current_entry_no = 0;
     }
 }
-
-void reverse_cpy (uint32_t * p_dest, uint32_t * p_src, uint32_t no_of_bytes)
-{
-    uint32_t word_being_copid = 0;
-    while(word_being_copid < (no_of_bytes/WORD_SIZE))
-    {
-        *p_dest = *p_src;
-        p_dest++;
-        p_src++;
-        word_being_copid++;
-    }
-}
-
-/*
-//Getting n data.
-void nvm_logger_get_n_data (uint32_t log_id, void * dest_loc, uint32_t n)
-{
-    log_printf("%s ",__func__);
-    uint32_t bytes_to_copy = LOGS[log_id].size_bytes;
-    n = get_data_validate_n (log_id,n);
-//        log_printf("%d, %d\n", n,LOGS[log_id].current_entry_no);
-    if (n <= LOGS[log_id].current_entry_no)
-    {
-        
-        uint32_t * p_src = (uint32_t *)(LOGS[log_id].current_loc) - LOGS[log_id].entry_size;
-        uint8_t * p_dst = (uint8_t *) dest_loc;
-        while(n)
-        {
-        log_printf("%d\n", n);
-//            log_printf(" n : %d, total entries : %d, current entry :%d\n", n, LOGS[log_id].total_entries,
-//                       LOGS[log_id].current_entry_no);
-            log_printf(" %x, %d\n", p_src, (uint8_t)*p_src);
-//            log_printf("Bytes to copy :%d \n",  bytes_to_copy);
-//            reverse_cpy ( p_dst, p_src, bytes_to_copy);
-            memcpy ( p_dst, p_src, bytes_to_copy);
-            n--;
-            p_dst += bytes_to_copy;
-            p_src -=  LOGS[log_id].entry_size;
-        }
-    }
-    else if (n > LOGS[log_id].current_entry_no)
-    {
-        log_printf("In sec if\n");
-        uint32_t prev_page;
-        if(LOGS[log_id].current_page == 0)
-        {
-            prev_page = LOGS[log_id].no_pages - 1;
-        }
-        else
-        {
-            prev_page = LOGS[log_id].current_page - 1;
-        }
-        log_printf("Prev Page : %d\n", prev_page);
-        log_printf("Entry size : %d\n", LOGS[log_id].entry_size);
-        uint32_t * p_src = (uint32_t *)(LOGS[log_id].current_loc - LOGS[log_id].entry_size);
-        uint32_t * p_dst = (uint32_t *) dest_loc;
-        log_printf(" %x\n", p_src);
-        uint32_t entry_remain = 0;
-        log_printf("Bytes to copy : %d\n", bytes_to_copy);
-        while(entry_remain < LOGS[log_id].current_entry_no)
-        {
-            reverse_cpy (p_dst, p_src, bytes_to_copy);
-            p_src -= bytes_to_copy/WORD_SIZE;
-            p_dst += bytes_to_copy/WORD_SIZE;
-            entry_remain++;
-        }
-
-        p_src = (uint32_t *)(LOGS[log_id].page_addrs[prev_page] +
-            (LOGS[log_id].entry_size * (LOGS[log_id].last_entry_no - 1)));
-        p_dst = (uint32_t *)dest_loc + (LOGS[log_id].current_entry_no * LOGS[log_id].entry_size)/WORD_SIZE;
-        log_printf("Bytes to copy : %d\n", bytes_to_copy);
-        while(entry_remain < (LOGS[log_id].total_entries -LOGS[log_id].current_entry_no))
-        {
-            reverse_cpy (p_dst, p_src, bytes_to_copy);
-            p_src -= bytes_to_copy/WORD_SIZE;
-            p_dst += bytes_to_copy/WORD_SIZE;
-            entry_remain++;
-        }
-    }
-}
- */
 
 void nvm_logger_fetch_tail_data (uint32_t log_id, void * dest_loc, uint32_t entry_no)
 {
