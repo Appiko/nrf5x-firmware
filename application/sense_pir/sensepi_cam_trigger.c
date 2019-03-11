@@ -119,6 +119,10 @@
 #define NO_OF_VIDEO_EXTN_ALLOWED 3
 /** Duration for which PIR will be active for video extension */
 #define VIDEO_PIR_ON 2000
+/** Duration for which focus signal will be sent to wake up the camera */
+#define PRE_FOCUS_PRESS_DURATIONS MS_TIMER_TICKS_MS(150)
+/** No of transitions required to send pre-focus signal */
+#define PRE_FOCUS_TRANSITIONS 1
 
 /**
  * @brief Enum of different types of camera triggering.
@@ -653,7 +657,7 @@ void module_manager_disable_all(void)
 void out_gen_config_single_shot(cam_trig_state_t data_process_mode)
 {
     log_printf("%s\n", __func__);
-    uint32_t number_of_transition = SINGLE_SHOT_TRANSITIONS;
+    uint32_t number_of_transition = SINGLE_SHOT_TRANSITIONS + PRE_FOCUS_TRANSITIONS;
     int32_t time_remain;
 
     if(data_process_mode == PIR_IDLE)
@@ -675,9 +679,9 @@ void out_gen_config_single_shot(cam_trig_state_t data_process_mode)
         .num_transitions = number_of_transition,
         .done_handler = out_gen_done_handler,
         .out_gen_state = data_process_mode,
-        .transitions_durations = { SINGLE_SHOT_DURATION, time_remain },
-        .next_out = {{0, 1, 1},
-                     {0, 1, 1}},
+        .transitions_durations = {PRE_FOCUS_PRESS_DURATIONS, SINGLE_SHOT_DURATION, time_remain },
+        .next_out = {{0, 0, 1, 1},
+                     {1, 0, 1, 1}},
     };
 
     debug_print_bool_array(local_out_gen_config.next_out, "single shot");
@@ -690,7 +694,7 @@ void out_gen_config_multi_shot(cam_trig_state_t data_process_mode,
 {
     log_printf("%s\n", __func__);
     int32_t time_remain;
-    uint32_t number_of_transition = SINGLE_SHOT_TRANSITIONS * burst_num;
+    uint32_t number_of_transition = SINGLE_SHOT_TRANSITIONS * burst_num + PRE_FOCUS_TRANSITIONS;
     //Time for trigger pulse and time till next trigger for each burst
     uint32_t repeat_delay_array[SINGLE_SHOT_TRANSITIONS] = {SINGLE_SHOT_DURATION,
             MS_TIMER_TICKS_MS(burst_duration * 100) - SINGLE_SHOT_DURATION};
@@ -699,19 +703,23 @@ void out_gen_config_multi_shot(cam_trig_state_t data_process_mode,
         .num_transitions = number_of_transition,
         .done_handler = out_gen_done_handler,
         .out_gen_state = data_process_mode,
+        .transitions_durations = {PRE_FOCUS_PRESS_DURATIONS},
+        .next_out = {{0}
+        ,{1}},
     };
 
     for(uint32_t i = 0; i< burst_num; i++)
     {
-        memcpy(local_out_gen_config.transitions_durations + i*SINGLE_SHOT_TRANSITIONS,
+        memcpy(local_out_gen_config.transitions_durations +
+            (i*SINGLE_SHOT_TRANSITIONS) + PRE_FOCUS_TRANSITIONS,
                 repeat_delay_array, SINGLE_SHOT_TRANSITIONS*sizeof(uint32_t));
 
         for(uint32_t j = 0; j < NUM_PIN_OUT; j++)
         {
-            memcpy(*(local_out_gen_config.next_out +j),*(multishot_generic + j),
+            memcpy(&(local_out_gen_config.next_out[j][PRE_FOCUS_TRANSITIONS]),*(multishot_generic + j),
                     burst_num* SINGLE_SHOT_TRANSITIONS*sizeof(bool));
             //An extra '1' at the end for the remaining of the inter-trigger time
-            local_out_gen_config.next_out[j][burst_num* SINGLE_SHOT_TRANSITIONS] = 1;
+            local_out_gen_config.next_out[j][burst_num* SINGLE_SHOT_TRANSITIONS + PRE_FOCUS_TRANSITIONS] = 1;
         }
     }
 
@@ -742,7 +750,7 @@ void out_gen_config_bulb_expo(cam_trig_state_t data_process_mode, uint32_t bulb_
 {
     log_printf("%s\n", __func__);
     int32_t time_remain;
-    uint32_t number_of_transition = BULB_SHOT_TRANSITIONS;
+    uint32_t number_of_transition = BULB_SHOT_TRANSITIONS + PRE_FOCUS_TRANSITIONS;
     uint32_t bulb_time_ticks = MS_TIMER_TICKS_MS((bulb_time*100));
 
     if(data_process_mode == PIR_IDLE)
@@ -765,9 +773,9 @@ void out_gen_config_bulb_expo(cam_trig_state_t data_process_mode, uint32_t bulb_
         .done_handler = out_gen_done_handler,
         .out_gen_state = data_process_mode,
         .transitions_durations = 
-            {bulb_time_ticks, time_remain},
-        .next_out = { {0, 1, 1},
-                      {0, 1, 1} },
+            {PRE_FOCUS_PRESS_DURATIONS, bulb_time_ticks, time_remain},
+        .next_out = { {0, 0, 1, 1},
+                      {1, 0, 1, 1} },
     };
 
     debug_print_bool_array(local_out_gen_config.next_out, "bulb mode");
