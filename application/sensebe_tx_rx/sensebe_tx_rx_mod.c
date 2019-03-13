@@ -110,13 +110,13 @@ typedef enum
 typedef enum
 {
     /**Wake up time 5ms*/
-    MOD_FREQ0 = TSSP_DETECT_TICKS_MS(5),
+    MOD_FREQ0 = (5),
     /**Wake up time 25ms*/
-    MOD_FREQ1 = TSSP_DETECT_TICKS_MS(25),
+    MOD_FREQ1 = (25),
     /**Wake up time 50ms*/
-    MOD_FREQ2 = TSSP_DETECT_TICKS_MS(50),
+    MOD_FREQ2 = (50),
     /**Wake up time 100ms*/
-    MOD_FREQ3 = TSSP_DETECT_TICKS_MS(100),
+    MOD_FREQ3 = (100),
     /**Maximum number of frequencies possible*/
     MAX_MOD_FREQ = 4,
 }module_freq_t;
@@ -128,6 +128,9 @@ static uint32_t feedback_timepassed = 0;
 static sensebe_config_t sensebe_config;
 /**Array of the wake up times*/
 static uint32_t arr_module_tick_duration[] = {MOD_FREQ0, MOD_FREQ1, MOD_FREQ2, MOD_FREQ3};
+/** Array of the TSSP ticks for sync time validation */
+static uint32_t arr_sync_validation_ticks[] = {TSSP_DETECT_TICKS_MS(MOD_FREQ0),
+TSSP_DETECT_TICKS_MS(MOD_FREQ1), TSSP_DETECT_TICKS_MS(MOD_FREQ2), TSSP_DETECT_TICKS_MS(MOD_FREQ3)};
 /**Array of light status flags*/
 static bool arr_is_light_ok [MAX_MODS];
 /**Array of flags to keep track if light check is required or not*/
@@ -374,7 +377,7 @@ bool validate_and_sync (uint32_t ticks)
 {
     for(uint32_t freq_cmp = 0; freq_cmp < MAX_MOD_FREQ; freq_cmp++)
     {
-        if(compare_margin (ticks, arr_module_tick_duration[freq_cmp], 2))
+        if(compare_margin (ticks, arr_sync_validation_ticks[freq_cmp], TSSP_DETECT_TICKS_MS(1)))
         {
             return true;
         }
@@ -409,8 +412,8 @@ bool three_window_sync (uint32_t ticks)
         log_printf("Window[2]: %d\n", pulse_diff_window[2]);
         tssp_detect_sync_time = pulse_diff_window[1];
         pulse_cnt = PULSE_REQ_FOR_SYNC;
-        return (compare_margin (pulse_diff_window[1], pulse_diff_window[0], 2)
-            && compare_margin (pulse_diff_window[2], pulse_diff_window[1], 2)
+        return (compare_margin (pulse_diff_window[1], pulse_diff_window[0], TSSP_DETECT_TICKS_MS(2))
+            && compare_margin (pulse_diff_window[2], pulse_diff_window[1], TSSP_DETECT_TICKS_MS(2))
             && validate_and_sync (pulse_diff_window[1]));
     }
     
