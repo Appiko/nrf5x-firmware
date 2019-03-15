@@ -47,6 +47,7 @@
 #define HAL_SPIM_H
 
 #include "nrf.h"
+#include "nrf_util.h"
 
 #ifndef SPIM_USED 
 #define SPIM_USED 0
@@ -66,24 +67,34 @@ typedef enum
     
 }hal_spim_freq_t;
 
-/** Enum to contain list of all the possible spi configurations to communicate
- *  @note Sequence is CPOL CPHA Byte_Order */
+/** Enum containing list of all SPI Modes */
 typedef enum
 {
-    HAL_SPIM_CONFIG_HIGH_LEADING_MSB,
-    HAL_SPIM_CONFIG_HIGH_LEADING_LSB,
-    HAL_SPIM_CONFIG_HIGH_TRAILING_MSB,
-    HAL_SPIM_CONFIG_HIGH_TRAILING_LSB,
-    HAL_SPIM_CONFIG_LOW_LEADING_MSB,
-    HAL_SPIM_CONFIG_LOW_LEADING_LSB,
-    HAL_SPIM_CONFIG_LOW_TRAILING_MSB,
-    HAL_SPIM_CONFIG_LOW_TRAILING_LSB,
-}hal_spim_config_t;
+    /** CPol : Active High, CPha : Leading */
+    HAL_SPIM_SPI_MODE0,
+    /** CPol : Active High, CPha : Trailing */
+    HAL_SPIM_SPI_MODE1,
+    /** CPol : Active Low, CPha : Leading */
+    HAL_SPIM_SPI_MODE2,
+    /** CPol : Active Low, CPha : Trailing */
+    HAL_SPIM_SPI_MODE3,
+}hal_spim_spi_mode_t;
+
+/** Enum containing options for Byte order */
+typedef enum
+{
+    /** Byte Order : MSB First */
+    HAL_SPIM_MSB_FIRST,
+    /** Byte Order : LSB First */
+    HAL_SPIM_LSB_FIRST,
+}hal_spim_byte_order_t;
 
 /** Enum to contain list of interrupts which can be enabled from application */
 typedef enum
 {
+    /** To enable Tx Done event */
     HAL_SPIM_TX_DONE = SPIM_INTENSET_ENDTX_Msk,
+    /** To enable Rx Done event */
     HAL_SPIM_RX_DONE = SPIM_INTENSET_ENDRX_Msk,
 }hal_spim_intr_t;
 
@@ -100,9 +111,18 @@ typedef struct
     uint32_t sck_pin;
     /** Clock Frequency */
     hal_spim_freq_t freq;
-    /** SPIM mode and Byte order */
-    hal_spim_config_t logic_clk_order_cnf;
-    /** Interrupts which are to be enabled @ref hal_spim_intr_t */
+    /** Select SPI mode */
+    hal_spim_spi_mode_t spi_mode;
+    /** Select Byte Order
+     * @val HAL_SPIM_MSB_FIRST
+     * @val HAL_SPIM_LSB_FIRST */
+    hal_spim_byte_order_t byte_order;
+    /** App IRQ priority */
+    app_irq_priority_t irq_priority;
+    /** Interrupts which are to be enabled @ref hal_spim_intr_t
+     * @val HAL_SPIM_TX_DONE
+     * @val HAL_SPIM_RX_DONE 
+     * @Note If application requires both, use logical OR */
     uint32_t en_intr;
     /** Function which is to be called after TX_Done event */
     void (*tx_done_handler )(uint32_t bytes_last_tx);
@@ -128,10 +148,10 @@ void hal_spim_tx_rx (void * p_tx_data, uint32_t tx_len, void * p_rx_data, uint32
 /**
  * @brief Function to check if SIPM module is available or not
  * @return Status of hal_spim module
- * @retval true hal_spim module is available
- * @retval false hal_spim module is not available
+ * @retval true hal_spim module is not available
+ * @retval false hal_spim module is available
  */
-uint32_t hal_spim_is_available ();
+uint32_t hal_spim_is_busy ();
 
 /**
  * @brief Function to de-initialize the SPIM module

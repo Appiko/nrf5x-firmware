@@ -39,7 +39,6 @@
 #include "hal_gpio.h"
 #include "stddef.h"
 #include "nrf_assert.h"
-#include "nrf_util.h"
 #include "log.h"
 
 /** @anchor twim_defines
@@ -64,7 +63,7 @@ static uint32_t csBar = 0;
 static uint32_t intr_enabled = 0;
 
 /** Status flag */
-static bool mod_is_available = true;
+static bool mod_is_busy = false;
 
 /** Function pointer buffers */
 void (*rx_done) (uint32_t last_byte_no);
@@ -75,7 +74,7 @@ void hal_spim_init (hal_spim_init_t * spim_init)
     hal_gpio_cfg_output (spim_init->csBar_pin, 1);
     SPIM_ID->TASKS_SUSPEND = 1;
     SPIM_ID->TASKS_STOP = 1;
-    SPIM_ID->CONFIG = spim_init->logic_clk_order_cnf;
+    SPIM_ID->CONFIG = spim_init->byte_order | ((spim_init->spi_mode)<<1);
     SPIM_ID->FREQUENCY = spim_init->freq;
     SPIM_ID->PSEL.MISO = spim_init->miso_pin;
     SPIM_ID->PSEL.MOSI = spim_init->mosi_pin;
@@ -83,7 +82,7 @@ void hal_spim_init (hal_spim_init_t * spim_init)
     csBar = spim_init->csBar_pin;
     intr_enabled = spim_init->en_intr;
     SPIM_ID->INTENSET = spim_init->en_intr | SPIM_INTENSET_END_Msk;
-    NVIC_SetPriority (SPIM_IRQN, APP_IRQ_PRIORITY_MID);
+    NVIC_SetPriority (SPIM_IRQN, spim_init->irq_priority);
     NVIC_EnableIRQ (SPIM_IRQN);
     if(spim_init->rx_done_handler != NULL)
     {
@@ -95,17 +94,18 @@ void hal_spim_init (hal_spim_init_t * spim_init)
     }
     SPIM_ID->TXD.LIST = 1;
     SPIM_ID->RXD.LIST = 1;
-    mod_is_available = true;
+    mod_is_busy = false;
 }
 
 void hal_spim_deinit ()
 {
     SPIM_ID->ENABLE = (SPIM_ENABLE_ENABLE_Disabled << SPIM_ENABLE_ENABLE_Pos) &
         SPIM_ENABLE_ENABLE_Msk;
+    SPIM_ID->INTENCLR = intr_enabled;
     SPIM_ID->TASKS_SUSPEND = 1;
     SPIM_ID->TASKS_STOP = 1;
-    mod_is_available = false;
-    
+    mod_is_busy = true;
+    NVIC_DisableIRQ (SPIM_IRQN);    
 }
 
 void hal_spim_tx_rx (void * p_tx_data, uint32_t tx_len, void * p_rx_data, uint32_t rx_len)
@@ -131,14 +131,14 @@ void hal_spim_tx_rx (void * p_tx_data, uint32_t tx_len, void * p_rx_data, uint32
 
     SPIM_ID->ENABLE = (SPIM_ENABLE_ENABLE_Enabled << SPIM_ENABLE_ENABLE_Pos) &
         SPIM_ENABLE_ENABLE_Msk;
-    mod_is_available = false;
+    mod_is_busy = true;
     SPIM_ID->TASKS_START = 1;
     (void) SPIM_ID->TASKS_START;
 }
 
-uint32_t hal_spim_is_available ()
+uint32_t hal_spim_is_busy ()
 {
-    return (uint32_t)mod_is_available;
+    return (uint32_t)mod_is_busy;
 }
 
 
@@ -147,7 +147,7 @@ void SPIM_IRQ_Handler (void)
     if(SPIM_ID->EVENTS_END == 1)
     {
         SPIM_ID->EVENTS_END = 0;
-        mod_is_available = true;
+        mod_is_busy = false;
         hal_gpio_pin_set (csBar);
     }
     if(SPIM_ID->EVENTS_ENDTX == 1 && ((intr_enabled & HAL_SPIM_TX_DONE) != 0))
