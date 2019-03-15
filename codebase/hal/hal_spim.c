@@ -126,7 +126,7 @@ void hal_spim_tx_rx (void * p_tx_data, uint32_t tx_len, void * p_rx_data, uint32
     SPIM_ID->TXD.MAXCNT = tx_len;
     
     SPIM_ID->EVENTS_ENDRX = 0;
-    SPIM_ID->RXD.PTR = (uint32_t) p_tx_data;
+    SPIM_ID->RXD.PTR = (uint32_t) p_rx_data;
     SPIM_ID->RXD.MAXCNT = rx_len;
 
     SPIM_ID->ENABLE = (SPIM_ENABLE_ENABLE_Enabled << SPIM_ENABLE_ENABLE_Pos) &
