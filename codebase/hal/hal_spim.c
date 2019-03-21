@@ -63,7 +63,7 @@ static uint32_t csBar = 0;
 static uint32_t intr_enabled = 0;
 
 /** Status flag */
-static bool mod_is_busy = false;
+static volatile bool mod_is_busy = false;
 
 /** Function pointer buffers */
 void (*rx_done) (uint32_t last_byte_no);
@@ -110,7 +110,6 @@ void hal_spim_deinit ()
 
 void hal_spim_tx_rx (void * p_tx_data, uint32_t tx_len, void * p_rx_data, uint32_t rx_len)
 {
-    log_printf("%s\n",__func__);
     if(p_tx_data == NULL)
     {
         ASSERT(tx_len == 0);
