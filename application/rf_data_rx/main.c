@@ -90,9 +90,9 @@ PktBasicInit xBasicInit={
 * @brief GPIO structure fitting
 */
 SGpioInit xGpioIRQ={
-  S2LP_GPIO_3,
+  S2LP_GPIO_0,
   S2LP_GPIO_MODE_DIGITAL_OUTPUT_LP,
-  S2LP_GPIO_DIG_OUT_IRQ
+  S2LP_GPIO_DIG_OUT_READY
 };
 
 
@@ -106,6 +106,7 @@ uint8_t vectcRxBuff[128], cRxData;
 */
 #define IRQ_PREEMPTION_PRIORITY         0x03
 
+#define GPIOTE_CHANNEL_USED 0
 
 
 /**
@@ -113,9 +114,12 @@ uint8_t vectcRxBuff[128], cRxData;
 */
 S2LPIrqs xIrqStatus;
 
+
+static volatile bool rx_started = false;
+
 void ms_timer_handler ()
 {
-    log_printf("%s\n",__func__);
+//    log_printf("%s\n",__func__);
   
 }
 
@@ -149,31 +153,6 @@ static void rgb_led_cycle(void)
 
 void ms_timer_10ms (void)
 {
-        if(S2LPGpioIrqCheckFlag (RX_DATA_READY))
-        {
-            log_printf("Data Recieved\n");
-//            ms_timer_start (MS_TIMER1, MS_REPEATED_CALL, MS_TIMER_TICKS_MS(5000), ms_timer_handler);
-
-            cRxData = S2LPFifoReadNumberBytesRxFifo();
-      
-            /* Read the RX FIFO */
-            S2LPSpiReadFifo(cRxData, vectcRxBuff);
-
-            /* Flush the RX FIFO */
-            S2LPCmdStrobeFlushRxFifo();      
-            for(uint32_t i =0; i < cRxData; i++)
-            {
-                log_printf("%x  ", vectcRxBuff[i]);
-            }
-            log_printf("\n");
-        S2LPGpioIrqClearStatus();
-//        hal_nop_delay_ms(400);
-            S2LPCmdStrobeRx();
-        }
-        else if (S2LPGpioIrqCheckFlag (RX_DATA_DISC))
-        {
-            log_printf ("Data discarded..!!\n");
-        }
 }
 ///**
 // * Different calls to sleep depending on the status of Softdevice
@@ -193,6 +172,44 @@ void ms_timer_10ms (void)
 //    }
 //}
 //
+
+void GPIOTE_IRQHandler ()
+{
+    NRF_GPIOTE->EVENTS_IN[GPIOTE_CHANNEL_USED] = 0;
+    log_printf("%s\n",__func__);
+        if(S2LPGpioIrqCheckFlag (RX_DATA_READY))
+        {
+            rx_started = true;
+            log_printf("Data Recieved : %d dBm\n", S2LPRadioGetRssidBm ());
+//            if(rx_started == false)
+//            {
+//                ms_timer_start (MS_TIMER1, MS_REPEATED_CALL, MS_TIMER_TICKS_MS(50), ms_timer_handler);
+//            }
+//            rx_started = true;
+//
+            cRxData = S2LPFifoReadNumberBytesRxFifo();
+      
+            /* Read the RX FIFO */
+            S2LPSpiReadFifo(cRxData, vectcRxBuff);
+
+            /* Flush the RX FIFO */
+            S2LPCmdStrobeFlushRxFifo();      
+            for(uint32_t i =0; i < cRxData; i++)
+            {
+                log_printf("%x  ", vectcRxBuff[i]);
+            }
+            log_printf("\n");
+            S2LPGpioIrqClearStatus();
+        }
+        else if (S2LPGpioIrqCheckFlag (RX_DATA_DISC))
+        {
+            log_printf ("Data discarded..!!\n");
+        }
+        S2LPGpioInit(&xGpioIRQ);  
+            S2LPCmdStrobeRx();
+
+    
+}
 /**
  * @brief Function for application main entry.
  */
@@ -208,11 +225,17 @@ int main(void)
     ms_timer_init(APP_IRQ_PRIORITY_LOWEST);
     hal_gpio_cfg_output (SDN,0);
     hal_gpio_pin_set (SDN);
+    hal_nop_delay_ms (1);
     hal_gpio_pin_clear (SDN);
-    hal_gpio_cfg_input (GPIO3, HAL_GPIO_PULL_DISABLED);
+    hal_gpio_cfg_input (GPIO0, HAL_GPIO_PULL_UP);
+    NRF_GPIOTE->CONFIG[GPIOTE_CHANNEL_USED] = ((GPIOTE_CONFIG_MODE_Event << GPIOTE_CONFIG_MODE_Pos) & GPIOTE_CONFIG_MODE_Msk) |
+        ((GPIOTE_CONFIG_POLARITY_LoToHi << GPIOTE_CONFIG_POLARITY_Pos)&GPIOTE_CONFIG_POLARITY_Msk) |
+        ((GPIO0 << GPIOTE_CONFIG_PSEL_Pos) & GPIOTE_CONFIG_PSEL_Msk);
+    NRF_GPIOTE->INTENSET = (GPIOTE_INTENSET_IN0_Enabled<<GPIOTE_INTENSET_IN0_Pos)&GPIOTE_INTENSET_IN0_Msk;
+    NVIC_SetPriority (GPIOTE_IRQn, APP_IRQ_PRIORITY_HIGH);
+    NVIC_EnableIRQ (GPIOTE_IRQn);
     S2LPSpiInit ();
     S2LPGpioInit(&xGpioIRQ);  
-    log_printf("Here..!!\n");
     S2LPRadioInit(&xRadioInit);
     S2LPRadioSetMaxPALevel(S_DISABLE);
     S2LPRadioSetPALeveldBm(7,POWER_DBM);
@@ -227,26 +250,27 @@ int main(void)
         S2LPPktBasicSetPayloadLength(100);
 
         /* RX timeout config */
-//  S2LPTimerSetRxTimerUs(700000);
-        SET_INFINITE_RX_TIMEOUT();
+  S2LPTimerSetRxTimerUs(7000000);
+//        SET_INFINITE_RX_TIMEOUT();
 
     }
+            S2LPCmdStrobeRx();
+
+
     S2LPGpioIrqClearStatus();
 
 
-
-
-    ms_timer_start (MS_TIMER2, MS_REPEATED_CALL, MS_TIMER_TICKS_MS(10), ms_timer_10ms);
+//    ms_timer_start (MS_TIMER2, MS_REPEATED_CALL, MS_TIMER_TICKS_MS(13), ms_timer_10ms);
     while(1)
     {
 //        if(rx_started == false)
 //        {
-            S2LPCmdStrobeRx();
-//
+//            S2LPCmdStrobeRx();
+////
 //        }
-        
-    
-        __WFI ();
+//        
+//    
+//        __WFI ();
     }
 }
 

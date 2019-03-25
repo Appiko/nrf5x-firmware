@@ -90,32 +90,35 @@ PktBasicInit xBasicInit={
 * @brief GPIO structure fitting
 */
 SGpioInit xGpioIRQ={
-  S2LP_GPIO_3,
+  S2LP_GPIO_0,
   S2LP_GPIO_MODE_DIGITAL_OUTPUT_LP,
-  S2LP_GPIO_DIG_OUT_IRQ
+  S2LP_GPIO_DIG_OUT_READY
 };
+
+//S2LPIrqs myGpioIrq = 
+//{
+//    
+//    .IRQ_TX_DATA_SENT = 1,
+//};
+
+#define GPIOTE_CHANNEL_USED 0
 
 /**
 * @brief IRQ status struct declaration
 */
 S2LPIrqs xIrqStatus;
+static uint8_t arr_test[100];
 void ms_timer_handler ()
 {
-    log_printf("%s\n",__func__);
-    {
-        static uint8_t arr_test[100];
-        for(uint8_t cnt = 0; cnt < ARRAY_SIZE(arr_test); cnt++)
-        {
-            arr_test[cnt] = cnt;
-        }
-        S2LPPktBasicSetPayloadLength(sizeof(arr_test));
-        /* fit the TX FIFO */
-        S2LPCmdStrobeFlushTxFifo();
-        S2LPSpiWriteFifo(sizeof(arr_test), arr_test);
+    log_printf("%s \n",__func__);
+    S2LPCmdStrobeFlushTxFifo();
+    S2LPSpiWriteFifo(sizeof(arr_test), arr_test);
 
-        /* send the TX command */
-        S2LPCmdStrobeTx();
-    }
+    /* fit the TX FIFO */
+
+    /* send the TX command */
+    S2LPGpioInit(&xGpioIRQ);  
+    S2LPCmdStrobeTx();
 }
 
 /** @brief Configure the RGB LED pins as output and turn off LED */
@@ -148,11 +151,6 @@ static void rgb_led_cycle(void)
 
 void ms_timer_10ms (void)
 {
-        if(S2LPGpioIrqCheckFlag (TX_DATA_SENT) )
-        {
-            log_printf("Data sent\n");
-            S2LPGpioIrqClearStatus();
-        }
         
 }
 ///**
@@ -173,6 +171,19 @@ void ms_timer_10ms (void)
 //    }
 //}
 //
+
+void GPIOTE_IRQHandler ()
+{
+    log_printf("%s\n",__func__);
+    NRF_GPIOTE->EVENTS_IN[GPIOTE_CHANNEL_USED] = 0;
+    hal_gpio_pin_toggle (LED_RED);
+    S2LPGpioInit(&xGpioIRQ);  
+//    if(S2LPGpioIrqCheckFlag (TX_DATA_SENT) )
+//    {
+//        log_printf("Data sent\n");
+//        S2LPGpioIrqClearStatus();
+//    }
+}
 /**
  * @brief Function for application main entry.
  */
@@ -186,10 +197,22 @@ int main(void)
 
     lfclk_init (LFCLK_SRC_Xtal);
     ms_timer_init(APP_IRQ_PRIORITY_LOWEST);
+    for(uint8_t cnt = 0; cnt < ARRAY_SIZE(arr_test); cnt++)
+    {
+        arr_test[cnt] = cnt;
+    }
     hal_gpio_cfg_output (SDN,0);
     hal_gpio_pin_set (SDN);
+    hal_nop_delay_ms (1);
     hal_gpio_pin_clear (SDN);
-    hal_gpio_cfg_input (GPIO3, HAL_GPIO_PULL_DISABLED);
+    hal_gpio_cfg_input (GPIO0, HAL_GPIO_PULL_UP );
+    NRF_GPIOTE->CONFIG[GPIOTE_CHANNEL_USED] = ((GPIOTE_CONFIG_MODE_Event << GPIOTE_CONFIG_MODE_Pos) & GPIOTE_CONFIG_MODE_Msk) |
+        ((GPIOTE_CONFIG_POLARITY_HiToLo << GPIOTE_CONFIG_POLARITY_Pos)&GPIOTE_CONFIG_POLARITY_Msk) |
+        ((GPIO0 << GPIOTE_CONFIG_PSEL_Pos) & GPIOTE_CONFIG_PSEL_Msk);
+    NRF_GPIOTE->INTENSET = (GPIOTE_INTENSET_IN0_Enabled<<GPIOTE_INTENSET_IN0_Pos)&GPIOTE_INTENSET_IN0_Msk;
+    NVIC_SetPriority (GPIOTE_IRQn, APP_IRQ_PRIORITY_HIGH);
+    NVIC_EnableIRQ (GPIOTE_IRQn);
+
     S2LPSpiInit ();
     S2LPGpioInit(&xGpioIRQ);  
     log_printf("Here..!!\n");
@@ -200,16 +223,18 @@ int main(void)
     S2LPPktBasicInit(&xBasicInit);
     S2LPGpioIrqDeInit(NULL);
     {
-        S2LPGpioIrqConfig(TX_DATA_SENT , S_ENABLE);
-        ms_timer_start (MS_TIMER1, MS_REPEATED_CALL, MS_TIMER_TICKS_MS(500), ms_timer_handler);
+//        S2LPGpioIrqInit (&myGpioIrq);
+//        S2LPGpioIrqConfig(TX_DATA_SENT , S_ENABLE);
+        ms_timer_start (MS_TIMER1, MS_REPEATED_CALL, MS_TIMER_TICKS_MS(1000), ms_timer_handler);
 //        log_printf("");
     }
+    S2LPPktBasicSetPayloadLength(sizeof(arr_test));
     S2LPGpioIrqClearStatus();
 
 
 
 
-    ms_timer_start (MS_TIMER2, MS_REPEATED_CALL, MS_TIMER_TICKS_MS(10), ms_timer_10ms);
+//    ms_timer_start (MS_TIMER2, MS_REPEATED_CALL, MS_TIMER_TICKS_MS(10), ms_timer_10ms);
     while(1)
     {    
         __WFI ();

@@ -73,7 +73,7 @@
 #define FREQ_DEVIATION              20000
 #define BANDWIDTH                   100000
 
-#define POWER_DBM                   60/*.0*/
+#define POWER_DBM                   14/*.0*/
 
 
   
