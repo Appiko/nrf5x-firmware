@@ -62,9 +62,9 @@
 /** Number of pulses required for sync while module is in motion sync mode.  */
 #define PULSE_REQ_FOR_SYNC 4
 /** On time for TSSP receiver while module is in motion sync mode */
-#define MOTION_SYNC_ON_TIME 150
+#define MOTION_SYNC_ON_TIME 200
 /** Off time for TSSP receiver while module is in motion sync mode */
-#define MOTION_SYNC_OFF_TIME 850
+#define MOTION_SYNC_OFF_TIME 800
 
 /***********ENUMS***********/
 /** List of states for Motion Detection module. */
