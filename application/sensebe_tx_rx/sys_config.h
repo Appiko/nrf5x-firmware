@@ -71,7 +71,7 @@
 /** 4th PPI channel used for TSSP IR transmission module */
 #define PPI_CH_USED_TSSP_IR_TX_4 5
 /** PPI channel for future use */
-#define PPI_CH_USED_RANDOM 6
+#define PPI_CH_USED_EXTRA 6
 /** GPIOTE channel used for TSSP detect module */
 #define GPIOTE_CH_USED_TSSP_DETECT 0
 /** 1st GPIOTE channel used for TSSP IR transmission module */
@@ -79,13 +79,13 @@
 /** 1st GPIOTE channel used for TSSP IR transmission module */
 #define GPIOTE_CH_USED_TSSP_IR_TX_2 2
 /** GPIOTE channel for future use */
-#define GPIOTE_CH_USED_RANDOM 7
+#define GPIOTE_CH_USED_EXTRA 7
 /** 1st Timer used for TSSP IR transmission module */
-#define TIMER_USED_TSSP_IR_TX_1 0
+#define TIMER_USED_TSSP_IR_TX_1 2
 /** 2nd Timer used for TSSP IR transmission module */
 #define TIMER_USED_TSSP_IR_TX_2 1
 /**Timer for future use  */
-#define TIMER_USED_RANDOM 2
+#define TIMER_USED_EXTRA 2
 /** 1st Channel from 1st timer used for TSSP IR transmission module */
 #define TIMER_CHANNEL_USED_TSSP_IR_TX_1_1 0
 /** 1st Channel from 2nd timer used for TSSP IR transmission module */
