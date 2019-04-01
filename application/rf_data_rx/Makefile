@@ -1,9 +1,9 @@
 
-BOARD           := BOARD_BLUEY_1V1
+BOARD           := BOARD_HACKABLE
 SLNO            := 682073614
 BLE_REQD        := BLE_STACK_SUPPORT_REQD
 PINRESET_REQD   := CONFIG_GPIO_AS_PINRESET
-DEBUGGER        := JLINK
+DEBUGGER        := BMP
 LOGGER          := LOG_UART_PRINTF
 FW_VER_VAL      := 0
 MS_TIMER_FREQ   := 32768
@@ -18,8 +18,8 @@ PLATFORM_DIR    = ../../platform
 CODEBASE_DIR    = ../../codebase
 
 INCLUDEDIRS	= ./
-INCLUDEDIRS += ./app_support/S2LP_Library/Inc
-INCLUDEDIRS += ./app_support/
+INCLUDEDIRS += ../rf_data_tx_rx/S2LP_Library/Inc
+INCLUDEDIRS += ../rf_data_tx_rx/
 
 INCLUDEDIRS	+= $(PLATFORM_DIR)
 ifneq ($(SD_USED_LC),blank)
@@ -34,8 +34,8 @@ INCLUDEDIRS += $(CODEBASE_DIR)/util
 
 C_SRC_DIRS = .
 
-C_SRC_DIRS += ./app_support
-C_SRC_DIRS += ./app_support/S2LP_Library/Src
+C_SRC_DIRS += ../rf_data_tx_rx/
+C_SRC_DIRS += ../rf_data_tx_rx/S2LP_Library/Src
 
 C_SRC_DIRS += $(CODEBASE_DIR)/segger_rtt
 C_SRC_DIRS += $(CODEBASE_DIR)/hal
@@ -60,6 +60,9 @@ C_SRC += hal_wdt.c
 C_SRC += nrf_util.c 
 
 C_SRC += hal_spim.c
+
+C_SRC += rf_rx_ble.c
+C_SRC += evt_sd_handler.c
 
 C_SRC += SDK_EVAL_Spi_Driver.c
 

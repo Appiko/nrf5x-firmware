@@ -107,10 +107,10 @@ SGpioInit xGpioIRQ={
 * @brief IRQ status struct declaration
 */
 S2LPIrqs xIrqStatus;
-static uint8_t arr_test[100];
+static uint8_t arr_test[10];
 void ms_timer_handler ()
 {
-    log_printf("%s \n",__func__);
+//    log_printf("%s \n",__func__);
     S2LPCmdStrobeFlushTxFifo();
     S2LPSpiWriteFifo(sizeof(arr_test), arr_test);
 
@@ -178,11 +178,11 @@ void GPIOTE_IRQHandler ()
     NRF_GPIOTE->EVENTS_IN[GPIOTE_CHANNEL_USED] = 0;
     hal_gpio_pin_toggle (LED_RED);
     S2LPGpioInit(&xGpioIRQ);  
-//    if(S2LPGpioIrqCheckFlag (TX_DATA_SENT) )
-//    {
-//        log_printf("Data sent\n");
-//        S2LPGpioIrqClearStatus();
-//    }
+    if(S2LPGpioIrqCheckFlag (TX_DATA_SENT) )
+    {
+        log_printf("Data sent\n");
+        S2LPGpioIrqClearStatus();
+    }
 }
 /**
  * @brief Function for application main entry.
@@ -201,38 +201,41 @@ int main(void)
     {
         arr_test[cnt] = cnt;
     }
+    S2LPSpiInit ();
     hal_gpio_cfg_output (SDN,0);
     hal_gpio_pin_set (SDN);
     hal_nop_delay_ms (1);
     hal_gpio_pin_clear (SDN);
     hal_gpio_cfg_input (GPIO0, HAL_GPIO_PULL_UP );
+    
     NRF_GPIOTE->CONFIG[GPIOTE_CHANNEL_USED] = ((GPIOTE_CONFIG_MODE_Event << GPIOTE_CONFIG_MODE_Pos) & GPIOTE_CONFIG_MODE_Msk) |
-        ((GPIOTE_CONFIG_POLARITY_HiToLo << GPIOTE_CONFIG_POLARITY_Pos)&GPIOTE_CONFIG_POLARITY_Msk) |
+        ((GPIOTE_CONFIG_POLARITY_LoToHi << GPIOTE_CONFIG_POLARITY_Pos)&GPIOTE_CONFIG_POLARITY_Msk) |
         ((GPIO0 << GPIOTE_CONFIG_PSEL_Pos) & GPIOTE_CONFIG_PSEL_Msk);
-    NRF_GPIOTE->INTENSET = (GPIOTE_INTENSET_IN0_Enabled<<GPIOTE_INTENSET_IN0_Pos)&GPIOTE_INTENSET_IN0_Msk;
-    NVIC_SetPriority (GPIOTE_IRQn, APP_IRQ_PRIORITY_HIGH);
-    NVIC_EnableIRQ (GPIOTE_IRQn);
+    NRF_GPIOTE->INTENSET |= (GPIOTE_INTENSET_IN0_Enabled<<GPIOTE_INTENSET_IN0_Pos)&GPIOTE_INTENSET_IN0_Msk;
 
-    S2LPSpiInit ();
     S2LPGpioInit(&xGpioIRQ);  
-    log_printf("Here..!!\n");
     S2LPRadioInit(&xRadioInit);
-    S2LPRadioSetMaxPALevel(S_DISABLE);
+//    S2LPRadioSetMaxPALevel(S_DISABLE);
     S2LPRadioSetPALeveldBm(7,POWER_DBM);
     S2LPRadioSetPALevelMaxIndex(7);
+    S2LPRadioSetMaxPALevel(S_ENABLE);
+    log_printf("Max Power Val : %d\n", S2LPRadioGetPALeveldBm (8));
     S2LPPktBasicInit(&xBasicInit);
     S2LPGpioIrqDeInit(NULL);
     {
 //        S2LPGpioIrqInit (&myGpioIrq);
 //        S2LPGpioIrqConfig(TX_DATA_SENT , S_ENABLE);
-        ms_timer_start (MS_TIMER1, MS_REPEATED_CALL, MS_TIMER_TICKS_MS(1000), ms_timer_handler);
 //        log_printf("");
     }
     S2LPPktBasicSetPayloadLength(sizeof(arr_test));
     S2LPGpioIrqClearStatus();
 
+    log_printf("Here..!!\n");
 
+        ms_timer_start (MS_TIMER1, MS_REPEATED_CALL, MS_TIMER_TICKS_MS(1000), ms_timer_handler);
 
+    NVIC_SetPriority (GPIOTE_IRQn, APP_IRQ_PRIORITY_LOW);
+    NVIC_EnableIRQ (GPIOTE_IRQn);
 
 //    ms_timer_start (MS_TIMER2, MS_REPEATED_CALL, MS_TIMER_TICKS_MS(10), ms_timer_10ms);
     while(1)

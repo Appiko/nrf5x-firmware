@@ -65,13 +65,13 @@
 #endif
 
 #ifdef USE_HIGH_BAND
-#define BASE_FREQUENCY              868000000
+#define BASE_FREQUENCY              866000000
 #endif
 
 #define MODULATION_SELECT           MOD_2FSK
-#define DATARATE                    38400
-#define FREQ_DEVIATION              20000
-#define BANDWIDTH                   100000
+#define DATARATE                    500
+#define FREQ_DEVIATION              1500
+#define BANDWIDTH                   8000
 
 #define POWER_DBM                   14/*.0*/
 
@@ -80,7 +80,7 @@
 /*  Packet configuration parameters  */
 #define PREAMBLE_LENGTH             PREAMBLE_BYTE(4)
 #define SYNC_LENGTH                 SYNC_BYTE(4)
-#define SYNC_WORD                   0x88888888
+#define SYNC_WORD                   0x5aa5BCDE
 #define VARIABLE_LENGTH             1
 #define EXTENDED_LENGTH_FIELD       0
 #define CRC_MODE                    PKT_CRC_MODE_8BITS

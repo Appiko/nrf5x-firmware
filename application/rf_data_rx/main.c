@@ -51,6 +51,10 @@
 #include "log.h"
 #include "nrf_util.h"
 #include "pin_trace.h"
+#include "rf_rx_ble.h"
+#include "ble.h"
+#include "nrf_soc.h"
+#include "nrf_sdm.h"
 #include "S2LP_Config.h"
 #include "SDK_Configuration_Common.h"
 
@@ -117,6 +121,9 @@ S2LPIrqs xIrqStatus;
 
 static volatile bool rx_started = false;
 
+static mod_ble_data_t ble_data;
+
+static volatile bool is_connected = false;
 void ms_timer_handler ()
 {
 //    log_printf("%s\n",__func__);
@@ -154,60 +161,73 @@ static void rgb_led_cycle(void)
 void ms_timer_10ms (void)
 {
 }
+
+void on_connect ()
+{
+    is_connected = true;
+}
 ///**
 // * Different calls to sleep depending on the status of Softdevice
 // */
-//void slumber(void)
-//{
-//    uint8_t is_sd_enabled;
-//    sd_softdevice_is_enabled(&is_sd_enabled);
-//    // Would in the SENSING mode
-//    if(is_sd_enabled == 0)
-//    {
-//        __WFI();
-//    }
-//    else
-//    {
-//        sd_app_evt_wait();
-//    }
-//}
+void slumber(void)
+{
+    uint8_t is_sd_enabled;
+    sd_softdevice_is_enabled(&is_sd_enabled);
+    // Would in the SENSING mode
+    if(is_sd_enabled == 0)
+    {
+        __WFI();
+    }
+    else
+    {
+        sd_app_evt_wait();
+    }
+}
 //
 
 void GPIOTE_IRQHandler ()
 {
     NRF_GPIOTE->EVENTS_IN[GPIOTE_CHANNEL_USED] = 0;
     log_printf("%s\n",__func__);
-        if(S2LPGpioIrqCheckFlag (RX_DATA_READY))
-        {
-            rx_started = true;
-            log_printf("Data Recieved : %d dBm\n", S2LPRadioGetRssidBm ());
+//    hal_gpio_pin_toggle (LED_BLUE);
+    if(S2LPGpioIrqCheckFlag (RX_DATA_READY))
+    {
+        rx_started = true;
+        log_printf("Data Recieved : %x dBm\n", S2LPRadioGetRssidBm ());
 //            if(rx_started == false)
 //            {
 //                ms_timer_start (MS_TIMER1, MS_REPEATED_CALL, MS_TIMER_TICKS_MS(50), ms_timer_handler);
 //            }
 //            rx_started = true;
-//
-            cRxData = S2LPFifoReadNumberBytesRxFifo();
-      
-            /* Read the RX FIFO */
-            S2LPSpiReadFifo(cRxData, vectcRxBuff);
+        log_printf("%d\n", S2LPRadioGetRssidBm ());
 
-            /* Flush the RX FIFO */
-            S2LPCmdStrobeFlushRxFifo();      
-            for(uint32_t i =0; i < cRxData; i++)
-            {
-                log_printf("%x  ", vectcRxBuff[i]);
-            }
-            log_printf("\n");
-            S2LPGpioIrqClearStatus();
-        }
-        else if (S2LPGpioIrqCheckFlag (RX_DATA_DISC))
+
+        cRxData = S2LPFifoReadNumberBytesRxFifo();
+
+        /* Read the RX FIFO */
+        S2LPSpiReadFifo(cRxData, vectcRxBuff);
+
+        /* Flush the RX FIFO */
+        S2LPCmdStrobeFlushRxFifo();      
+//        for(uint32_t i =0; i < cRxData; i++)
+//        {
+//            log_printf("%x  ", vectcRxBuff[i]);
+//        }
+//        log_printf("\n");
+        S2LPGpioIrqClearStatus();
+        if(is_connected)
         {
-            log_printf ("Data discarded..!!\n");
+            ble_data.rf_rx_rssi = (uint8_t)S2LPRadioGetRssidBm ();
+            rf_rx_ble_update_status_byte (&ble_data);
         }
-        S2LPGpioInit(&xGpioIRQ);  
-            S2LPCmdStrobeRx();
+    }
+    else if (S2LPGpioIrqCheckFlag (RX_DATA_DISC))
+    {
+        log_printf ("Data discarded..!!\n");
+    }
 
+    S2LPGpioInit(&xGpioIRQ);  
+    S2LPCmdStrobeRx();
     
 }
 /**
@@ -219,10 +239,11 @@ int main(void)
     rgb_led_cycle();
     /* Initial printf */
     log_init();
-    log_printf("Hello World from LSM6D..!!\n");
+    log_printf("Hello World from RF_RX..!!\n");
 
     lfclk_init (LFCLK_SRC_Xtal);
     ms_timer_init(APP_IRQ_PRIORITY_LOWEST);
+    S2LPSpiInit ();
     hal_gpio_cfg_output (SDN,0);
     hal_gpio_pin_set (SDN);
     hal_nop_delay_ms (1);
@@ -232,14 +253,14 @@ int main(void)
         ((GPIOTE_CONFIG_POLARITY_LoToHi << GPIOTE_CONFIG_POLARITY_Pos)&GPIOTE_CONFIG_POLARITY_Msk) |
         ((GPIO0 << GPIOTE_CONFIG_PSEL_Pos) & GPIOTE_CONFIG_PSEL_Msk);
     NRF_GPIOTE->INTENSET = (GPIOTE_INTENSET_IN0_Enabled<<GPIOTE_INTENSET_IN0_Pos)&GPIOTE_INTENSET_IN0_Msk;
-    NVIC_SetPriority (GPIOTE_IRQn, APP_IRQ_PRIORITY_HIGH);
+    NVIC_SetPriority (GPIOTE_IRQn, APP_IRQ_PRIORITY_LOWEST);
     NVIC_EnableIRQ (GPIOTE_IRQn);
-    S2LPSpiInit ();
     S2LPGpioInit(&xGpioIRQ);  
     S2LPRadioInit(&xRadioInit);
-    S2LPRadioSetMaxPALevel(S_DISABLE);
-    S2LPRadioSetPALeveldBm(7,POWER_DBM);
-    S2LPRadioSetPALevelMaxIndex(7);
+//    S2LPRadioSetMaxPALevel(S_DISABLE);
+//    S2LPRadioSetPALeveldBm(7,POWER_DBM);
+//    S2LPRadioSetPALevelMaxIndex(7);
+//    S2LPRadioSetMaxPALevel(S_ENABLE);
     S2LPPktBasicInit(&xBasicInit);
     S2LPGpioIrqDeInit(NULL);
     {
@@ -247,7 +268,7 @@ int main(void)
         S2LPGpioIrqConfig(RX_DATA_READY,S_ENABLE);
 
         /* payload length config */
-        S2LPPktBasicSetPayloadLength(100);
+        S2LPPktBasicSetPayloadLength(10);
 
         /* RX timeout config */
   S2LPTimerSetRxTimerUs(7000000);
@@ -255,22 +276,24 @@ int main(void)
 
     }
             S2LPCmdStrobeRx();
+    log_printf("Here..!!\n");
 
 
     S2LPGpioIrqClearStatus();
+    
+    rf_rx_ble_stack_init ();
+    rf_rx_ble_gap_params_init ();
+    rf_rx_ble_adv_init ();
+    rf_rx_ble_adv_start (on_connect);
+    rf_rx_ble_service_init ();
+
+    ble_data.rf_rx_rssi = 0;
+    rf_rx_ble_update_status_byte (&ble_data);
 
 
-//    ms_timer_start (MS_TIMER2, MS_REPEATED_CALL, MS_TIMER_TICKS_MS(13), ms_timer_10ms);
     while(1)
     {
-//        if(rx_started == false)
-//        {
-//            S2LPCmdStrobeRx();
-////
-//        }
-//        
-//    
-//        __WFI ();
+        slumber ();
     }
 }
 
