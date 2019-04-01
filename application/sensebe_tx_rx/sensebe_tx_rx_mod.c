@@ -388,36 +388,45 @@ bool validate_and_sync (uint32_t ticks)
 bool three_window_sync (uint32_t ticks)
 {
     static uint32_t previous_pulse_tick = 0, current_pulse_tick = 0;
-    static uint32_t pulse_diff_window[] = {0,0,0}, pulse_diff_window_cnt = 0;
+    static uint32_t pulse_diff_window[] = {0,0,0};
     static uint32_t pulse_cnt = PULSE_REQ_FOR_SYNC;
+    static bool flag = false;
     if(pulse_cnt == PULSE_REQ_FOR_SYNC)
     {
+        flag = false;
         previous_pulse_tick = ticks;
         pulse_cnt --;
     }
     else if(pulse_cnt > 0)
     {
         current_pulse_tick = ticks;
-        pulse_diff_window[pulse_diff_window_cnt] = ((current_pulse_tick + (1<<24))- previous_pulse_tick)
+        pulse_diff_window[pulse_cnt - 1] = ((current_pulse_tick + (1<<24))- previous_pulse_tick)
              & 0x00FFFFFF;
         previous_pulse_tick = current_pulse_tick;
-        pulse_diff_window_cnt++;
         pulse_cnt--;
     }
-    else if(pulse_cnt == 0)
+    if(pulse_cnt == 0)
     {
-        pulse_diff_window_cnt = 0;
         log_printf("Window[0]: %d\n", pulse_diff_window[0]);
         log_printf("Window[1]: %d\n", pulse_diff_window[1]);
         log_printf("Window[2]: %d\n", pulse_diff_window[2]);
         tssp_detect_sync_time = pulse_diff_window[1];
         pulse_cnt = PULSE_REQ_FOR_SYNC;
-        return (compare_margin (pulse_diff_window[1], pulse_diff_window[0], TSSP_DETECT_TICKS_MS(2))
-            && compare_margin (pulse_diff_window[2], pulse_diff_window[1], TSSP_DETECT_TICKS_MS(2))
-            && validate_and_sync (pulse_diff_window[1]));
+        
     }
+    flag = (validate_and_sync (pulse_diff_window[0])
+        && validate_and_sync (pulse_diff_window[1])
+        && validate_and_sync (pulse_diff_window[2])
+        && compare_margin (pulse_diff_window[1], pulse_diff_window[0], TSSP_DETECT_TICKS_MS(2))
+        && compare_margin (pulse_diff_window[2], pulse_diff_window[1], TSSP_DETECT_TICKS_MS(2)));
     
-    return false;
+    if(flag == true)
+    {
+        pulse_diff_window[0] = 0;
+        pulse_diff_window[1] = 0;
+        pulse_diff_window[2] = 0;
+    }    
+    return flag;
 }
 
 void pulse_detect_handler (uint32_t ticks_count)
@@ -437,10 +446,10 @@ void pulse_detect_handler (uint32_t ticks_count)
         else
         {
             tssp_detect_pulse_detect ();
-            if(feedback_timepassed < DETECT_FEEDBACK_TIMEOUT_TICKS)
-            {
-                led_ui_single_start (LED_SEQ_DETECT_SYNC, LED_UI_LOW_PRIORITY, true);
-            }
+//            if(feedback_timepassed < DETECT_FEEDBACK_TIMEOUT_TICKS)
+//            {
+//                led_ui_single_start (LED_SEQ_DETECT_SYNC, LED_UI_LOW_PRIORITY, true);
+//            }
             led_ui_stop_seq (LED_UI_LOOP_SEQ, LED_SEQ_DETECT_PULSE);
         }
     }
