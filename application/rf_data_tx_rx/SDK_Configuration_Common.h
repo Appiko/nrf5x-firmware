@@ -69,9 +69,9 @@
 #endif
 
 #define MODULATION_SELECT           MOD_2FSK
-#define DATARATE                    500
-#define FREQ_DEVIATION              1500
-#define BANDWIDTH                   8000
+#define DATARATE                    300
+#define FREQ_DEVIATION              250
+#define BANDWIDTH                   1000
 
 #define POWER_DBM                   14/*.0*/
 
