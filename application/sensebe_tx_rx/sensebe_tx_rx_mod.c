@@ -407,13 +407,12 @@ bool three_window_sync (uint32_t ticks)
     }
     else if(pulse_cnt == 0)
     {
-        log_printf("Window[0]: %d\n", pulse_diff_window[0]);
-        log_printf("Window[1]: %d\n", pulse_diff_window[1]);
-        log_printf("Window[2]: %d\n", pulse_diff_window[2]);
-        tssp_detect_sync_time = pulse_diff_window[1];
         pulse_cnt = PULSE_REQ_FOR_SYNC;
         
     }
+    log_printf("Window[0]: %d\n", pulse_diff_window[0]);
+    log_printf("Window[1]: %d\n", pulse_diff_window[1]);
+    log_printf("Window[2]: %d\n", pulse_diff_window[2]);
     flag = (validate_and_sync (pulse_diff_window[0])
         && validate_and_sync (pulse_diff_window[1])
         && validate_and_sync (pulse_diff_window[2])
@@ -422,6 +421,7 @@ bool three_window_sync (uint32_t ticks)
     
     if(flag == true)
     {
+        tssp_detect_sync_time = pulse_diff_window[1];
         pulse_diff_window[0] = 0;
         pulse_diff_window[1] = 0;
         pulse_diff_window[2] = 0;
