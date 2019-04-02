@@ -405,7 +405,7 @@ bool three_window_sync (uint32_t ticks)
         previous_pulse_tick = current_pulse_tick;
         pulse_cnt--;
     }
-    if(pulse_cnt == 0)
+    else if(pulse_cnt == 0)
     {
         log_printf("Window[0]: %d\n", pulse_diff_window[0]);
         log_printf("Window[1]: %d\n", pulse_diff_window[1]);
@@ -834,7 +834,7 @@ void sensebe_tx_rx_add_ticks (uint32_t interval)
 
     if(arr_is_light_sense_req [MOD_MOTION] == true ||
        arr_is_light_sense_req [MOD_TIMER] == true ||
-       arr_is_light_sense_req [MOD_IR_TX])
+       arr_is_light_sense_req [MOD_IR_TX] == true)
     {
         light_sense_add_ticks (interval);
     }
