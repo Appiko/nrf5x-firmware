@@ -37,6 +37,7 @@
 #include "hal_gpio.h"
 #include "common_util.h"
 #include "sys_config.h"
+#include "nrf_util.h"
 
 
 #define TIMER_ID_1KHZ CONCAT_2(NRF_TIMER, TIMER_USED_TSSP_IR_TX_1)
@@ -57,9 +58,12 @@
 
 static uint32_t tx_en;
 
+static uint32_t tx_in;
+
 void tssp_ir_tx_init (uint32_t tssp_tx_en, uint32_t tssp_tx_in)
 {
     tx_en = tssp_tx_en;
+    tx_in = tssp_tx_in;
     hal_gpio_cfg_output (tx_en,0);
     hal_gpio_cfg_output (tssp_tx_in,0);
     TIMER_ID_56KHZ->TASKS_STOP = 1;
@@ -99,46 +103,59 @@ void tssp_ir_tx_init (uint32_t tssp_tx_en, uint32_t tssp_tx_in)
     TIMER_ID_1KHZ->BITMODE = TIMER_BITMODE_BITMODE_32Bit;
     TIMER_ID_1KHZ->CC[TIMERS_CHANNEL_USED] = 16000 * TSSP_IR_TX_ON_TIME_MS;
 
-    TIMER_ID_1KHZ->SHORTS |= TIMER_SHORTS_COMPARE0_CLEAR_Enabled
-                            << TIMER_SHORTS_COMPARE0_CLEAR_Pos;
-    TIMER_ID_1KHZ->SHORTS |= TIMER_SHORTS_COMPARE0_STOP_Enabled
-                            << TIMER_SHORTS_COMPARE0_STOP_Pos;
-  
+//    TIMER_ID_1KHZ->SHORTS |= TIMER_SHORTS_COMPARE0_CLEAR_Enabled
+//                            << TIMER_SHORTS_COMPARE0_CLEAR_Pos;
+//    TIMER_ID_1KHZ->SHORTS |= TIMER_SHORTS_COMPARE0_STOP_Enabled
+//                            << TIMER_SHORTS_COMPARE0_STOP_Pos;
+//  
+//    
+//    NRF_GPIOTE->CONFIG[ON_TIMER_GPIOTE_CHANNEL] = 
+//                (GPIOTE_CONFIG_MODE_Task << GPIOTE_CONFIG_MODE_Pos)
+//                | ((tssp_tx_en << GPIOTE_CONFIG_PSEL_Pos)& GPIOTE_CONFIG_PSEL_Msk)
+//                | (GPIOTE_CONFIG_POLARITY_HiToLo << GPIOTE_CONFIG_POLARITY_Pos)
+//                | (GPIOTE_CONFIG_OUTINIT_Low << GPIOTE_CONFIG_OUTINIT_Pos);
+//
+//    
+//    NRF_PPI->CH[PPI_xxKHz_1].EEP = (uint32_t) &TIMER_ID_1KHZ->EVENTS_COMPARE[TIMERS_CHANNEL_USED];
+//    NRF_PPI->CH[PPI_xxKHz_1].TEP = (uint32_t) &TIMER_ID_1KHZ->TASKS_SHUTDOWN;
+//    
+//    NRF_PPI->FORK[PPI_xxKHz_1].TEP =  (uint32_t) &TIMER_ID_56KHZ->TASKS_SHUTDOWN;
+//
+//    NRF_PPI->CH[PPI_xxKHz_2].EEP = (uint32_t) &TIMER_ID_1KHZ->EVENTS_COMPARE[TIMERS_CHANNEL_USED];
+//    NRF_PPI->CH[PPI_xxKHz_2].TEP = (uint32_t) &(NRF_GPIOTE->TASKS_CLR[ON_TIMER_GPIOTE_CHANNEL]);
     
-    NRF_GPIOTE->CONFIG[ON_TIMER_GPIOTE_CHANNEL] = 
-                (GPIOTE_CONFIG_MODE_Task << GPIOTE_CONFIG_MODE_Pos)
-                | ((tssp_tx_en << GPIOTE_CONFIG_PSEL_Pos)& GPIOTE_CONFIG_PSEL_Msk)
-                | (GPIOTE_CONFIG_POLARITY_HiToLo << GPIOTE_CONFIG_POLARITY_Pos)
-                | (GPIOTE_CONFIG_OUTINIT_Low << GPIOTE_CONFIG_OUTINIT_Pos);
-
+    NVIC_SetPriority (TIMER2_IRQn, APP_IRQ_PRIORITY_HIGH);
+    NVIC_EnableIRQ (TIMER2_IRQn);
+}
     
-    NRF_PPI->CH[PPI_xxKHz_1].EEP = (uint32_t) &TIMER_ID_1KHZ->EVENTS_COMPARE[TIMERS_CHANNEL_USED];
-    NRF_PPI->CH[PPI_xxKHz_1].TEP = (uint32_t) &TIMER_ID_1KHZ->TASKS_SHUTDOWN;
-    
-    NRF_PPI->FORK[PPI_xxKHz_1].TEP =  (uint32_t) &TIMER_ID_56KHZ->TASKS_SHUTDOWN;
-
-    NRF_PPI->CH[PPI_xxKHz_2].EEP = (uint32_t) &TIMER_ID_1KHZ->EVENTS_COMPARE[TIMERS_CHANNEL_USED];
-    NRF_PPI->CH[PPI_xxKHz_2].TEP = (uint32_t) &(NRF_GPIOTE->TASKS_CLR[ON_TIMER_GPIOTE_CHANNEL]);
-
-    
+void TIMER2_IRQHandler ()
+{
+    hal_gpio_pin_clear (tx_en);
+    hal_gpio_pin_clear (tx_in);
+    TIMER_ID_56KHZ->EVENTS_COMPARE[TIMERS_CHANNEL_USED] = 0;
+    TIMER_ID_1KHZ->EVENTS_COMPARE[TIMERS_CHANNEL_USED] = 0;
+    TIMER_ID_1KHZ->TASKS_CLEAR = 1;
+    TIMER_ID_1KHZ->TASKS_STOP = 1;
+    TIMER_ID_1KHZ->TASKS_SHUTDOWN = 1;
+    TIMER_ID_56KHZ->TASKS_SHUTDOWN = 1;
 }
 
 void tssp_ir_tx_start (void)
 {
+    hal_gpio_pin_set (tx_en);
     TIMER_ID_56KHZ->EVENTS_COMPARE[TIMERS_CHANNEL_USED] = 0;
     TIMER_ID_1KHZ->EVENTS_COMPARE[TIMERS_CHANNEL_USED] = 0;
     NRF_GPIOTE->TASKS_SET[ON_TIMER_GPIOTE_CHANNEL] = 1;
     TIMER_ID_1KHZ->INTENSET |= TIMER_INTENSET_COMPARE0_Msk;
     TIMER_ID_1KHZ->TASKS_CLEAR = 1;
     
-    NRF_PPI->CHENSET |= 1 << PPI_xxKHz_1;
-    NRF_PPI->CHENSET |= 1 << PPI_xxKHz_2;
+//    NRF_PPI->CHENSET |= 1 << PPI_xxKHz_1;
+//    NRF_PPI->CHENSET |= 1 << PPI_xxKHz_2;
     NRF_PPI->CHENSET |= 1 << PPI_56KHz_1;
     NRF_PPI->CHENSET |= 1 << PPI_56KHz_2;
-
+    TIMER_ID_56KHZ->TASKS_START = 1;
     TIMER_ID_1KHZ->TASKS_START = 1;
 
-    TIMER_ID_56KHZ->TASKS_START = 1;
 }
 
 void tssp_ir_tx_stop (void)
@@ -146,8 +163,8 @@ void tssp_ir_tx_stop (void)
     TIMER_ID_1KHZ->TASKS_SHUTDOWN = 1;
     hal_gpio_pin_clear (tx_en);
     
-    NRF_PPI->CHENCLR |= 1 << PPI_xxKHz_1;
-    NRF_PPI->CHENCLR |= 1 << PPI_xxKHz_2;
+//    NRF_PPI->CHENCLR |= 1 << PPI_xxKHz_1;
+//    NRF_PPI->CHENCLR |= 1 << PPI_xxKHz_2;
     NRF_PPI->CHENCLR |= 1 << PPI_56KHz_1;
     NRF_PPI->CHENCLR |= 1 << PPI_56KHz_2;
     TIMER_ID_56KHZ->TASKS_STOP = 1;
