@@ -89,7 +89,7 @@
 /** 1st Channel from 1st timer used for TSSP IR transmission module */
 #define TIMER_CHANNEL_USED_TSSP_IR_TX_1_1 0
 /** 1st Channel from 2nd timer used for TSSP IR transmission module */
-#define TIMER_CHANNEL_USED_TSSP_IR_TX_2_1 1
+#define TIMER_CHANNEL_USED_TSSP_IR_TX_2_1 0
 /** 2nd Channel from 2nd timer used for TSSP IR transmission module */
 #define TIMER_CHANNEL_USED_TSSP_IR_TX_2_2 3
 /** Event Generator Unit used for TSSP detect module */
