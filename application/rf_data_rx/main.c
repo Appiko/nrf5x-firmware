@@ -189,7 +189,6 @@ void GPIOTE_IRQHandler ()
 {
     NRF_GPIOTE->EVENTS_IN[GPIOTE_CHANNEL_USED] = 0;
     log_printf("%s\n",__func__);
-//    hal_gpio_pin_toggle (LED_BLUE);
     if(S2LPGpioIrqCheckFlag (RX_DATA_READY))
     {
         rx_started = true;
@@ -201,6 +200,7 @@ void GPIOTE_IRQHandler ()
 //            rx_started = true;
         log_printf("%d\n", S2LPRadioGetRssidBm ());
 
+        hal_gpio_pin_toggle (LED_BLUE);
 
         cRxData = S2LPFifoReadNumberBytesRxFifo();
 
@@ -248,13 +248,12 @@ int main(void)
     hal_gpio_pin_set (SDN);
     hal_nop_delay_ms (1);
     hal_gpio_pin_clear (SDN);
-    hal_gpio_cfg_input (GPIO0, HAL_GPIO_PULL_UP);
+    hal_gpio_cfg_input (GPIO0, HAL_GPIO_PULL_DOWN);
     NRF_GPIOTE->CONFIG[GPIOTE_CHANNEL_USED] = ((GPIOTE_CONFIG_MODE_Event << GPIOTE_CONFIG_MODE_Pos) & GPIOTE_CONFIG_MODE_Msk) |
         ((GPIOTE_CONFIG_POLARITY_LoToHi << GPIOTE_CONFIG_POLARITY_Pos)&GPIOTE_CONFIG_POLARITY_Msk) |
         ((GPIO0 << GPIOTE_CONFIG_PSEL_Pos) & GPIOTE_CONFIG_PSEL_Msk);
     NRF_GPIOTE->INTENSET = (GPIOTE_INTENSET_IN0_Enabled<<GPIOTE_INTENSET_IN0_Pos)&GPIOTE_INTENSET_IN0_Msk;
-    NVIC_SetPriority (GPIOTE_IRQn, APP_IRQ_PRIORITY_LOWEST);
-    NVIC_EnableIRQ (GPIOTE_IRQn);
+
     S2LPGpioInit(&xGpioIRQ);  
     S2LPRadioInit(&xRadioInit);
 //    S2LPRadioSetMaxPALevel(S_DISABLE);
@@ -264,18 +263,16 @@ int main(void)
     S2LPPktBasicInit(&xBasicInit);
     S2LPGpioIrqDeInit(NULL);
     {
-        S2LPGpioIrqConfig(RX_DATA_DISC,S_ENABLE);
-        S2LPGpioIrqConfig(RX_DATA_READY,S_ENABLE);
+//        S2LPGpioIrqConfig(RX_DATA_DISC,S_ENABLE);
+//        S2LPGpioIrqConfig(RX_DATA_READY,S_ENABLE);
 
         /* payload length config */
-        S2LPPktBasicSetPayloadLength(10);
+        S2LPPktBasicSetPayloadLength(3);
 
         /* RX timeout config */
-  S2LPTimerSetRxTimerUs(7000000);
-//        SET_INFINITE_RX_TIMEOUT();
+    S2LPTimerSetRxTimerUs(1500000);
 
     }
-            S2LPCmdStrobeRx();
     log_printf("Here..!!\n");
 
 
@@ -291,6 +288,10 @@ int main(void)
     rf_rx_ble_update_status_byte (&ble_data);
 
 
+            S2LPCmdStrobeRx();
+    NVIC_SetPriority (GPIOTE_IRQn, APP_IRQ_PRIORITY_LOW);
+    NVIC_ClearPendingIRQ (GPIOTE_IRQn);
+    NVIC_EnableIRQ (GPIOTE_IRQn);
     while(1)
     {
         slumber ();

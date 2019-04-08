@@ -107,7 +107,7 @@ SGpioInit xGpioIRQ={
 * @brief IRQ status struct declaration
 */
 S2LPIrqs xIrqStatus;
-static uint8_t arr_test[10];
+static uint8_t arr_test[3];
 void ms_timer_handler ()
 {
 //    log_printf("%s \n",__func__);
@@ -232,7 +232,7 @@ int main(void)
 
     log_printf("Here..!!\n");
 
-        ms_timer_start (MS_TIMER1, MS_REPEATED_CALL, MS_TIMER_TICKS_MS(1000), ms_timer_handler);
+        ms_timer_start (MS_TIMER1, MS_REPEATED_CALL, MS_TIMER_TICKS_MS(500), ms_timer_handler);
 
     NVIC_SetPriority (GPIOTE_IRQn, APP_IRQ_PRIORITY_LOW);
     NVIC_EnableIRQ (GPIOTE_IRQn);

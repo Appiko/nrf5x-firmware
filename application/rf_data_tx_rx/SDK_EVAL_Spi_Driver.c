@@ -427,7 +427,7 @@ StatusBytes SdkEvalSpiReadFifo(uint8_t cNbBytes, uint8_t* pcBuffer)
   ((uint8_t*)&status)[1]=rx_buff[0];
   ((uint8_t*)&status)[0]=rx_buff[1];
   
-  
+
   return status;
   
 }
