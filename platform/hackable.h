@@ -65,11 +65,11 @@
 /** @anchor hackable_serial
  * @name Serial port definitions for Hackable
  * @{*/
-#define RX_PIN_NUMBER		25
-#define TX_PIN_NUMBER		26
+#define RX_PIN_NUMBER		2
+#define TX_PIN_NUMBER		3
 #define HWFC			false
-#define RTS_PIN_NUMBER		23
-#define CTS_PIN_NUMBER		24
+#define RTS_PIN_NUMBER		6
+#define CTS_PIN_NUMBER		7
 /** @} */
 
 /** @anchor nfc_antenna_connector
