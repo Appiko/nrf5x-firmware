@@ -107,12 +107,15 @@ SGpioInit xGpioIRQ={
 * @brief IRQ status struct declaration
 */
 S2LPIrqs xIrqStatus;
-static uint8_t arr_test[3];
+//static uint8_t arr_test[3];
+static uint16_t test_cnt;
 void ms_timer_handler ()
 {
-//    log_printf("%s \n",__func__);
+    log_printf("%s \n",__func__);
     S2LPCmdStrobeFlushTxFifo();
-    S2LPSpiWriteFifo(sizeof(arr_test), arr_test);
+//    S2LPSpiWriteFifo(sizeof(arr_test), arr_test);
+    S2LPSpiWriteFifo(sizeof(test_cnt), (uint8_t *)&test_cnt);
+    test_cnt++;
 
     /* fit the TX FIFO */
 
@@ -197,10 +200,11 @@ int main(void)
 
     lfclk_init (LFCLK_SRC_Xtal);
     ms_timer_init(APP_IRQ_PRIORITY_LOWEST);
-    for(uint8_t cnt = 0; cnt < ARRAY_SIZE(arr_test); cnt++)
-    {
-        arr_test[cnt] = cnt;
-    }
+//    for(uint8_t cnt = 0; cnt < ARRAY_SIZE(arr_test); cnt++)
+//    {
+//        arr_test[cnt] = cnt;
+//    }
+    test_cnt = 0;
     S2LPSpiInit ();
     hal_gpio_cfg_output (SDN,0);
     hal_gpio_pin_set (SDN);
@@ -215,10 +219,16 @@ int main(void)
 
     S2LPGpioInit(&xGpioIRQ);  
     S2LPRadioInit(&xRadioInit);
-//    S2LPRadioSetMaxPALevel(S_DISABLE);
-    S2LPRadioSetPALeveldBm(7,POWER_DBM);
-    S2LPRadioSetPALevelMaxIndex(7);
     S2LPRadioSetMaxPALevel(S_ENABLE);
+    uint8_t arr_pm_cnf_rev[5];
+    /* Set PM_CONF values */
+    S2LPSpiReadRegisters(PM_CONF4_ADDR, 5, arr_pm_cnf_rev);
+    arr_pm_cnf_rev[4] |= (111 << 4) & SET_SMPS_LVL_REGMASK; //set smps level to 1.8V
+    arr_pm_cnf_rev[3] |= (1 << 3) & 0x08; // SetTX and RX independently
+    arr_pm_cnf_rev[2] |= 0x3D; //KMR LSB
+    arr_pm_cnf_rev[1] |= 0x8A; //KMR MSB + Multiplier enabled<<7
+    S2LPSpiWriteRegisters(PM_CONF4_ADDR, 5, arr_pm_cnf_rev);
+    
     log_printf("Max Power Val : %d\n", S2LPRadioGetPALeveldBm (8));
     S2LPPktBasicInit(&xBasicInit);
     S2LPGpioIrqDeInit(NULL);
@@ -227,12 +237,13 @@ int main(void)
 //        S2LPGpioIrqConfig(TX_DATA_SENT , S_ENABLE);
 //        log_printf("");
     }
-    S2LPPktBasicSetPayloadLength(sizeof(arr_test));
+//    S2LPPktBasicSetPayloadLength(sizeof(arr_test));
+    S2LPPktBasicSetPayloadLength(sizeof(test_cnt));
     S2LPGpioIrqClearStatus();
 
     log_printf("Here..!!\n");
 
-        ms_timer_start (MS_TIMER1, MS_REPEATED_CALL, MS_TIMER_TICKS_MS(500), ms_timer_handler);
+        ms_timer_start (MS_TIMER1, MS_REPEATED_CALL, MS_TIMER_TICKS_MS(1000), ms_timer_handler);
 
     NVIC_SetPriority (GPIOTE_IRQn, APP_IRQ_PRIORITY_LOW);
     NVIC_EnableIRQ (GPIOTE_IRQn);
