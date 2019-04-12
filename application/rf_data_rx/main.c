@@ -105,6 +105,8 @@ SGpioInit xGpioIRQ={
  */
 uint8_t vectcRxBuff[128], cRxData;
 
+uint16_t test_var;
+
 /**
 * @brief Preemption priority IRQ
 */
@@ -192,21 +194,21 @@ void GPIOTE_IRQHandler ()
     if(S2LPGpioIrqCheckFlag (RX_DATA_READY))
     {
         rx_started = true;
-        log_printf("Data Recieved : %x dBm\n", S2LPRadioGetRssidBm ());
+        log_printf("Data Recieved : %d dBm\n", S2LPRadioGetRssidBm ());
 //            if(rx_started == false)
 //            {
 //                ms_timer_start (MS_TIMER1, MS_REPEATED_CALL, MS_TIMER_TICKS_MS(50), ms_timer_handler);
 //            }
 //            rx_started = true;
-        log_printf("%d\n", S2LPRadioGetRssidBm ());
 
         hal_gpio_pin_toggle (LED_BLUE);
 
         cRxData = S2LPFifoReadNumberBytesRxFifo();
 
         /* Read the RX FIFO */
-        S2LPSpiReadFifo(cRxData, vectcRxBuff);
+        S2LPSpiReadFifo(cRxData, (uint8_t *)&test_var);
 
+        log_printf("Test Val : %d\n", test_var);
         /* Flush the RX FIFO */
         S2LPCmdStrobeFlushRxFifo();      
 //        for(uint32_t i =0; i < cRxData; i++)
@@ -218,6 +220,8 @@ void GPIOTE_IRQHandler ()
         if(is_connected)
         {
             ble_data.rf_rx_rssi = (uint8_t)S2LPRadioGetRssidBm ();
+            ble_data.pkt_no = test_var;
+            ble_data.CRC_ERR = (uint8_t) S2LPGpioIrqCheckFlag (CRC_ERROR);
             rf_rx_ble_update_status_byte (&ble_data);
         }
     }
@@ -267,7 +271,7 @@ int main(void)
 //        S2LPGpioIrqConfig(RX_DATA_READY,S_ENABLE);
 
         /* payload length config */
-        S2LPPktBasicSetPayloadLength(3);
+        S2LPPktBasicSetPayloadLength(2);
 
         /* RX timeout config */
     S2LPTimerSetRxTimerUs(1500000);
