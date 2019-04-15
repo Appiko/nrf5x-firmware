@@ -72,7 +72,7 @@
 #endif
 
 #define MODULATION_SELECT           MOD_2GFSK_BT1
-#define DATARATE                    100
+#define DATARATE                    150
 #define FREQ_DEVIATION              150
 #define BANDWIDTH                   1500
 
