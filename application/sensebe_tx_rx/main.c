@@ -193,6 +193,8 @@ sensebe_tx_rx_config_t default_sensebe_tx_rx_config =
 
     .sensebe_config = &sensebe_ble_default_config,
     
+//    .rx_tx_sel = RX_TX_S, //Enable this to use Rx Tx selection by HW pulls
+    
 };
 
 /* ----- Function declarations ----- */
