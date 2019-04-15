@@ -105,7 +105,15 @@ SGpioInit xGpioIRQ={
  */
 uint8_t vectcRxBuff[128], cRxData;
 
-uint16_t test_var;
+uint16_t current_pkt_no;
+
+volatile bool is_timer_on = false;
+
+uint16_t pkt_no = 0;
+
+uint16_t start_pkt_no = 0;
+
+int32_t rssi_sum = 0;
 
 /**
 * @brief Preemption priority IRQ
@@ -114,6 +122,9 @@ uint16_t test_var;
 
 #define GPIOTE_CHANNEL_USED 0
 
+#define TEST_DURATION_S 100
+
+#define TEST_DURATION_MS TEST_DURATION_S*1000
 
 /**
 * @brief IRQ status struct declaration
@@ -128,7 +139,13 @@ static mod_ble_data_t ble_data;
 static volatile bool is_connected = false;
 void ms_timer_handler ()
 {
-//    log_printf("%s\n",__func__);
+    log_printf ("Packets dropped in %d sec : %d\n",TEST_DURATION_S, TEST_DURATION_S - pkt_no);
+    log_printf ("Avg RSSI : %d\n", (int8_t)(rssi_sum/pkt_no));
+    log_printf ("Test params :\n");
+    log_printf ("%d, %d, %d, %d, %d, %d\n", MODULATION_SELECT, DATARATE, FREQ_DEVIATION,
+                BANDWIDTH, PREAMBLE_LENGTH, SYNC_LENGTH);
+    
+    log_printf ("Packet no.s : S %d, C %d\n", start_pkt_no, current_pkt_no);
   
 }
 
@@ -190,11 +207,11 @@ void slumber(void)
 void GPIOTE_IRQHandler ()
 {
     NRF_GPIOTE->EVENTS_IN[GPIOTE_CHANNEL_USED] = 0;
-    log_printf("%s\n",__func__);
+//    log_printf("%s\n",__func__);
     if(S2LPGpioIrqCheckFlag (RX_DATA_READY))
     {
         rx_started = true;
-        log_printf("Data Recieved : %d dBm\n", S2LPRadioGetRssidBm ());
+//        log_printf("Data Recieved : %d dBm\n", S2LPRadioGetRssidBm ());
 //            if(rx_started == false)
 //            {
 //                ms_timer_start (MS_TIMER1, MS_REPEATED_CALL, MS_TIMER_TICKS_MS(50), ms_timer_handler);
@@ -206,9 +223,9 @@ void GPIOTE_IRQHandler ()
         cRxData = S2LPFifoReadNumberBytesRxFifo();
 
         /* Read the RX FIFO */
-        S2LPSpiReadFifo(cRxData, (uint8_t *)&test_var);
+        S2LPSpiReadFifo(cRxData, (uint8_t *)&current_pkt_no);
 
-        log_printf("Test Val : %d\n", test_var);
+//        log_printf("Test Val : %d\n", current_pkt_no);
         /* Flush the RX FIFO */
         S2LPCmdStrobeFlushRxFifo();      
 //        for(uint32_t i =0; i < cRxData; i++)
@@ -216,14 +233,22 @@ void GPIOTE_IRQHandler ()
 //            log_printf("%x  ", vectcRxBuff[i]);
 //        }
 //        log_printf("\n");
+        pkt_no++;
+        if(is_timer_on == false)
+        {
+            ms_timer_start (MS_TIMER0, MS_SINGLE_CALL, MS_TIMER_TICKS_MS(TEST_DURATION_MS), ms_timer_handler);
+            is_timer_on = true;
+            pkt_no = 0;
+            start_pkt_no = current_pkt_no;
+        }
         S2LPGpioIrqClearStatus();
-        if(is_connected)
         {
             ble_data.rf_rx_rssi = (uint8_t)S2LPRadioGetRssidBm ();
-            ble_data.pkt_no = test_var;
+            ble_data.pkt_no = current_pkt_no;
             ble_data.CRC_ERR = (uint8_t) S2LPGpioIrqCheckFlag (CRC_ERROR);
             rf_rx_ble_update_status_byte (&ble_data);
         }
+        rssi_sum += ble_data.rf_rx_rssi;
     }
     else if (S2LPGpioIrqCheckFlag (RX_DATA_DISC))
     {
@@ -239,15 +264,20 @@ void GPIOTE_IRQHandler ()
  */
 int main(void)
 {
-    rgb_led_init();
-    rgb_led_cycle();
+    lfclk_init (LFCLK_SRC_Xtal);
     /* Initial printf */
     log_init();
     log_printf("Hello World from RF_RX..!!\n");
+    
+#if DC_DC_CIRCUITRY == true  //Defined in the board header file
+    NRF_POWER->DCDCEN = POWER_DCDCEN_DCDCEN_Disabled << POWER_DCDCEN_DCDCEN_Pos;
+#endif
+    NRF_POWER->TASKS_LOWPWR = 1;
 
-    lfclk_init (LFCLK_SRC_Xtal);
     ms_timer_init(APP_IRQ_PRIORITY_LOWEST);
     S2LPSpiInit ();
+    rgb_led_init();
+    rgb_led_cycle();
     hal_gpio_cfg_output (SDN,0);
     hal_gpio_pin_set (SDN);
     hal_nop_delay_ms (1);
@@ -274,8 +304,7 @@ int main(void)
         S2LPPktBasicSetPayloadLength(2);
 
         /* RX timeout config */
-    S2LPTimerSetRxTimerUs(1500000);
-
+    SET_INFINITE_RX_TIMEOUT();
     }
     log_printf("Here..!!\n");
 
