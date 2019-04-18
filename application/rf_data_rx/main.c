@@ -41,6 +41,7 @@
 #include "math.h"
 
 #include "nrf.h"
+#include "nrf_nvic.h"
 
 #include "boards.h"
 #include "hal_clocks.h"
@@ -163,15 +164,15 @@ static void rgb_led_cycle(void)
     hal_gpio_pin_write(LED_RED, (LEDS_ACTIVE_STATE));
     hal_gpio_pin_write(LED_GREEN, !(LEDS_ACTIVE_STATE));
     hal_gpio_pin_write(LED_BLUE, !(LEDS_ACTIVE_STATE));
-    hal_nop_delay_ms(250);
+    hal_nop_delay_ms(50);
     hal_gpio_pin_write(LED_RED, !(LEDS_ACTIVE_STATE));
     hal_gpio_pin_write(LED_GREEN, (LEDS_ACTIVE_STATE));
     hal_gpio_pin_write(LED_BLUE, !(LEDS_ACTIVE_STATE));
-    hal_nop_delay_ms(250);
+    hal_nop_delay_ms(50);
     hal_gpio_pin_write(LED_RED, !(LEDS_ACTIVE_STATE));
     hal_gpio_pin_write(LED_GREEN, !(LEDS_ACTIVE_STATE));
     hal_gpio_pin_write(LED_BLUE, (LEDS_ACTIVE_STATE));
-    hal_nop_delay_ms(250);
+    hal_nop_delay_ms(50);
     hal_gpio_pin_write(LED_RED, !(LEDS_ACTIVE_STATE));
     hal_gpio_pin_write(LED_GREEN, !(LEDS_ACTIVE_STATE));
     hal_gpio_pin_write(LED_BLUE, !(LEDS_ACTIVE_STATE));
@@ -202,7 +203,41 @@ void slumber(void)
         sd_app_evt_wait();
     }
 }
-//
+
+void start_rx(void)
+{
+    bool break_now = false;
+    do{
+        S2LPGpioInit(&xGpioIRQ);
+        S2LPCmdStrobeRx();
+
+        uint32_t irqs;
+        S2LPGpioIrqGetStatus((S2LPIrqs*) &irqs);
+        log_printf ("Rx? I0x%X S0x%X", irqs, g_xStatus);
+        if(g_xStatus.MC_STATE == MC_STATE_RX)
+        {
+            break_now = true;
+            log_printf(" Yay\n");
+        }
+        else
+        {
+            log_printf(" Nay\n");
+            log_printf("Reset..!!");
+            uint8_t is_sd_enabled;
+            sd_softdevice_is_enabled(&is_sd_enabled);
+            if(is_sd_enabled == 0)
+            {
+                sd_nvic_SystemReset();
+            }
+            else
+            {
+                NVIC_SystemReset ();
+            }
+        }
+        hal_nop_delay_ms(1);
+
+    } while(break_now == false);
+}
 
 void GPIOTE_IRQHandler ()
 {
@@ -250,14 +285,15 @@ void GPIOTE_IRQHandler ()
         }
         rssi_sum += ble_data.rf_rx_rssi;
     }
-    else if (S2LPGpioIrqCheckFlag (RX_DATA_DISC))
+    else
     {
-        log_printf ("Data discarded..!!\n");
+        uint32_t irqs;
+        S2LPGpioIrqGetStatus((S2LPIrqs*) &irqs);
+        S2LPRefreshStatus();
+        log_printf ("*** Data not ready. IRQ 0x%X, state 0x%X\n", irqs, g_xStatus.MC_STATE);
     }
 
-    S2LPGpioInit(&xGpioIRQ);  
-    S2LPCmdStrobeRx();
-    
+    start_rx();
 }
 /**
  * @brief Function for application main entry.
@@ -320,8 +356,9 @@ int main(void)
     ble_data.rf_rx_rssi = 0;
     rf_rx_ble_update_status_byte (&ble_data);
 
+    start_rx();
 
-            S2LPCmdStrobeRx();
+    NRF_GPIOTE->EVENTS_IN[GPIOTE_CHANNEL_USED] = 0;
     NVIC_SetPriority (GPIOTE_IRQn, APP_IRQ_PRIORITY_LOW);
     NVIC_ClearPendingIRQ (GPIOTE_IRQn);
     NVIC_EnableIRQ (GPIOTE_IRQn);
