@@ -193,8 +193,7 @@ sensebe_tx_rx_config_t default_sensebe_tx_rx_config =
 
     .sensebe_config = &sensebe_ble_default_config,
     
-//    .rx_tx_sel = RX_TX_S, //Enable this to use Rx Tx selection by HW pulls
-    
+    .rx_tx_sel = SENSEBE_RX_TX_SEL_PIN,
 };
 
 /* ----- Function declarations ----- */
@@ -568,7 +567,7 @@ int main(void)
 
     /* Mandatory welcome message */
     log_init();
-    log_printf("\n\nHello SensePi World!\n");
+    log_printf("\n\nHello SenseBe World!\n");
     boot_pwr_config();
 
     lfclk_init(LFCLK_SRC_Xtal);
