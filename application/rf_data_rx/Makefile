@@ -1,23 +1,26 @@
 
-BOARD           := BOARD_SENSEBE_REV3
+BOARD           := BOARD_BLUEY_1V1
 SLNO            := 682073614
 BLE_REQD        := BLE_STACK_SUPPORT_REQD
 PINRESET_REQD   := CONFIG_GPIO_AS_PINRESET
-DEBUGGER        := BMP
+DEBUGGER        := JLINK
 LOGGER          := LOG_UART_PRINTF
 FW_VER_VAL      := 0
 MS_TIMER_FREQ   := 32768
-TSSP_DETECT_FREQ := 32768
+TSSP_DETECT_FREQ := 1000
 SD_USED         := s112
 SD_VER          := 6.0.0
-CONFIG_HEADER	:= 1
+CONFIG_HEADER	:= 0
 
 SDK_DIR         = ../../SDK_components
 DOC_DIR         = ../../doc
 PLATFORM_DIR    = ../../platform
 CODEBASE_DIR    = ../../codebase
 
-INCLUDEDIRS	= .
+INCLUDEDIRS	= ./
+INCLUDEDIRS += ../rf_data_tx_rx/S2LP_Library/Inc
+INCLUDEDIRS += ../rf_data_tx_rx/
+
 INCLUDEDIRS	+= $(PLATFORM_DIR)
 ifneq ($(SD_USED_LC),blank)
 INCLUDEDIRS += $(SDK_DIR)/softdevice/$(SD_USED)/headers
@@ -27,15 +30,20 @@ INCLUDEDIRS += $(CODEBASE_DIR)/segger_rtt
 INCLUDEDIRS += $(CODEBASE_DIR)/sd_assist
 INCLUDEDIRS += $(CODEBASE_DIR)/peripheral_modules
 INCLUDEDIRS += $(CODEBASE_DIR)/util
-INCLUDEDIRS += ./led_sequences
+
 
 C_SRC_DIRS = .
+
+C_SRC_DIRS += ../rf_data_tx_rx/
+C_SRC_DIRS += ../rf_data_tx_rx/S2LP_Library/Src
+
 C_SRC_DIRS += $(CODEBASE_DIR)/segger_rtt
 C_SRC_DIRS += $(CODEBASE_DIR)/hal
 C_SRC_DIRS += $(CODEBASE_DIR)/sd_assist
 C_SRC_DIRS += $(CODEBASE_DIR)/peripheral_modules
 C_SRC_DIRS += $(CODEBASE_DIR)/util
-C_SRC_DIRS += ./led_sequences
+
+
 
 C_SRC = main.c
 C_SRC += nrf_assert.c app_error.c
@@ -49,24 +57,31 @@ C_SRC += hal_uart.c tinyprintf.c
 else
 endif
 C_SRC += hal_wdt.c
-C_SRC += nrf_util.c irq_msg_util.c
-C_SRC += device_tick.c
+C_SRC += nrf_util.c 
+
+C_SRC += hal_spim.c
+
+C_SRC += rf_rx_ble.c
 C_SRC += evt_sd_handler.c
-C_SRC += button_ui.c
-C_SRC += simple_adc.c
-C_SRC += sensebe_ble.c
-C_SRC += hal_pwm.c
-C_SRC += dev_id_fw_ver.c
-C_SRC += out_pattern_gen.c
-C_SRC += sensebe_tx_rx_mod.c
-C_SRC += sensebe_store_config.c
-C_SRC += hal_nvmc.c
-C_SRC += led_ui.c
-C_SRC += led_seq.c
-C_SRC += tssp_detect.c
-C_SRC += cam_trigger.c
-C_SRC += simple_pwm.c
-C_SRC += tssp_ir_tx.c
+
+C_SRC += SDK_EVAL_Spi_Driver.c
+
+C_SRC += S2LP_Commands.c
+C_SRC += S2LP_Csma.c
+C_SRC += S2LP_Fifo.c
+C_SRC += S2LP_General.c
+C_SRC += S2LP_Gpio.c
+C_SRC += S2LP_PacketHandler.c
+C_SRC += S2LP_PktBasic.c
+C_SRC += S2LP_PktStack.c
+C_SRC += S2LP_PktWMbus.c
+C_SRC += S2LP_Qi.c
+C_SRC += S2LP_Radio.c
+C_SRC += S2LP_Types.c
+C_SRC += S2LP_Timer.c
+C_SRC += S2LP_Timer_ex.c
+
+
 #Gets the name of the application folder
 APPLN = $(shell basename $(PWD))
 

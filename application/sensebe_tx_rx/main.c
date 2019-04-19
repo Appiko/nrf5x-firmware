@@ -155,7 +155,7 @@ static sensebe_config_t sensebe_ble_default_config = {
     .tssp_conf.cam_oper.larger_value = 0,
     .tssp_conf.cam_oper.smaller_value = 0,
     .tssp_conf.cam_oper.pre_focus = 0,
-    .tssp_conf.intr_trig_timer = 50,
+    .tssp_conf.intr_trig_timer = 15,
 
     .timer_conf.oper_time.day_or_night = 1,
     .timer_conf.oper_time.threshold = 0b0000000,
@@ -171,7 +171,7 @@ static sensebe_config_t sensebe_ble_default_config = {
     .ir_tx_conf.oper_time.threshold = 0b0000000,
     .ir_tx_conf.is_enable = 1,
     .ir_tx_conf.ir_tx_speed = 1,
-    .ir_tx_conf.ir_tx_pwr = 0,
+    .ir_tx_conf.ir_tx_pwr = 1,
 
 };
 
@@ -193,6 +193,7 @@ sensebe_tx_rx_config_t default_sensebe_tx_rx_config =
 
     .sensebe_config = &sensebe_ble_default_config,
     
+    .rx_tx_sel = SENSEBE_RX_TX_SEL_PIN,
 };
 
 /* ----- Function declarations ----- */
@@ -413,13 +414,13 @@ void button_handler(button_ui_steps step, button_ui_action act)
             device_tick_init(&tick_cfg);
             break;
         case BUTTON_UI_STEP_QUICK:
-                break;
-        case BUTTON_UI_STEP_SHORT:
             if(current_state == SENSING)
             {
                 irq_msg_push(MSG_STATE_CHANGE, (void *) ADVERTISING);
             }
 
+            break;
+        case BUTTON_UI_STEP_SHORT:
             break;
         case BUTTON_UI_STEP_LONG:
             {
@@ -449,7 +450,6 @@ void button_handler(button_ui_steps step, button_ui_action act)
         case BUTTON_UI_STEP_WAKE:
             break;
         case BUTTON_UI_STEP_QUICK:
-            sensebe_tx_rx_swicht_range ();
             break;
         case BUTTON_UI_STEP_SHORT:
                 break;
@@ -567,7 +567,7 @@ int main(void)
 
     /* Mandatory welcome message */
     log_init();
-    log_printf("\n\nHello SensePi World!\n");
+    log_printf("\n\nHello SenseBe World!\n");
     boot_pwr_config();
 
     lfclk_init(LFCLK_SRC_Xtal);

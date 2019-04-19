@@ -80,7 +80,15 @@ void hal_nvmc_write_data (void * p_destination, void * p_source, uint32_t size_o
     }
     *loc_to_write = word_to_write;
     loc_to_write++;
-
+    
+    if(no_of_words == 1)
+    {
+        //special case.
+        NRF_NVMC->CONFIG = NVMC_CONFIG_WEN_Ren;
+        while(NRF_NVMC->READY != NVMC_READY_READY_Ready);
+        return;
+    }
+    
     data_to_write = (uint32_t *)((uint32_t)data_to_write - head_offset);
      //words in middlle can be written directly.
     for(int32_t i = 1; i< (no_of_words - 1); i++)

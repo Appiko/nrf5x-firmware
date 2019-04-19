@@ -62,9 +62,9 @@
 /** Number of pulses required for sync while module is in motion sync mode.  */
 #define PULSE_REQ_FOR_SYNC 4
 /** On time for TSSP receiver while module is in motion sync mode */
-#define MOTION_SYNC_ON_TIME 150
+#define MOTION_SYNC_ON_TIME 200
 /** Off time for TSSP receiver while module is in motion sync mode */
-#define MOTION_SYNC_OFF_TIME 850
+#define MOTION_SYNC_OFF_TIME 800
 
 /***********ENUMS***********/
 /** List of states for Motion Detection module. */
@@ -110,16 +110,25 @@ typedef enum
 typedef enum
 {
     /**Wake up time 5ms*/
-    MOD_FREQ0 = TSSP_DETECT_TICKS_MS(5),
+    MOD_FREQ0 = (5),
     /**Wake up time 25ms*/
-    MOD_FREQ1 = TSSP_DETECT_TICKS_MS(25),
+    MOD_FREQ1 = (25),
     /**Wake up time 50ms*/
-    MOD_FREQ2 = TSSP_DETECT_TICKS_MS(50),
+    MOD_FREQ2 = (50),
     /**Wake up time 100ms*/
-    MOD_FREQ3 = TSSP_DETECT_TICKS_MS(100),
+    MOD_FREQ3 = (100),
     /**Maximum number of frequencies possible*/
     MAX_MOD_FREQ = 4,
 }module_freq_t;
+
+/** List of HW modes */
+typedef enum 
+{
+    /** Enable TX HW circuitry */
+    TX_EN = SENSEBE_TX_BOARD,
+    /** Enable RX HW circuitry  */
+    RX_EN = SENSEBE_RX_BOARD
+}rx_tx_mod_en_t;
 
 /***********VARIABLE***********/
 /**Global variable used to check if LED feedback is required or not*/
@@ -128,6 +137,9 @@ static uint32_t feedback_timepassed = 0;
 static sensebe_config_t sensebe_config;
 /**Array of the wake up times*/
 static uint32_t arr_module_tick_duration[] = {MOD_FREQ0, MOD_FREQ1, MOD_FREQ2, MOD_FREQ3};
+/** Array of the TSSP ticks for sync time validation */
+static uint32_t arr_sync_validation_ticks[] = {TSSP_DETECT_TICKS_MS(MOD_FREQ0),
+TSSP_DETECT_TICKS_MS(MOD_FREQ1), TSSP_DETECT_TICKS_MS(MOD_FREQ2), TSSP_DETECT_TICKS_MS(MOD_FREQ3)};
 /**Array of light status flags*/
 static bool arr_is_light_ok [MAX_MODS];
 /**Array of flags to keep track if light check is required or not*/
@@ -153,6 +165,9 @@ static uint32_t ir_pwr1 = 0, ir_pwr2 =0;
 static uint32_t light_check_sense_pin = 0;
 /**Global variable to store pin number of Light sensor control pin*/
 static uint32_t light_check_en_pin = 0;
+
+/** Variable to select the boards functionality */
+static rx_tx_mod_en_t MOD_FUNC_SEL = RX_EN;
 
 /***********FUNCTIONS***********/
 /** Motion Detection Module Related Functions. */
@@ -374,7 +389,7 @@ bool validate_and_sync (uint32_t ticks)
 {
     for(uint32_t freq_cmp = 0; freq_cmp < MAX_MOD_FREQ; freq_cmp++)
     {
-        if(compare_margin (ticks, arr_module_tick_duration[freq_cmp], 2))
+        if(compare_margin (ticks, arr_sync_validation_ticks[freq_cmp], TSSP_DETECT_TICKS_MS(1)))
         {
             return true;
         }
@@ -385,36 +400,45 @@ bool validate_and_sync (uint32_t ticks)
 bool three_window_sync (uint32_t ticks)
 {
     static uint32_t previous_pulse_tick = 0, current_pulse_tick = 0;
-    static uint32_t pulse_diff_window[] = {0,0,0}, pulse_diff_window_cnt = 0;
+    static uint32_t pulse_diff_window[] = {0,0,0};
     static uint32_t pulse_cnt = PULSE_REQ_FOR_SYNC;
+    static bool flag = false;
     if(pulse_cnt == PULSE_REQ_FOR_SYNC)
     {
+        flag = false;
         previous_pulse_tick = ticks;
         pulse_cnt --;
     }
     else if(pulse_cnt > 0)
     {
         current_pulse_tick = ticks;
-        pulse_diff_window[pulse_diff_window_cnt] = ((current_pulse_tick + (1<<24))- previous_pulse_tick)
+        pulse_diff_window[pulse_cnt - 1] = ((current_pulse_tick + (1<<24))- previous_pulse_tick)
              & 0x00FFFFFF;
         previous_pulse_tick = current_pulse_tick;
-        pulse_diff_window_cnt++;
         pulse_cnt--;
     }
     else if(pulse_cnt == 0)
     {
-        pulse_diff_window_cnt = 0;
-        log_printf("Window[0]: %d\n", pulse_diff_window[0]);
-        log_printf("Window[1]: %d\n", pulse_diff_window[1]);
-        log_printf("Window[2]: %d\n", pulse_diff_window[2]);
-        tssp_detect_sync_time = pulse_diff_window[1];
         pulse_cnt = PULSE_REQ_FOR_SYNC;
-        return (compare_margin (pulse_diff_window[1], pulse_diff_window[0], 2)
-            && compare_margin (pulse_diff_window[2], pulse_diff_window[1], 2)
-            && validate_and_sync (pulse_diff_window[1]));
+        
     }
+    log_printf("Window[0]: %d\n", pulse_diff_window[0]);
+    log_printf("Window[1]: %d\n", pulse_diff_window[1]);
+    log_printf("Window[2]: %d\n", pulse_diff_window[2]);
+    flag = (validate_and_sync (pulse_diff_window[0])
+        && validate_and_sync (pulse_diff_window[1])
+        && validate_and_sync (pulse_diff_window[2])
+        && compare_margin (pulse_diff_window[1], pulse_diff_window[0], TSSP_DETECT_TICKS_MS(2))
+        && compare_margin (pulse_diff_window[2], pulse_diff_window[1], TSSP_DETECT_TICKS_MS(2)));
     
-    return false;
+    if(flag == true)
+    {
+        tssp_detect_sync_time = pulse_diff_window[1];
+        pulse_diff_window[0] = 0;
+        pulse_diff_window[1] = 0;
+        pulse_diff_window[2] = 0;
+    }    
+    return flag;
 }
 
 void pulse_detect_handler (uint32_t ticks_count)
@@ -434,10 +458,10 @@ void pulse_detect_handler (uint32_t ticks_count)
         else
         {
             tssp_detect_pulse_detect ();
-            if(feedback_timepassed < DETECT_FEEDBACK_TIMEOUT_TICKS)
-            {
-                led_ui_single_start (LED_SEQ_DETECT_SYNC, LED_UI_LOW_PRIORITY, true);
-            }
+//            if(feedback_timepassed < DETECT_FEEDBACK_TIMEOUT_TICKS)
+//            {
+//                led_ui_single_start (LED_SEQ_DETECT_SYNC, LED_UI_LOW_PRIORITY, true);
+//            }
             led_ui_stop_seq (LED_UI_LOOP_SEQ, LED_SEQ_DETECT_PULSE);
         }
     }
@@ -722,6 +746,11 @@ void sensebe_tx_rx_init (sensebe_tx_rx_config_t * sensebe_rx_detect_config)
     light_check_en_pin = sensebe_rx_detect_config->rx_detect_config.photodiode_en_pin;
     hal_gpio_cfg_output (light_check_en_pin, 0);
     
+    hal_gpio_cfg_input (sensebe_rx_detect_config->rx_tx_sel, HAL_GPIO_PULL_DISABLED);
+    MOD_FUNC_SEL = hal_gpio_pin_read (sensebe_rx_detect_config->rx_tx_sel);
+    log_printf("MOD_FUNC_SEL %d\n",MOD_FUNC_SEL);
+
+    
     memcpy (&sensebe_config, sensebe_rx_detect_config->sensebe_config,
             sizeof(sensebe_config_t));
     
@@ -772,7 +801,7 @@ void sensebe_tx_rx_start (void)
     
     log_printf(" Trig Config : %d\n ", sensebe_config.trig_conf);
     
-    if(sensebe_config.trig_conf != MOTION_ONLY)
+    if((MOD_FUNC_SEL == RX_EN) && (sensebe_config.trig_conf != MOTION_ONLY))
     {
         timer_module_start ();
     }
@@ -781,7 +810,7 @@ void sensebe_tx_rx_start (void)
         timer_module_stop ();
     }
     
-    if(sensebe_config.trig_conf != TIMER_ONLY)
+    if((MOD_FUNC_SEL == RX_EN) && (sensebe_config.trig_conf != TIMER_ONLY))
     {
         motion_module_start ();
     }
@@ -790,7 +819,7 @@ void sensebe_tx_rx_start (void)
         motion_module_stop ();
     }
     
-    if(sensebe_config.ir_tx_conf.is_enable == 1)
+    if ((MOD_FUNC_SEL == TX_EN) && (sensebe_config.ir_tx_conf.is_enable == 1))
     {
         ir_tx_module_start ();
     }
@@ -822,20 +851,20 @@ void sensebe_tx_rx_add_ticks (uint32_t interval)
 
     if(arr_is_light_sense_req [MOD_MOTION] == true ||
        arr_is_light_sense_req [MOD_TIMER] == true ||
-       arr_is_light_sense_req [MOD_IR_TX])
+       arr_is_light_sense_req [MOD_IR_TX] == true)
     {
         light_sense_add_ticks (interval);
     }
     
-    if(sensebe_config.trig_conf != TIMER_ONLY)
+    if((MOD_FUNC_SEL == RX_EN) && (sensebe_config.trig_conf != TIMER_ONLY))
     {
         motion_module_add_ticks ();
     }
-    if(sensebe_config.trig_conf != MOTION_ONLY)
+    if((MOD_FUNC_SEL == RX_EN) && (sensebe_config.trig_conf != MOTION_ONLY))
     {
         timer_module_add_ticks (); 
     }
-    if(sensebe_config.ir_tx_conf.is_enable == 1)
+    if((MOD_FUNC_SEL == TX_EN) && (sensebe_config.ir_tx_conf.is_enable == 1))
     {
         ir_tx_module_add_ticks ();
     }
