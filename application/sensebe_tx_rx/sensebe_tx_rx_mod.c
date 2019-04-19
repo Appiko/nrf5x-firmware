@@ -124,10 +124,10 @@ typedef enum
 /** List of HW modes */
 typedef enum 
 {
-    /** Enable RX HW circuitry  */
-    RX_EN,
     /** Enable TX HW circuitry */
-    TX_EN,
+    TX_EN = SENSEBE_TX_BOARD,
+    /** Enable RX HW circuitry  */
+    RX_EN = SENSEBE_RX_BOARD
 }rx_tx_mod_en_t;
 
 /***********VARIABLE***********/
@@ -748,6 +748,8 @@ void sensebe_tx_rx_init (sensebe_tx_rx_config_t * sensebe_rx_detect_config)
     
     hal_gpio_cfg_input (sensebe_rx_detect_config->rx_tx_sel, HAL_GPIO_PULL_DISABLED);
     MOD_FUNC_SEL = hal_gpio_pin_read (sensebe_rx_detect_config->rx_tx_sel);
+    log_printf("MOD_FUNC_SEL %d\n",MOD_FUNC_SEL);
+
     
     memcpy (&sensebe_config, sensebe_rx_detect_config->sensebe_config,
             sizeof(sensebe_config_t));
