@@ -121,6 +121,15 @@ typedef enum
     MAX_MOD_FREQ = 4,
 }module_freq_t;
 
+/** List of HW modes */
+typedef enum 
+{
+    /** Enable TX HW circuitry */
+    TX_EN = SENSEBE_TX_BOARD,
+    /** Enable RX HW circuitry  */
+    RX_EN = SENSEBE_RX_BOARD
+}rx_tx_mod_en_t;
+
 /***********VARIABLE***********/
 /**Global variable used to check if LED feedback is required or not*/
 static uint32_t feedback_timepassed = 0;
@@ -156,6 +165,9 @@ static uint32_t ir_pwr1 = 0, ir_pwr2 =0;
 static uint32_t light_check_sense_pin = 0;
 /**Global variable to store pin number of Light sensor control pin*/
 static uint32_t light_check_en_pin = 0;
+
+/** Variable to select the boards functionality */
+static rx_tx_mod_en_t MOD_FUNC_SEL = RX_EN;
 
 /***********FUNCTIONS***********/
 /** Motion Detection Module Related Functions. */
@@ -734,6 +746,11 @@ void sensebe_tx_rx_init (sensebe_tx_rx_config_t * sensebe_rx_detect_config)
     light_check_en_pin = sensebe_rx_detect_config->rx_detect_config.photodiode_en_pin;
     hal_gpio_cfg_output (light_check_en_pin, 0);
     
+    hal_gpio_cfg_input (sensebe_rx_detect_config->rx_tx_sel, HAL_GPIO_PULL_DISABLED);
+    MOD_FUNC_SEL = hal_gpio_pin_read (sensebe_rx_detect_config->rx_tx_sel);
+    log_printf("MOD_FUNC_SEL %d\n",MOD_FUNC_SEL);
+
+    
     memcpy (&sensebe_config, sensebe_rx_detect_config->sensebe_config,
             sizeof(sensebe_config_t));
     
@@ -784,7 +801,7 @@ void sensebe_tx_rx_start (void)
     
     log_printf(" Trig Config : %d\n ", sensebe_config.trig_conf);
     
-    if(sensebe_config.trig_conf != MOTION_ONLY)
+    if((MOD_FUNC_SEL == RX_EN) && (sensebe_config.trig_conf != MOTION_ONLY))
     {
         timer_module_start ();
     }
@@ -793,7 +810,7 @@ void sensebe_tx_rx_start (void)
         timer_module_stop ();
     }
     
-    if(sensebe_config.trig_conf != TIMER_ONLY)
+    if((MOD_FUNC_SEL == RX_EN) && (sensebe_config.trig_conf != TIMER_ONLY))
     {
         motion_module_start ();
     }
@@ -802,7 +819,7 @@ void sensebe_tx_rx_start (void)
         motion_module_stop ();
     }
     
-    if(sensebe_config.ir_tx_conf.is_enable == 1)
+    if ((MOD_FUNC_SEL == TX_EN) && (sensebe_config.ir_tx_conf.is_enable == 1))
     {
         ir_tx_module_start ();
     }
@@ -839,15 +856,15 @@ void sensebe_tx_rx_add_ticks (uint32_t interval)
         light_sense_add_ticks (interval);
     }
     
-    if(sensebe_config.trig_conf != TIMER_ONLY)
+    if((MOD_FUNC_SEL == RX_EN) && (sensebe_config.trig_conf != TIMER_ONLY))
     {
         motion_module_add_ticks ();
     }
-    if(sensebe_config.trig_conf != MOTION_ONLY)
+    if((MOD_FUNC_SEL == RX_EN) && (sensebe_config.trig_conf != MOTION_ONLY))
     {
         timer_module_add_ticks (); 
     }
-    if(sensebe_config.ir_tx_conf.is_enable == 1)
+    if((MOD_FUNC_SEL == TX_EN) && (sensebe_config.ir_tx_conf.is_enable == 1))
     {
         ir_tx_module_add_ticks ();
     }

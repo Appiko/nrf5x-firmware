@@ -94,6 +94,7 @@ typedef struct
 {
     rx_detect_config_t rx_detect_config;
     tx_transmit_config_t tx_transmit_config;
+    uint32_t rx_tx_sel;
     sensebe_config_t * sensebe_config;
 }sensebe_tx_rx_config_t;
 
