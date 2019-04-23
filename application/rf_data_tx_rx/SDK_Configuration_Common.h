@@ -24,6 +24,9 @@
 #ifndef __S2LP_PKT_TEST_COMMON_H
 #define __S2LP_PKT_TEST_COMMON_H
 
+#include "S2LP_Library/Inc/S2LP_Radio.h"
+
+
 #define USE_HIGH_BAND 1
 //#define USE_MIDDLE_BAND 1
 
@@ -68,20 +71,20 @@
 #define BASE_FREQUENCY              866000000
 #endif
 
-#define MODULATION_SELECT           MOD_2FSK
-#define DATARATE                    300
-#define FREQ_DEVIATION              500
-#define BANDWIDTH                   2000
+#define MODULATION_SELECT           MOD_2GFSK_BT1
+#define DATARATE                    150
+#define FREQ_DEVIATION              150
+#define BANDWIDTH                   1500
 
 #define POWER_DBM                   14/*.0*/
 
 
   
 /*  Packet configuration parameters  */
-#define PREAMBLE_LENGTH             PREAMBLE_BYTE(4)
-#define SYNC_LENGTH                 SYNC_BYTE(4)
-#define SYNC_WORD                   0x5aa5BCDE
-#define VARIABLE_LENGTH             1
+#define PREAMBLE_LENGTH             PREAMBLE_BYTE(3)
+#define SYNC_LENGTH                 SYNC_BYTE(2)
+#define SYNC_WORD                   0x369B
+#define VARIABLE_LENGTH             0
 #define EXTENDED_LENGTH_FIELD       0
 #define CRC_MODE                    PKT_CRC_MODE_8BITS
 #define EN_ADDRESS                  0

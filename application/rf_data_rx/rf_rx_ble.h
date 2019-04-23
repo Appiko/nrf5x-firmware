@@ -52,6 +52,8 @@ rf_rx_ble_adv_data_t;
 typedef struct
 {
     uint8_t rf_rx_rssi;
+    uint8_t CRC_ERR;
+    uint16_t pkt_no;
 }mod_ble_data_t;
 
 /**
