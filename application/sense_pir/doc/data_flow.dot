@@ -1,0 +1,16 @@
+digraph Sense_Pi_app_flow {
+  ratio = "fill"
+  size = "8,6";
+  ble [shape = circle, width = 1.0, label = "Bluetooth\n Communication\n Module"];
+  app [ shape = circle, width = 1.2, label = "Main\n Application"];
+  store_conf [shape = circle, width = 1.2, label = "Data\n Storage\n Module"];
+  cam_trig [shape = circle, width = 1.2, label = "Camera\n Trigger"];
+  app -> ble [label = "Sys Info"];
+  ble -> app [label = " "];
+  app -> cam_trig;
+  cam_trig -> app;
+  app -> store_conf;
+  store_conf -> app;
+  cam_trig -> store_conf;
+}
+

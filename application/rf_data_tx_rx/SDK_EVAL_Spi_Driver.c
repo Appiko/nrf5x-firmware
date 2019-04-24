@@ -341,19 +341,16 @@ StatusBytes SdkEvalSpiWriteRegisters(uint8_t cRegAddress, uint8_t cNbBytes, uint
 StatusBytes SdkEvalSpiReadRegisters(uint8_t cRegAddress, uint8_t cNbBytes, uint8_t* pcBuffer)
 {
   uint8_t tx_buff[255]={READ_HEADER,cRegAddress};
-  uint8_t rx_buff[2];
   uint8_t temp_buff[255];
   StatusBytes status;
-  
-  hal_spim_tx_rx (tx_buff, 2, rx_buff, 2);
-  while(hal_spim_is_busy ());
+
   hal_spim_tx_rx (tx_buff, 2, temp_buff, cNbBytes+2);
   while(hal_spim_is_busy ());
   
   memcpy (pcBuffer, &temp_buff[2],cNbBytes);
   
-  ((uint8_t*)&status)[1]=rx_buff[0];
-  ((uint8_t*)&status)[0]=rx_buff[1];  
+  ((uint8_t*)&status)[1]=temp_buff[0];
+  ((uint8_t*)&status)[0]=temp_buff[1];
   
   return status;
 }
