@@ -1,0 +1,15 @@
+digraph Sense_Pi_app_flow {
+  rankdir = "LR";
+  ratio = "fill";
+  size = "8,6";
+  start [shape = point, label = "Start"];
+  sense [ shape = circle, width = 1.0, label = "Sensing"];
+  adv [shape = circle, width = 1.0, label = "Advertisement"];
+  conn [shape = circle, width = 1.0, label = "Connection"];
+  start -> sense;
+  conn  -> sense[label = "Disconnect or Timeout"];
+  sense -> adv[label = "Button Press"];
+  adv   -> conn [label = "Connection Request"];
+  adv   -> sense[label = "Timeout"];
+}
+

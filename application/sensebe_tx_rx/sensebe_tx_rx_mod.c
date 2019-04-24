@@ -1,35 +1,19 @@
-/* 
- * File:   sensebe_tx_rx_mod.c
- * Copyright (c) 2018 Appiko
- * Created on 29 October, 2018, 12:22 PM
- * Author:  Tejas Vasekar (https://github.com/tejas-tj)
- * All rights reserved.
- * 
- * Redistribution and use in source and binary forms, with or without
- * modification, are permitted provided that the following conditions are met:
+/*
+ *  sensebe_tx_rx_mod.c : Module to handle SenseBe's Tx Rx functionalities
+ *  Copyright (C) 2019  Appiko
  *
- * 1. Redistributions of source code must retain the above copyright notice,
- * this list of conditions and the following disclaimer.
+ *  This program is free software: you can redistribute it and/or modify
+ *  it under the terms of the GNU General Public License as published by
+ *  the Free Software Foundation, either version 3 of the License, or
+ *  (at your option) any later version.
  *
- * 2. Redistributions in binary form must reproduce the above copyright notice,
- * this list of conditions and the following disclaimer in the documentation
- * and/or other materials provided with the distribution.
- *
- * 3. Neither the name of the copyright holder nor the names of its contributors
- * may be used to endorse or promote products derived from this software without
- * specific prior written permission.
- *
- * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
- * AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
- * IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
- * ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE
- * LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR 
- * CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF 
- * SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
- * INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN 
- * CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) 
- * ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
- * POSSIBILITY OF SUCH DAMAGE
+ *  This program is distributed in the hope that it will be useful,
+ *  but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ *  GNU General Public License for more details.
+ *  
+ *  You should have received a copy of the GNU General Public License
+ *  along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
 
@@ -121,6 +105,15 @@ typedef enum
     MAX_MOD_FREQ = 4,
 }module_freq_t;
 
+/** List of HW modes */
+typedef enum 
+{
+    /** Enable TX HW circuitry */
+    TX_EN = SENSEBE_TX_BOARD,
+    /** Enable RX HW circuitry  */
+    RX_EN = SENSEBE_RX_BOARD
+}rx_tx_mod_en_t;
+
 /***********VARIABLE***********/
 /**Global variable used to check if LED feedback is required or not*/
 static uint32_t feedback_timepassed = 0;
@@ -156,6 +149,9 @@ static uint32_t ir_pwr1 = 0, ir_pwr2 =0;
 static uint32_t light_check_sense_pin = 0;
 /**Global variable to store pin number of Light sensor control pin*/
 static uint32_t light_check_en_pin = 0;
+
+/** Variable to select the boards functionality */
+static rx_tx_mod_en_t MOD_FUNC_SEL = RX_EN;
 
 /***********FUNCTIONS***********/
 /** Motion Detection Module Related Functions. */
@@ -734,6 +730,11 @@ void sensebe_tx_rx_init (sensebe_tx_rx_config_t * sensebe_rx_detect_config)
     light_check_en_pin = sensebe_rx_detect_config->rx_detect_config.photodiode_en_pin;
     hal_gpio_cfg_output (light_check_en_pin, 0);
     
+    hal_gpio_cfg_input (sensebe_rx_detect_config->rx_tx_sel, HAL_GPIO_PULL_DISABLED);
+    MOD_FUNC_SEL = hal_gpio_pin_read (sensebe_rx_detect_config->rx_tx_sel);
+    log_printf("MOD_FUNC_SEL %d\n",MOD_FUNC_SEL);
+
+    
     memcpy (&sensebe_config, sensebe_rx_detect_config->sensebe_config,
             sizeof(sensebe_config_t));
     
@@ -784,7 +785,7 @@ void sensebe_tx_rx_start (void)
     
     log_printf(" Trig Config : %d\n ", sensebe_config.trig_conf);
     
-    if(sensebe_config.trig_conf != MOTION_ONLY)
+    if((MOD_FUNC_SEL == RX_EN) && (sensebe_config.trig_conf != MOTION_ONLY))
     {
         timer_module_start ();
     }
@@ -793,7 +794,7 @@ void sensebe_tx_rx_start (void)
         timer_module_stop ();
     }
     
-    if(sensebe_config.trig_conf != TIMER_ONLY)
+    if((MOD_FUNC_SEL == RX_EN) && (sensebe_config.trig_conf != TIMER_ONLY))
     {
         motion_module_start ();
     }
@@ -802,7 +803,7 @@ void sensebe_tx_rx_start (void)
         motion_module_stop ();
     }
     
-    if(sensebe_config.ir_tx_conf.is_enable == 1)
+    if ((MOD_FUNC_SEL == TX_EN) && (sensebe_config.ir_tx_conf.is_enable == 1))
     {
         ir_tx_module_start ();
     }
@@ -839,15 +840,15 @@ void sensebe_tx_rx_add_ticks (uint32_t interval)
         light_sense_add_ticks (interval);
     }
     
-    if(sensebe_config.trig_conf != TIMER_ONLY)
+    if((MOD_FUNC_SEL == RX_EN) && (sensebe_config.trig_conf != TIMER_ONLY))
     {
         motion_module_add_ticks ();
     }
-    if(sensebe_config.trig_conf != MOTION_ONLY)
+    if((MOD_FUNC_SEL == RX_EN) && (sensebe_config.trig_conf != MOTION_ONLY))
     {
         timer_module_add_ticks (); 
     }
-    if(sensebe_config.ir_tx_conf.is_enable == 1)
+    if((MOD_FUNC_SEL == TX_EN) && (sensebe_config.ir_tx_conf.is_enable == 1))
     {
         ir_tx_module_add_ticks ();
     }
