@@ -22,34 +22,49 @@
 #include "hal_radio.h"
 #include "nrf.h"
 
+/** Short between Ready event and Start task */
 #define SHORT_READY_START			\
 		(RADIO_SHORTS_READY_START_Enabled << RADIO_SHORTS_READY_START_Pos)
+/** Short between End event and Disable task */
 #define SHORT_END_DIS				\
 		(RADIO_SHORTS_END_DISABLE_Enabled << RADIO_SHORTS_END_DISABLE_Pos)
+/** Short between Disabled event and TX Enable task */
 #define SHORT_DIS_TXEN				\
 		(RADIO_SHORTS_DISABLED_TXEN_Enabled << RADIO_SHORTS_DISABLED_TXEN_Pos)
+/** Short between Disabled event and RX Enable task */
 #define SHORT_DIS_RXEN				\
 		(RADIO_SHORTS_DISABLED_RXEN_Enabled << RADIO_SHORTS_DISABLED_RXEN_Pos)
 
-#define MAX_PAYLOAD_BYTES 4
 
+/** Maximum number of Bytes a pkt can hold */
+#define MAX_PAYLOAD_BYTES 255
+
+/** Static radio address (used in first iteration) */
 #define ADDR 0x8E89BE35
 
+/** Position of length parameter in payload */
 #define LEN_OFFSET 0
 
+/** Position of data in payload */
 #define DATA_OFFSET 1
 
-
+/**
+ * @brief Structure to store payload.
+ */
 typedef struct
 {
+    /** Length of payload */
     uint8_t payload_len;
+    /** Payload buffer */
     uint8_t p_payload[];
 }payload_t;
 
-
+/** Global variable to store payload */
 static payload_t payload_buff;
 
+/** Function pointer buffer for transmission done function pointer */
 void (* pb_tx_done_handler) (void * buff, uint32_t len);
+/** Function pointer buffer for reception done function pointer */
 void (* pb_rx_done_handler) (void * buff, uint32_t len);
 
 void hal_radio_init (hal_radio_config_t * radio_init_config)
@@ -75,7 +90,7 @@ void hal_radio_init (hal_radio_config_t * radio_init_config)
     NRF_RADIO->POWER = RADIO_POWER_POWER_Enabled;
     
     //Set mode to BLE 2Mbps
-    NRF_RADIO->MODE = (RADIO_MODE_MODE_Ble_1Mbit << RADIO_MODE_MODE_Pos)&RADIO_MODE_MODE_Msk;
+    NRF_RADIO->MODE = (RADIO_MODE_MODE_Ble_2Mbit << RADIO_MODE_MODE_Pos)&RADIO_MODE_MODE_Msk;
 
     //Configure payload package    
     NRF_RADIO->PCNF0 = ((0UL << RADIO_PCNF0_S0LEN_Pos) & RADIO_PCNF0_S0LEN_Msk)

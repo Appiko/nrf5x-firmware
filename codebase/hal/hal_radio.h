@@ -16,6 +16,15 @@
  *  along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
+/**
+ * @addtogroup group_hal
+ * @{
+ *
+ * @defgroup group_radio HAL Radio
+ * @brief Hardware abstraction layer of Radio peripheral.
+ * @{
+ */
+
 #ifndef HAL_RADIO_H
 #define HAL_RADIO_H
 
@@ -23,27 +32,48 @@
 #include "nrf_util.h"
 #include "stdint.h"
 
+
+/**
+ * @brief Structure used to store the data required for radio configuration
+ */
 typedef struct
 {
+    /** Freq value which is to be added in 2400MHz */
     uint32_t freq;
+    /** IRQ Priority level */
     app_irq_priority_t irq_priority;
+    /** Pointer to the function which is to be called once transmission is done */
     void (* tx_done_handler) (void * p_buff, uint32_t len);
+    /** Pointer to the function which is to be called once reception is done */
     void (* rx_done_handler) (void * p_buff, uint32_t len);
-    
 }hal_radio_config_t;
 
-/***/
+/**
+ * @brief Function to Initiate Radio peripheral
+ * @param radio_init_config Configuration used to initiate the radio peripheral
+ */
 void hal_radio_init (hal_radio_config_t * radio_init_config);
 
-/***/
+/**
+ * @brief Function to Set the payload data for transmission
+ * @param p_payload Pointer to sequential data which is to be sent.
+ * @param len Length of data in bytes
+ */
 void hal_radio_set_payload_data (void * p_payload, uint32_t len);
 
-/***/
+/**
+ * @brief Function to start data transmission
+ */
 void hal_radio_start_tx ();
 
-/***/
+/**
+ * @brief Function to start data reception
+ */
 void hal_radio_start_rx ();
 
+/**
+ * @brief Function to stop radio peripheral
+ */
 void hal_radio_stop ();
 
 
@@ -53,3 +83,9 @@ void hal_radio_stop ();
 //void hal_radio_update_freq (uint32_t new_freq);
 
 #endif /* HAL_RADIO_H */
+
+
+/**
+ * @}
+ * @}
+ */
