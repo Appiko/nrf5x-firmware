@@ -59,7 +59,7 @@ void hal_radio_init (hal_radio_config_t * radio_init_config);
  * @param p_payload Pointer to sequential data which is to be sent.
  * @param len Length of data in bytes
  */
-void hal_radio_set_payload_data (void * p_payload, uint32_t len);
+void hal_radio_set_tx_payload_data (void * p_payload, uint32_t len);
 
 /**
  * @brief Function to start data transmission
@@ -76,6 +76,13 @@ void hal_radio_start_rx ();
  */
 void hal_radio_stop ();
 
+/**
+ * @brief Function to check status of radio peripheral
+ * @return Status of radio peripheral
+ * @retval True Radio is being used and is not available
+ * @retval False Radio is not being used and is available
+ */
+bool hal_radio_is_on ();
 
 //For future development
 

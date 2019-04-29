@@ -56,7 +56,7 @@ typedef struct
     /** Length of payload */
     uint8_t payload_len;
     /** Payload buffer */
-    uint8_t p_payload[];
+    uint8_t p_payload[MAX_PAYLOAD_BYTES - 1];
 }payload_t;
 
 /** Global variable to store payload */
@@ -136,7 +136,7 @@ void hal_radio_init (hal_radio_config_t * radio_init_config)
     NVIC_EnableIRQ (RADIO_IRQn);
 }
 
-void hal_radio_set_payload_data (void * p_payload, uint32_t len)
+void hal_radio_set_tx_payload_data (void * p_payload, uint32_t len)
 {
     payload_buff.payload_len = len + 1; 
     memcpy (payload_buff.p_payload, p_payload, len);
@@ -156,6 +156,11 @@ void hal_radio_start_rx ()
 void hal_radio_stop ()
 {
     NRF_RADIO->TASKS_DISABLE = 1;
+}
+
+bool hal_radio_is_on ()
+{
+    return (NRF_RADIO->STATE != RADIO_STATE_STATE_Disabled) ? true : false;
 }
 
 
