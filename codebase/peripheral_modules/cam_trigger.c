@@ -120,7 +120,7 @@ static bool OUT_GEN_DEFAULT_STATE[] = {1,1};
 void (*cam_trigger_handler) (uint32_t active_config);
 
 static uint32_t active_config;
-static state_t state = NON_VIDEO_EXT_IDLE;
+volatile state_t state = NON_VIDEO_EXT_IDLE;
 
 static out_gen_config_t arr_out_gen_config[CAM_TRIGGER_MAX_SETUP_NO];
 
@@ -200,7 +200,7 @@ void single_shot (cam_trigger_config_t * cam_trigger_config)
 {
     uint32_t number_of_transition = SINGLE_SHOT_TRANSITIONS + PRE_FOCUS_TRANSITIONS;
     int32_t time_remain;
-    
+    uint32_t local_setup_no = cam_trigger_config->setup_number;
     uint32_t pre_focus_time = PRE_FOCUS_OFF_TIME;
     if(cam_trigger_config->pre_focus_en == true)
     {
@@ -223,7 +223,8 @@ void single_shot (cam_trigger_config_t * cam_trigger_config)
         .next_out = {{0, 0, 1, 1},
                      {1, 0, 1, 1}},
     };
-    memcpy (&arr_out_gen_config[cam_trigger_config->setup_number], &local_out_gen_config,
+    
+    memcpy (&arr_out_gen_config[local_setup_no], &local_out_gen_config,
             sizeof(out_gen_config_t));
 }
 
@@ -231,6 +232,7 @@ void multi_shot (cam_trigger_config_t * cam_trigger_config, uint32_t time_betwee
                  uint32_t no_of_shots)
 {
 
+    uint32_t local_setup_no = cam_trigger_config->setup_number;
     if(no_of_shots > MAX_NO_OF_SHOTS)
     {
         no_of_shots = MAX_NO_OF_SHOTS;
@@ -282,7 +284,7 @@ void multi_shot (cam_trigger_config_t * cam_trigger_config, uint32_t time_betwee
     }
     local_out_gen_config.transitions_durations[number_of_transition - 1] = time_remain;
 
-    memcpy (&arr_out_gen_config[cam_trigger_config->setup_number], &local_out_gen_config,
+    memcpy (&arr_out_gen_config[local_setup_no], &local_out_gen_config,
             sizeof(out_gen_config_t));
 }
 
@@ -290,6 +292,7 @@ void multi_shot (cam_trigger_config_t * cam_trigger_config, uint32_t time_betwee
 
 void long_press (cam_trigger_config_t * cam_trigger_config, uint32_t expousure_time_100ms)
 {
+    uint32_t local_setup_no = cam_trigger_config->setup_number;
     uint32_t pre_focus_time = PRE_FOCUS_OFF_TIME;
     int32_t time_remain;
     uint32_t number_of_transition = BULB_SHOT_TRANSITIONS + PRE_FOCUS_TRANSITIONS;
@@ -321,12 +324,13 @@ void long_press (cam_trigger_config_t * cam_trigger_config, uint32_t expousure_t
             },
     };
     
-    memcpy (&arr_out_gen_config[cam_trigger_config->setup_number], &local_out_gen_config,
+    memcpy (&arr_out_gen_config[local_setup_no], &local_out_gen_config,
             sizeof(out_gen_config_t));
 }
 
 void video_without_extn (cam_trigger_config_t * cam_trigger_config, uint32_t video_len_s)
 {
+    uint32_t local_setup_no = cam_trigger_config->setup_number;
     uint32_t pre_focus_time = PRE_FOCUS_OFF_TIME;
     int32_t time_remain;
     video_len_s = MS_TIMER_TICKS_MS(video_len_s * 1000);
@@ -355,7 +359,7 @@ void video_without_extn (cam_trigger_config_t * cam_trigger_config, uint32_t vid
         .out_gen_state = NON_VIDEO_EXT_RUNNING,
     };
     
-    memcpy (&arr_out_gen_config[cam_trigger_config->setup_number], &local_out_gen_config,
+    memcpy (&arr_out_gen_config[local_setup_no], &local_out_gen_config,
             sizeof(out_gen_config_t));
 
 }
@@ -363,26 +367,27 @@ void video_without_extn (cam_trigger_config_t * cam_trigger_config, uint32_t vid
 void video_with_extn (cam_trigger_config_t * cam_trigger_config, uint32_t video_len_s,
                       uint32_t extn_len_s)
 {
+    uint32_t local_setup_no = cam_trigger_config->setup_number;
     uint32_t pre_focus_time = PRE_FOCUS_OFF_TIME;
     if(cam_trigger_config->pre_focus_en == true)
     {
         pre_focus_time = PRE_FOCUS_ON_TIME;
     }
     
-    ext[cam_trigger_config->setup_number].extend_duration =
+    ext[local_setup_no].extend_duration =
             MS_TIMER_TICKS_MS(extn_len_s * 1000);
 
     video_len_s = video_len_s * 1000;
     if((cam_trigger_config->trig_duration_100ms * 100) > video_len_s)
     {
-        ext[cam_trigger_config->setup_number].itt_max_duration =
+        ext[local_setup_no].itt_max_duration =
                 cam_trigger_config->trig_duration_100ms * 100 - video_len_s;
-        ext[cam_trigger_config->setup_number].itt_max_duration =
-                MS_TIMER_TICKS_MS(ext[cam_trigger_config->setup_number].itt_max_duration);
+        ext[local_setup_no].itt_max_duration =
+                MS_TIMER_TICKS_MS(ext[local_setup_no].itt_max_duration);
     }
     else
     {
-        ext[cam_trigger_config->setup_number].itt_max_duration = 0;
+        ext[local_setup_no].itt_max_duration = 0;
     }
     int32_t video_len_check;
     video_len_check = video_len_s - VIDEO_END_PART;
@@ -400,12 +405,13 @@ void video_with_extn (cam_trigger_config_t * cam_trigger_config, uint32_t video_
         .out_gen_state = VIDEO_EXT_EXTEND,
     };
 
-    memcpy (&arr_out_gen_config[cam_trigger_config->setup_number], &local_out_gen_config,
+    memcpy (&arr_out_gen_config[local_setup_no], &local_out_gen_config,
             sizeof(out_gen_config_t));
 }
 
 void half_press (cam_trigger_config_t * cam_trigger_config)
 {
+    uint32_t local_setup_no = cam_trigger_config->setup_number;
     uint32_t pre_focus_time = PRE_FOCUS_OFF_TIME;
     int32_t time_remain;
     uint32_t number_of_transition = FOCUS_TRANSITIONS + PRE_FOCUS_TRANSITIONS;
@@ -434,7 +440,7 @@ void half_press (cam_trigger_config_t * cam_trigger_config)
             },
     };
     
-    memcpy (&arr_out_gen_config[cam_trigger_config->setup_number], &local_out_gen_config,
+    memcpy (&arr_out_gen_config[local_setup_no], &local_out_gen_config,
             sizeof(out_gen_config_t));
 }
 
