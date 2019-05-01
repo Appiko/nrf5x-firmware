@@ -32,6 +32,17 @@
 #include "stdint.h"
 #include "stddef.h"
 
+#if SYS_CFG_PRESENT == 1
+#include "sys_config.h"
+#endif
+#ifndef HAL_UART_PERIPH_USED 
+#define HAL_UART_PERIPH_USED 0
+#endif
+
+
+/** Specify which TWIM peripheral is used for this HAL module */
+#define UART_USED           HAL_UART_PERIPH_USED
+
 /** The character that is checked by rx_collect to determine if a line of characters is received */
 #define LINE_END                '\n'
 

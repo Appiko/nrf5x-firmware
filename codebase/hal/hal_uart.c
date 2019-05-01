@@ -23,13 +23,31 @@
 #include "tinyprintf.h"
 #include "stdbool.h"
 
-#define UART_IRQn       2
-
+/** @anchor uart_defines
+ * @name Defines for the specific UART peripheral used
+ * @{*/
 #if defined NRF51
-#define UART_PERI   NRF_UART0
+#define UART_ID               CONCAT_2(NRF_UART,UART_USED)
+#define UART_IRQN             UART_IRQN_a(UART_USED)
+#define UART_IRQ_Handler      UART_IRQ_Handler_a(UART_USED)
+
+#define UART_IRQN_a(n)        UART_IRQN_b(n)
+#define UART_IRQN_b(n)        UART##n##_IRQn
+
+#define UART_IRQ_Handler_a(n) UART_IRQ_Handler_b(n)
+#define UART_IRQ_Handler_b(n) UART##n##_IRQHandler
+/** @} */
 #endif
 #if defined NRF52832 || defined NRF52810
-#define UART_PERI   NRF_UARTE0
+#define UART_ID               CONCAT_2(NRF_UARTE,UART_USED)
+#define UART_IRQN             UART_IRQN_a(UART_USED)
+#define UART_IRQ_Handler      UART_IRQ_Handler_a(UART_USED)
+
+#define UART_IRQN_a(n)        UART_IRQN_b(n)
+#define UART_IRQN_b(n)        UARTE##n##_UART##n##_IRQn
+
+#define UART_IRQ_Handler_a(n) UART_IRQ_Handler_b(n)
+#define UART_IRQ_Handler_b(n) UARTE##n##_UART##n##_IRQHandler
 #endif
 
 
@@ -73,37 +91,29 @@ static void rx_collect(uint8_t rx_data)
  *  UART interrupt routine.
  *  Only data reception causes interrupt. The received data is passed to @ref rx_collect.
  */
-#ifdef NRF51
-void UART0_IRQHandler(void)
-#endif
-#if defined NRF52832
-void UARTE0_UART0_IRQHandler(void)
-#endif
-#if defined NRF52810
-void UARTE0_IRQHandler(void)
-#endif
+void UART_IRQ_Handler (void)
 {
     /* Waits for RX data to be received, but
      * no waiting actually since RX causes interrupt. */
-    while (UART_PERI->EVENTS_RXDRDY != 1)
+    while (UART_ID->EVENTS_RXDRDY != 1)
     {
     }
-    UART_PERI->EVENTS_RXDRDY = 0;
+    UART_ID->EVENTS_RXDRDY = 0;
     rx_collect((uint8_t) (*((uint32_t *)(0x40002518))));
 }
 
 void hal_uart_putchar(uint8_t cr)
 {
     (*((uint32_t *)(0x4000251C))) = (uint8_t) cr;
-    UART_PERI->EVENTS_TXDRDY = 0;
-    UART_PERI->TASKS_STARTTX = 1;
+    UART_ID->EVENTS_TXDRDY = 0;
+    UART_ID->TASKS_STARTTX = 1;
 
-    while (UART_PERI->EVENTS_TXDRDY != 1)
+    while (UART_ID->EVENTS_TXDRDY != 1)
     {
     }
 
-    UART_PERI->EVENTS_TXDRDY = 0;
-    UART_PERI->TASKS_STOPTX = 1;
+    UART_ID->EVENTS_TXDRDY = 0;
+    UART_ID->TASKS_STOPTX = 1;
 }
 
 /**
@@ -132,7 +142,7 @@ void hal_uart_init(hal_uart_baud_t baud, void (*handler)(uint8_t * ptr))
 
     ///(UARTE_CONFIG_HWFC_Disabled << UARTE_CONFIG_HWFC_Pos)
     ///     | (UARTE_CONFIG_PARITY_Excluded << UARTE_CONFIG_PARITY_Pos)
-    UART_PERI->CONFIG = 0;
+    UART_ID->CONFIG = 0;
 
 #if HWFC
     {
@@ -143,31 +153,31 @@ void hal_uart_init(hal_uart_baud_t baud, void (*handler)(uint8_t * ptr))
         (*((uint32_t *)(0x40002510))) = CTS_PIN_NUMBER;
         ///(UARTE_CONFIG_HWFC_Enabled << UARTE_CONFIG_HWFC_Pos)
         ///    | (UARTE_CONFIG_PARITY_Excluded << UARTE_CONFIG_PARITY_Pos)
-        UART_PERI->CONFIG = 1;
+        UART_ID->CONFIG = 1;
     }
 #endif
 
-    UART_PERI->BAUDRATE = (baud);
+    UART_ID->BAUDRATE = (baud);
 
     //Enable UART
-    UART_PERI->ENABLE = (0x04);
+    UART_ID->ENABLE = (0x04);
 
-    UART_PERI->INTENCLR = 0xFFFFFFFF;
+    UART_ID->INTENCLR = 0xFFFFFFFF;
 
     init_printf((void *) !(START_TX), printf_callback);
 
     if(handler != NULL)
     {
-        UART_PERI->EVENTS_RXDRDY = 0;
+        UART_ID->EVENTS_RXDRDY = 0;
 
         rx_handler = handler;
 
         // Enable UART RX interrupt only
-        UART_PERI->INTENSET = (1 << 2);
+        UART_ID->INTENSET = (1 << 2);
 
-        NVIC_SetPriority(UART_IRQn, APP_IRQ_PRIORITY_LOW);
-        NVIC_EnableIRQ(UART_IRQn);
+        NVIC_SetPriority(UART_IRQN, APP_IRQ_PRIORITY_LOW);
+        NVIC_EnableIRQ(UART_IRQN);
 
-        UART_PERI->TASKS_STARTRX = 1;
+        UART_ID->TASKS_STARTRX = 1;
     }
 }
