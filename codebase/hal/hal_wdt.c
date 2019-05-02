@@ -22,6 +22,10 @@
 #include "nrf_util.h"
 #include "common_util.h"
 
+#if ISR_MANAGER == 1
+#include "template_isr_manage.h"
+#endif
+
 /** Special value to reset WDT, shouldn't be modified.*/
 #define WDT_RR_VALUE       0x6E524635UL
 
@@ -69,10 +73,15 @@ void hal_wdt_start(void)
     NRF_WDT->TASKS_START = 1;
 }
 
+#if ISR_MANAGER == 1
+void hal_wdt_Handler ()
+#else
 void WDT_IRQHandler(void)
+#endif
 {
+#if ISR_MANAGER == 0
     NRF_WDT->EVENTS_TIMEOUT = 0;
-
+#endif
     if (wdt_irq_handler != NULL)
     {
         wdt_irq_handler();

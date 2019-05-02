@@ -20,6 +20,10 @@
 #include "stdbool.h"
 #include "common_util.h"
 
+#if ISR_MANAGER == 1
+#include "template_isr_manage.h"
+#endif
+
 static struct {
     uint32_t scl;
     uint32_t sda;
@@ -71,7 +75,6 @@ static void clear_all_events(void)
 
 static void handle_error(void)
 {
-    TWIM_EVENT_CLEAR(TWIM_ID->EVENTS_ERROR);
 
     TWIM_ID->INTENCLR = TWIM_INTENCLR_STOPPED_Msk;
     (void)TWIM_ID->INTENCLR;
@@ -264,15 +267,23 @@ uint32_t hal_twim_get_current_adrs(void)
 {
     return TWIM_ID->ADDRESS;
 }
-
+#if ISR_MANAGER == 1
+void hal_twim_Handler (void)
+#else
 void TWIM_IRQ_Handler(void)
+#endif
 {
     if(TWIM_ID->EVENTS_ERROR == 1){
+#if ISR_MANAGER == 0
+        TWIM_EVENT_CLEAR(TWIM_ID->EVENTS_ERROR);
+#endif
         handle_error();
     }
 
     if(TWIM_ID->EVENTS_STOPPED == 1){
+#if ISR_MANAGER == 0
         TWIM_EVENT_CLEAR(TWIM_ID->EVENTS_STOPPED);
+#endif
         twim_status.transfer_finished = true;
 
         send_event(twim_status.current_transfer);

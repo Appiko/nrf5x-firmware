@@ -27,6 +27,10 @@
 #include "nrf_assert.h"
 #include "nrf_nvic.h"
 
+#if ISR_MANAGER == 1
+#include "template_isr_manage.h"
+#endif
+
 ///The buffer where the ble event data is stored by sd_evt_get
 uint32_t ble_evt_buffer[
           CEIL_DIV(BLE_EVT_LEN_MAX(BLE_GATT_ATT_MTU_DEFAULT)
@@ -48,7 +52,11 @@ void evt_sd_handler_init
     APP_ERROR_CHECK(err_code);
 }
 
+#if ISR_MANAGER == 1
+void evt_sd_handler_swi_Handler ()
+#else
 void SWI2_IRQHandler(void)
+#endif
 {
     bool soc_evts_handled = false;
     while(soc_evts_handled == false)

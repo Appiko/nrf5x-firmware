@@ -23,6 +23,10 @@
 #include "tinyprintf.h"
 #include "stdbool.h"
 
+#if ISR_MANAGER == 1
+#include "template_isr_manage.h"
+#endif
+
 /** @anchor uart_defines
  * @name Defines for the specific UART peripheral used
  * @{*/
@@ -91,14 +95,20 @@ static void rx_collect(uint8_t rx_data)
  *  UART interrupt routine.
  *  Only data reception causes interrupt. The received data is passed to @ref rx_collect.
  */
+#if ISR_MANAGER == 1
+void hal_uart_Handler ()
+#else
 void UART_IRQ_Handler (void)
+#endif
 {
     /* Waits for RX data to be received, but
      * no waiting actually since RX causes interrupt. */
     while (UART_ID->EVENTS_RXDRDY != 1)
     {
     }
+#if ISR_MANAGER == 0
     UART_ID->EVENTS_RXDRDY = 0;
+#endif
     rx_collect((uint8_t) (*((uint32_t *)(0x40002518))));
 }
 

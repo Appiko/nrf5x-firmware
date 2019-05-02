@@ -25,6 +25,10 @@
 #include "nrf_assert.h"
 #include "log.h"
 
+#if ISR_MANAGER == 1
+#include "template_isr_manage.h"
+#endif
+
 /** @anchor twim_defines
  * @name Defines for the specific SPI peripheral used 
  * @{*/
@@ -133,18 +137,25 @@ uint32_t hal_spim_is_busy ()
     return (uint32_t)mod_is_busy;
 }
 
-
+#if ISR_MANAGER == 1
+void hal_spim_Handler (void)
+#else
 void SPIM_IRQ_Handler (void)
+#endif
 {
     if(SPIM_ID->EVENTS_END == 1)
     {
+#if ISR_MANAGER == 0
         SPIM_ID->EVENTS_END = 0;
+#endif
         mod_is_busy = false;
         hal_gpio_pin_set (csBar);
     }
     if(SPIM_ID->EVENTS_ENDTX == 1 && ((intr_enabled & HAL_SPIM_TX_DONE) != 0))
     {
+#if ISR_MANAGER == 0
         SPIM_ID->EVENTS_ENDTX = 0;
+#endif
         if(tx_done != NULL)
         {
             tx_done(SPIM_ID->TXD.AMOUNT);
@@ -152,7 +163,9 @@ void SPIM_IRQ_Handler (void)
     }
     if(SPIM_ID->EVENTS_ENDRX == 1 && ((intr_enabled & HAL_SPIM_RX_DONE) != 0))
     {
+#if ISR_MANAGER == 0
         SPIM_ID->EVENTS_ENDRX = 0;
+#endif
         if(rx_done != NULL)
         {
             rx_done(SPIM_ID->RXD.AMOUNT);

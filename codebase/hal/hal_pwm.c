@@ -21,6 +21,10 @@
 #include "hal_gpio.h"
 #include "stddef.h"
 
+#if ISR_MANAGER == 1
+#include "template_isr_manage.h"
+#endif
+
 /** @anchor pwm_defines
  * @name Defines for the specific PWM peripheral used
  * @{*/
@@ -49,55 +53,72 @@ static void call_handler(hal_pwm_irq_mask_t irq_source)
         cxt.handler(irq_source);
     }
 }
-
+#if ISR_MANAGER == 1
+void hal_pwm_Handler (void)
+#else
 void PWM_IRQ_Handler(void)
+#endif
 {
     if(PWM_ID->EVENTS_STOPPED == 1)
     {
+#if ISR_MANAGER == 0
         PWM_ID->EVENTS_STOPPED = 0;
         (void) PWM_ID->EVENTS_STOPPED;
+#endif
         call_handler(HAL_PWM_IRQ_STOPPED_MASK);
     }
 
     if(PWM_ID->EVENTS_SEQSTARTED[0] == 1)
     {
+#if ISR_MANAGER == 0
         PWM_ID->EVENTS_SEQSTARTED[0] = 0;
         (void) PWM_ID->EVENTS_SEQSTARTED[0];
+#endif
         call_handler(HAL_PWM_IRQ_SEQSTARTED0_MASK);
     }
 
     if(PWM_ID->EVENTS_SEQSTARTED[1] == 1)
     {
+#if ISR_MANAGER == 0
         PWM_ID->EVENTS_SEQSTARTED[1] = 0;
         (void) PWM_ID->EVENTS_SEQSTARTED[1];
+#endif
         call_handler(HAL_PWM_IRQ_SEQSTARTED1_MASK);
     }
 
     if(PWM_ID->EVENTS_SEQEND[0] == 1)
     {
+#if ISR_MANAGER == 0
         PWM_ID->EVENTS_SEQEND[0] = 0;
         (void) PWM_ID->EVENTS_SEQEND[0];
+#endif
         call_handler(HAL_PWM_IRQ_SEQEND0_MASK);
     }
 
     if(PWM_ID->EVENTS_SEQEND[1] == 1)
     {
+#if ISR_MANAGER == 0
         PWM_ID->EVENTS_SEQEND[1] = 0;
         (void) PWM_ID->EVENTS_SEQEND[1];
+#endif
         call_handler(HAL_PWM_IRQ_SEQEND1_MASK);
     }
 
     if(PWM_ID->EVENTS_PWMPERIODEND == 1)
     {
+#if ISR_MANAGER == 0
         PWM_ID->EVENTS_PWMPERIODEND = 0;
         (void) PWM_ID->EVENTS_PWMPERIODEND;
+#endif
         call_handler(HAL_PWM_IRQ_PWMPERIODEND_MASK);
     }
 
     if(PWM_ID->EVENTS_LOOPSDONE == 1)
     {
+#if ISR_MANAGER == 0
         PWM_ID->EVENTS_LOOPSDONE = 0;
         (void) PWM_ID->EVENTS_LOOPSDONE;
+#endif
         call_handler(HAL_PWM_IRQ_LOOPSDONE_MASK);
     }
 }

@@ -24,6 +24,10 @@
 #include "tinyprintf.h"
 #include <stdbool.h>
 
+#if ISR_MANAGER == 1
+#include "template_isr_manage.h"
+#endif
+
 #define UARTE_ID CONCAT_2(NRF_UARTE,UARTE_USED_UART_PRINTF)
 
 /** Size of the PING & PONG buffer each to hold the data to be sent*/
@@ -88,13 +92,18 @@ static void start_uart_tx(uart_buffers tx_buf)
 /**
  *  UARTE interrupt routine.
  */
+#if ISR_MANAGER == 1
+void uart_printf_uart_Handler (void)
+#else
 void UARTE0_UART0_IRQHandler(void)
+#endif
 {
     if (1 == UARTE_ID->EVENTS_ENDTX)
     {
+#if ISR_MANAGER == 0
         UARTE_ID->EVENTS_ENDTX = 0;
         (void) UARTE_ID->EVENTS_ENDTX;
-
+#endif
         uart_buffers current_buf = PONG, other_buf = PING;
         if (BUF_STATE[PING].TX == uart_ctx.tx_state)
         {

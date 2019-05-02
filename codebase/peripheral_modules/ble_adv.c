@@ -59,6 +59,10 @@
 #include "profiler_timer.h"
 #include <string.h>
 
+#if ISR_MANAGER == 1
+#include "template_isr_manage.h"
+#endif
+
 /* Link Layer specification Section 2.1.2, Core 4.1 page 2503 */
 #define ADV_ACCESS_ADRS             0x8E89BED6
 
@@ -517,7 +521,12 @@ void irq_adv_tx_ready(void){
 
 }
 
-void RADIO_IRQHandler(void){
+#if ISR_MANAGER == 1
+void ble_adv_radio_Handler ()
+#else
+void RADIO_IRQHandler(void)
+#endif
+{
 
     if(1 == NRF_RADIO->EVENTS_END){
         NRF_RADIO->EVENTS_END = 0;

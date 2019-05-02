@@ -21,6 +21,10 @@
 #include "hal_gpio.h"
 #include "boards.h"
 
+#if ISR_MANAGER == 1
+#include "template_isr_manage.h"
+#endif
+
 #ifndef BUTTON_ACTIVE_STATE
 #error "The board definition file must specify the GPIO state on button press"
 #endif
@@ -43,14 +47,19 @@ void (*handler)(button_ui_steps step, button_ui_action act);
 //wake step, when the step count is still at 0, i.e. before press
 bool wake_evt = false, btn_press_start = false;
 
+#if ISR_MANAGER == 1
+void button_ui_gpiote_Handler ()
+#else
 void GPIOTE_IRQHandler(void)
+#endif
 {
     wake_evt = true;
     handler(BUTTON_UI_STEP_WAKE, BUTTON_UI_ACT_CROSS);
-
+#if ISR_MANAGER == 0
     NRF_GPIOTE->EVENTS_PORT = 0;
     (void) NRF_GPIOTE->EVENTS_PORT;
-
+#endif
+    
     btn_press_start = true;
 }
 

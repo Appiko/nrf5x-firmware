@@ -20,6 +20,10 @@
 #include "nrf_util.h"
 #include <stddef.h>
 
+#if ISR_MANAGER == 1
+#include "template_isr_manage.h"
+#endif
+
 /** @anchor timer_defines
  * @name Defines for the specific timer peripheral used for us timer
  * @{*/
@@ -111,12 +115,18 @@ bool us_timer_get_on_status(us_timer_num id){
 /** @brief Function for handling the TIMER interrupts.
  * Triggered Compare register of timer ID
  */
-void TIMER_IRQ_Handler(){
+#if ISR_MANAGER == 1
+void us_timer_timer_Handler ()
+#else
+void TIMER_IRQ_Handler()
+#endif
+{
     for(us_timer_num id = US_TIMER0; id < US_TIMER_MAX; id++){
         if(TIMER_ID->EVENTS_COMPARE[id]){
+#if ISR_MANAGER == 0
             TIMER_ID->EVENTS_COMPARE[id] = 0;
             (void) TIMER_ID->EVENTS_COMPARE[id];
-
+#endif
             void (*cb_handler)(void) = NULL;
             if(us_timer[id].timer_handler != NULL)
             {

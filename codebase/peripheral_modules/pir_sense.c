@@ -21,6 +21,10 @@
 #include "common_util.h"
 #include "nrf_util.h"
 
+#if ISR_MANAGER == 1
+#include "template_isr_manage.h"
+#endif
+
 /** Specify which RTC peripheral would be used for the PIR Sense module */
 #define PIR_SENSE_RTC_USED           RTC_USED_PIR_SENSE
 
@@ -35,13 +39,18 @@ static int16_t saadc_result[1];
 void (*sense_handler)(int32_t adc_val);
 
 /** @brief Implementation of the SAADC interrupt handler */
+#if ISR_MANAGER == 1
+void pir_sense_saadc_Handler (void)
+#else
 void SAADC_IRQHandler(void)
+#endif
 {
+#if ISR_MANAGER == 0
     NRF_SAADC->EVENTS_CH[SAADC_CHANNEL].LIMITH = 0;
     (void) NRF_SAADC->EVENTS_CH[SAADC_CHANNEL].LIMITH;
     NRF_SAADC->EVENTS_CH[SAADC_CHANNEL].LIMITL = 0;
     (void) NRF_SAADC->EVENTS_CH[SAADC_CHANNEL].LIMITL;
-
+#endif
     sense_handler(saadc_result[0]);
 }
 
