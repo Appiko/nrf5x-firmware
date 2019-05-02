@@ -29,6 +29,10 @@
 #include "evt_sd_handler.h"
 #include "string.h"
 
+#if ISR_MANAGER == 1
+#include "template_isr_manage.h"
+#endif
+
 /**< Name of device, to be included in the advertising data. */
 
 #define DEVICE_NAME_CHAR           'S','e','n','s','e','B','e'
@@ -87,7 +91,11 @@ sensebe_sysinfo curr_sysinfo;
 
 ///Called everytime the radio is switched off as per the
 /// radio notification by the SoftDevice
+#if ISR_MANAGER == 1
+void sensebe_ble_swi_Handler ()
+#else
 void SWI1_IRQHandler(void)
+#endif
 {
 //    log_printf("radio going down\n");
 }

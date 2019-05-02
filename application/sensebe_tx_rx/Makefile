@@ -11,6 +11,7 @@ TSSP_DETECT_FREQ := 32768
 SD_USED         := s112
 SD_VER          := 6.0.0
 CONFIG_HEADER	:= 1
+SHARED_RESOURCES := 1
 
 SDK_DIR         = ../../SDK_components
 DOC_DIR         = ../../doc
@@ -67,6 +68,7 @@ C_SRC += tssp_detect.c
 C_SRC += cam_trigger.c
 C_SRC += simple_pwm.c
 C_SRC += tssp_ir_tx.c
+C_SRC += template_isr_manage.c
 #Gets the name of the application folder
 APPLN = $(shell basename $(PWD))
 
@@ -78,6 +80,7 @@ CFLAGS_APP += -DFW_VER=$(FW_VER_VAL)
 CFLAGS_APP += -DMS_TIMER_FREQ=$(MS_TIMER_FREQ)
 CFLAGS_APP += -DTSSP_DETECT_FREQ=$(TSSP_DETECT_FREQ)
 CFLAGS_APP += -DSYS_CFG_PRESENT=$(CONFIG_HEADER)
+CFLAGS_APP += -DISR_MANAGER=$(SHARED_RESOURCES)
 
 
 #Lower case of BOARD
