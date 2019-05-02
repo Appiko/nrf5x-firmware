@@ -52,10 +52,10 @@ void RADIO_IRQHandler (void)
 
 void UARTE0_UART0_IRQHandler (void)
 {
-#if LOGGER == LOG_UART_DMA_PRINTF
-    uart_printf_uart_Handler ();
-#elif LOGGER == LOG_UART_PRINTF
+#if defined LOG_UART_PRINTF
     hal_uart_Handler ();
+#elif defined LOG_UART_DMA_PRINTF
+    uart_printf_uart_Handler ();
 #endif
 //Clear events
     NRF_UARTE0->EVENTS_CTS = 0;
@@ -99,8 +99,8 @@ void SPIM0_SPIS0_TWIM0_TWIS0_SPI0_TWI0_IRQHandler (void)
     NRF_TWIM0->EVENTS_SUSPENDED = 0;
     NRF_TWIM0->EVENTS_TXSTARTED = 0;
 }
-
-void SPIM1_SPIS1_TWIM1_TWIS1_SPI1_TWI1_IRQHandler (void)
+#if defined NRF52840
+void SPIM1_SPIS1_TWIM1_TWIS1_SPI1_TWI1_IRQHandler ()
 {
 #if defined HAL_SPIM_PERIPH_USED
 #if HAL_SPIM_PERIPH_USED == 1
@@ -131,7 +131,7 @@ void SPIM1_SPIS1_TWIM1_TWIS1_SPI1_TWI1_IRQHandler (void)
 void NFCT_IRQHandler (void)
 {
 }
-
+#endif
 void GPIOTE_IRQHandler (void)
 {
 #if defined GPIOTE_CH_USED_BUTTON_UI_PORT
@@ -139,14 +139,14 @@ void GPIOTE_IRQHandler (void)
 #endif
 //Clear events
     NRF_GPIOTE->EVENTS_PORT = 0;
-    NRF_GPIOTE->EVENTS_IN[0] = 0
-    NRF_GPIOTE->EVENTS_IN[1] = 0
-    NRF_GPIOTE->EVENTS_IN[2] = 0
-    NRF_GPIOTE->EVENTS_IN[3] = 0
-    NRF_GPIOTE->EVENTS_IN[4] = 0
-    NRF_GPIOTE->EVENTS_IN[5] = 0
-    NRF_GPIOTE->EVENTS_IN[6] = 0
-    NRF_GPIOTE->EVENTS_IN[7] = 0
+    NRF_GPIOTE->EVENTS_IN[0] = 0;
+    NRF_GPIOTE->EVENTS_IN[1] = 0;
+    NRF_GPIOTE->EVENTS_IN[2] = 0;
+    NRF_GPIOTE->EVENTS_IN[3] = 0;
+    NRF_GPIOTE->EVENTS_IN[4] = 0;
+    NRF_GPIOTE->EVENTS_IN[5] = 0;
+    NRF_GPIOTE->EVENTS_IN[6] = 0;
+    NRF_GPIOTE->EVENTS_IN[7] = 0;
 }
 
 void SAADC_IRQHandler (void)
@@ -291,7 +291,10 @@ void RTC0_IRQHandler (void)
 //Clear events
     NRF_RTC0->EVENTS_TICK = 0;
     NRF_RTC0->EVENTS_OVRFLW = 0;
-    NRF_RTC0->EVENTS_COMPARE = 0;
+    NRF_RTC0->EVENTS_COMPARE[0] = 0;
+    NRF_RTC0->EVENTS_COMPARE[1] = 0;
+    NRF_RTC0->EVENTS_COMPARE[2] = 0;
+    NRF_RTC0->EVENTS_COMPARE[3] = 0;
 }
 
 void TEMP_IRQHandler (void)
@@ -312,6 +315,9 @@ void CCM_AAR_IRQHandler (void)
 
 void WDT_IRQHandler (void)
 {
+    hal_wdt_Handler ();
+    NRF_WDT->EVENTS_TIMEOUT = 0;
+    (void) NRF_WDT->EVENTS_TIMEOUT;
 }
 
 void RTC1_IRQHandler (void)
@@ -335,7 +341,10 @@ void RTC1_IRQHandler (void)
 //Clear events
     NRF_RTC1->EVENTS_TICK = 0;
     NRF_RTC1->EVENTS_OVRFLW = 0;
-    NRF_RTC1->EVENTS_COMPARE = 0;
+    NRF_RTC1->EVENTS_COMPARE[0] = 0;
+    NRF_RTC1->EVENTS_COMPARE[1] = 0;
+    NRF_RTC1->EVENTS_COMPARE[2] = 0;
+    NRF_RTC1->EVENTS_COMPARE[3] = 0;
 }
 
 void QDEC_IRQHandler (void)
@@ -353,6 +362,12 @@ void SWI0_EGU0_IRQHandler (void)
     evt_sd_handler_swi_Handler ();
 #endif
 #endif
+
+//#if defined SWI_SENSEBE_BLE_USED
+//#if SWI_SENSEBE_BLE_USED == 0
+//    sensebe_ble_swi_Handler ();
+//#endif
+//#endif
 
 #if defined EGU_USED_TSSP_DETECT
 #if EGU_USED_TSSP_DETECT == 0
@@ -375,6 +390,12 @@ void SWI1_EGU1_IRQHandler (void)
 #endif
 #endif
 
+//#if defined SWI_SENSEBE_BLE_USED
+//#if SWI_SENSEBE_BLE_USED == 1
+//    sensebe_ble_swi_Handler ();
+//#endif
+//#endif
+
 #if defined EGU_USED_TSSP_DETECT
 #if EGU_USED_TSSP_DETECT == 1
     tssp_detect_swi_Handler ();
@@ -386,7 +407,6 @@ void SWI1_EGU1_IRQHandler (void)
         NRF_EGU1->EVENTS_TRIGGERED[x] = 0;
     }
 }
-
 void SWI2_EGU2_IRQHandler (void)
 {
 #if defined EVT_SD_HANDLER_SWI_USED
@@ -395,16 +415,24 @@ void SWI2_EGU2_IRQHandler (void)
 #endif
 #endif
 
+//#if defined SWI_SENSEBE_BLE_USED
+//#if SWI_SENSEBE_BLE_USED == 2
+//    sensebe_ble_swi_Handler ();
+//#endif
+//#endif
+
 #if defined EGU_USED_TSSP_DETECT
 #if EGU_USED_TSSP_DETECT == 2
     tssp_detect_swi_Handler ();
 #endif
 #endif
 //Clear events
+#if defined NRF52840
     for(uint32_t x; x < 16; x++)
     {
         NRF_EGU2->EVENTS_TRIGGERED[x] = 0;
     }
+#endif
 }
 
 void SWI3_EGU3_IRQHandler (void)
@@ -415,16 +443,24 @@ void SWI3_EGU3_IRQHandler (void)
 #endif
 #endif
 
+//#if defined SWI_SENSEBE_BLE_USED
+//#if SWI_SENSEBE_BLE_USED == 3
+//    sensebe_ble_swi_Handler ();
+//#endif
+//#endif
+
 #if defined EGU_USED_TSSP_DETECT
 #if EGU_USED_TSSP_DETECT == 3
     tssp_detect_swi_Handler ();
 #endif
 #endif
 //Clear events
+#if defined NRF52840
     for(uint32_t x; x < 16; x++)
     {
         NRF_EGU3->EVENTS_TRIGGERED[x] = 0;
     }
+#endif
 }
 
 void SWI4_EGU4_IRQHandler (void)
@@ -435,16 +471,25 @@ void SWI4_EGU4_IRQHandler (void)
 #endif
 #endif
 
+//#if defined SWI_SENSEBE_BLE_USED
+//#if SWI_SENSEBE_BLE_USED == 4
+//    sensebe_ble_swi_Handler ();
+//#endif
+//#endif
+
+
 #if defined EGU_USED_TSSP_DETECT
 #if EGU_USED_TSSP_DETECT == 4
     tssp_detect_swi_Handler ();
 #endif
 #endif
 //Clear events
-    for(uint32_t x; x < 16; x++)
+#if defined NRF52840
     {
+    for(uint32_t x; x < 16; x++)
         NRF_EGU4->EVENTS_TRIGGERED[x] = 0;
     }
+#endif
 }
 
 void SWI5_EGU5_IRQHandler (void)
@@ -455,18 +500,28 @@ void SWI5_EGU5_IRQHandler (void)
 #endif
 #endif
 
+//#if defined SWI_SENSEBE_BLE_USED
+//#if SWI_SENSEBE_BLE_USED == 5
+//    sensebe_ble_swi_Handler ();
+//#endif
+//#endif
+
+
 #if defined EGU_USED_TSSP_DETECT
 #if EGU_USED_TSSP_DETECT == 5
     tssp_detect_swi_Handler ();
 #endif
 #endif
 //Clear events
+#if defined NRF52840
     for(uint32_t x; x < 16; x++)
     {
         NRF_EGU5->EVENTS_TRIGGERED[x] = 0;
     }
+#endif
 }
 
+#if defined NRF52840
 void TIMER3_IRQHandler (void)
 {
 #if defined TIMER_USED_TSSP_IR_TX_1
@@ -542,6 +597,7 @@ void TIMER4_IRQHandler (void)
     NRF_TIMER4->EVENTS_COMPARE[4] = 0;
     NRF_TIMER4->EVENTS_COMPARE[5] = 0;
 }
+#endif
 
 void PWM0_IRQHandler (void)
 {
@@ -553,8 +609,14 @@ void PWM0_IRQHandler (void)
 //Clear events
     NRF_PWM0->EVENTS_LOOPSDONE = 0;
     NRF_PWM0->EVENTS_PWMPERIODEND = 0;
-    NRF_PWM0->EVENTS_SEQEND = 0;
-    NRF_PWM0->EVENTS_SEQSTARTED = 0;
+    NRF_PWM0->EVENTS_SEQEND[0] = 0;
+    NRF_PWM0->EVENTS_SEQEND[1] = 0;
+    NRF_PWM0->EVENTS_SEQEND[2] = 0;
+    NRF_PWM0->EVENTS_SEQEND[3] = 0;
+    NRF_PWM0->EVENTS_SEQSTARTED[0] = 0;
+    NRF_PWM0->EVENTS_SEQSTARTED[1] = 0;
+    NRF_PWM0->EVENTS_SEQSTARTED[2] = 0;
+    NRF_PWM0->EVENTS_SEQSTARTED[3] = 0;
     NRF_PWM0->EVENTS_STOPPED = 0;
 }
 
@@ -566,6 +628,7 @@ void MWU_IRQHandler (void)
 {
 }
 
+#if defined NRF52840
 void PWM1_IRQHandler (void)
 {
 #if defined HAL_PWM_PERIPH_USED 
@@ -650,6 +713,4 @@ void I2S_IRQHandler (void)
 void FPU_IRQHandler (void)
 {
 }
-
-
-
+#endif

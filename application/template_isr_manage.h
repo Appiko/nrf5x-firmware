@@ -62,4 +62,6 @@ void us_timer_timer_Handler (void);
 
 void evt_sd_handler_swi_Handler (void);
 
+//void sensebe_ble_swi_Handler (void);
+
 #endif //TEMPLATE_ISR_MANAGE_H
