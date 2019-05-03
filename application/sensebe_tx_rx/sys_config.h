@@ -90,10 +90,14 @@
 #define TIMER_CHANNEL_USED_TSSP_IR_TX_2_2 3
 /** Event Generator Unit used for TSSP detect module */
 #define EGU_USED_TSSP_DETECT 0
+/** EGU channel used by TSSP module */
+#define EGU_CHANNEL_USED_TSSP_DETECT 0
 /** SAADC channel used for Simple ADC module */
 #define SAADC_CHANNEL_USED_SIMPLE_ADC 1
 /** SWI peripheral used by application */
 #define SWI_SENSEBE_BLE_USED 1
+/** SWI used for Evt SD Handler module */
+#define SWI_USED_EVT_SD_HANDLER 2
 #endif /* SYS_CONFIG_H */
 /**
  * @}
