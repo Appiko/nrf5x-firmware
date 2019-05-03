@@ -50,7 +50,7 @@
 /** Channel 1 of RTC0 is used for Synchronization */
 #define SYNC_OFF_RTC_CHANNEL 1
 /** Channel 0 of EGU0 is used here */
-#define EGU_CHANNEL_USED 0
+#define EGU_CHANNEL_USED EGU_CHANNEL_USED_TSSP_DETECT
 /** Half of duration for which sensor will be enabled while detecting window */
 #define HALF_TSSP_ENABLE_DURATION TSSP_DETECT_TICKS_MS(2)
 

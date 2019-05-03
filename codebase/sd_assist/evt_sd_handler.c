@@ -31,6 +31,22 @@
 #include "template_isr_manage.h"
 #endif
 
+#define SWI_USED SWI_USED_EVT_SD_HANDLER
+
+/** @anchor swi_defines
+ * @name Defines for the specific SWI peripheral used for evt_sd_handler
+ * @{*/
+#define SWI_ID              CONCAT_2(NRF_SWI, SWI_USED)
+#define SWI_IRQN             SWI_IRQN_a(SWI_USED)
+#define SWI_IRQ_Handler      SWI_IRQ_Handler_a(SWI_USED)
+
+#define SWI_IRQN_a(n)        SWI_IRQN_b(n)
+#define SWI_IRQN_b(n)        SWI##n##_EGU##n##_IRQn
+
+#define SWI_IRQ_Handler_a(n) SWI_IRQ_Handler_b(n)
+#define SWI_IRQ_Handler_b(n) SWI##n##_EGU##n##_IRQHandler
+/** @} */
+
 ///The buffer where the ble event data is stored by sd_evt_get
 uint32_t ble_evt_buffer[
           CEIL_DIV(BLE_EVT_LEN_MAX(BLE_GATT_ATT_MTU_DEFAULT)
@@ -48,14 +64,14 @@ void evt_sd_handler_init
     ble_handler = ble_evt_handler;
     soc_handler = soc_evt_handler;
 
-    uint32_t err_code = sd_nvic_EnableIRQ(SWI2_IRQn);
+    uint32_t err_code = sd_nvic_EnableIRQ(SWI_IRQN);
     APP_ERROR_CHECK(err_code);
 }
 
 #if ISR_MANAGER == 1
 void evt_sd_handler_swi_Handler ()
 #else
-void SWI2_IRQHandler(void)
+void SWI_IRQ_Handler(void)
 #endif
 {
     bool soc_evts_handled = false;
