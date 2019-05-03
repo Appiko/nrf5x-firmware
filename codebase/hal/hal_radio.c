@@ -22,6 +22,11 @@
 #include "hal_radio.h"
 #include "nrf.h"
 
+#if ISR_MANAGER == 1
+#include "isr_manager.h"
+#endif
+
+
 /** Short between Ready event and Start task */
 #define SHORT_READY_START			\
 		(RADIO_SHORTS_READY_START_Enabled << RADIO_SHORTS_READY_START_Pos)
@@ -164,7 +169,11 @@ bool hal_radio_is_on ()
 }
 
 
+#if ISR_MANAGER == 1
+void hal_radio_Handler ()
+#else
 void RADIO_IRQHandler ()
+#endif
 {
     if(NRF_RADIO->EVENTS_CRCOK == 1)
     {

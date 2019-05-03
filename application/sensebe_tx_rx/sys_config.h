@@ -32,6 +32,16 @@
  */
 #ifndef SYS_CONFIG_H
 #define SYS_CONFIG_H
+
+/** PWM peripheral used for hal driver */
+#define HAL_PWM_PERIPH_USED 0
+/** SPIM peripheral used for hal driver */
+#define HAL_SPIM_PERIPH_USED 0
+/** TWIM peripheral used for hal driver */
+#define HAL_TWIM_PERIPH_USED 0
+/** UART peripheral used for hal driver */
+#define HAL_UART_PERIPH_USED 0
+
 /** RTC used for MS_TIMER module */
 #define RTC_USED_MS_TIMER 1
 /** RTC used for TSSP detect module */
@@ -56,6 +66,8 @@
 #define PPI_CH_USED_TSSP_IR_TX_4 5
 /** PPI channel for future use */
 #define PPI_CH_USED_EXTRA 6
+/** GPIOTE PORT channel used for button_ui */
+#define GPIOTE_CH_USED_BUTTON_UI_PORT 
 /** GPIOTE channel used for TSSP detect module */
 #define GPIOTE_CH_USED_TSSP_DETECT 0
 /** 1st GPIOTE channel used for TSSP IR transmission module */
@@ -68,7 +80,7 @@
 #define TIMER_USED_TSSP_IR_TX_1 2
 /** 2nd Timer used for TSSP IR transmission module */
 #define TIMER_USED_TSSP_IR_TX_2 1
-/**Timer for future use  */
+/** Timer for future use  */
 #define TIMER_USED_EXTRA 2
 /** 1st Channel from 1st timer used for TSSP IR transmission module */
 #define TIMER_CHANNEL_USED_TSSP_IR_TX_1_1 0
@@ -78,9 +90,14 @@
 #define TIMER_CHANNEL_USED_TSSP_IR_TX_2_2 3
 /** Event Generator Unit used for TSSP detect module */
 #define EGU_USED_TSSP_DETECT 0
+/** EGU channel used by TSSP module */
+#define EGU_CHANNEL_USED_TSSP_DETECT 0
 /** SAADC channel used for Simple ADC module */
 #define SAADC_CHANNEL_USED_SIMPLE_ADC 1
-
+/** SWI peripheral used by application */
+#define SWI_SENSEBE_BLE_USED 1
+/** SWI used for Evt SD Handler module */
+#define SWI_USED_EVT_SD_HANDLER 2
 #endif /* SYS_CONFIG_H */
 /**
  * @}

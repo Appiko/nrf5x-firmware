@@ -36,8 +36,16 @@
 #error TWIM peripheral is not present in the nRF51 SoC
 #endif
 
+#if SYS_CFG_PRESENT == 1
+#include "sys_config.h"
+#endif
+#ifndef HAL_TWIM_PERIPH_USED 
+#define HAL_TWIM_PERIPH_USED 0
+#endif
+
+
 /** Specify which TWIM peripheral is used for this HAL module */
-#define TWIM_USED           0
+#define TWIM_USED           HAL_TWIM_PERIPH_USED
 
 /** @brief Defines for TWI master clock frequency.
  */

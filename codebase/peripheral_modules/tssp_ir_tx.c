@@ -23,6 +23,9 @@
 #include "sys_config.h"
 #include "nrf_util.h"
 
+#if ISR_MANAGER == 1
+#include "isr_manager.h"
+#endif
 
 #define TIMER_ID_1KHZ CONCAT_2(NRF_TIMER, TIMER_USED_TSSP_IR_TX_1)
 #define TIMER_ID_56KHZ CONCAT_2(NRF_TIMER, TIMER_USED_TSSP_IR_TX_2)
@@ -111,17 +114,27 @@ void tssp_ir_tx_init (uint32_t tssp_tx_en, uint32_t tssp_tx_in)
     NVIC_SetPriority (TIMER2_IRQn, APP_IRQ_PRIORITY_HIGH);
     NVIC_EnableIRQ (TIMER2_IRQn);
 }
-    
+#if ISR_MANAGER == 1
+void tssp_ir_tx_timer1_Handler ()
+#else
 void TIMER2_IRQHandler ()
+#endif
 {
     hal_gpio_pin_clear (tx_en);
     hal_gpio_pin_clear (tx_in);
+#if ISR_MANAGER == 0
     TIMER_ID_56KHZ->EVENTS_COMPARE[TIMERS_CHANNEL_USED] = 0;
     TIMER_ID_1KHZ->EVENTS_COMPARE[TIMERS_CHANNEL_USED] = 0;
+#endif
     TIMER_ID_1KHZ->TASKS_CLEAR = 1;
     TIMER_ID_1KHZ->TASKS_STOP = 1;
     TIMER_ID_1KHZ->TASKS_SHUTDOWN = 1;
     TIMER_ID_56KHZ->TASKS_SHUTDOWN = 1;
+}
+
+void tssp_ir_tx_timer2_Handler ()
+{
+    
 }
 
 void tssp_ir_tx_start (void)
