@@ -23,7 +23,7 @@
 #include "common_util.h"
 
 #if ISR_MANAGER == 1
-#include "template_isr_manage.h"
+#include "isr_manager.h"
 #endif
 
 /** Special value to reset WDT, shouldn't be modified.*/

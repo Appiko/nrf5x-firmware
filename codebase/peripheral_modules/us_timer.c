@@ -21,7 +21,7 @@
 #include <stddef.h>
 
 #if ISR_MANAGER == 1
-#include "template_isr_manage.h"
+#include "isr_manager.h"
 #endif
 
 /** @anchor timer_defines

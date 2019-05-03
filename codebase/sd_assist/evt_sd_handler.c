@@ -28,7 +28,7 @@
 #include "nrf_nvic.h"
 
 #if ISR_MANAGER == 1
-#include "template_isr_manage.h"
+#include "isr_manager.h"
 #endif
 
 #define SWI_USED SWI_USED_EVT_SD_HANDLER

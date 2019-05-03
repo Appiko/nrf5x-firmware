@@ -25,7 +25,7 @@
 #include "log.h"
 
 #if ISR_MANAGER == 1
-#include "template_isr_manage.h"
+#include "isr_manager.h"
 #endif
 
 /** RTC used by this module */

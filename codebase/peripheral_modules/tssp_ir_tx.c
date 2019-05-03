@@ -24,7 +24,7 @@
 #include "nrf_util.h"
 
 #if ISR_MANAGER == 1
-#include "template_isr_manage.h"
+#include "isr_manager.h"
 #endif
 
 #define TIMER_ID_1KHZ CONCAT_2(NRF_TIMER, TIMER_USED_TSSP_IR_TX_1)

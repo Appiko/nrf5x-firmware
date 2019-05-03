@@ -22,7 +22,7 @@
 #include "nrf_util.h"
 
 #if ISR_MANAGER == 1
-#include "template_isr_manage.h"
+#include "isr_manager.h"
 #endif
 
 /** Specify which RTC peripheral would be used for the PIR Sense module */

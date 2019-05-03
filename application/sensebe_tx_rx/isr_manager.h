@@ -1,5 +1,5 @@
 /**
- *  template_isr_manage.c : Template for ISR sharing.
+ *  isr_manager.c : File to handle and share ISRs as required.
  *  Copyright (C) 2019  Appiko
  *
  *  This program is free software: you can redistribute it and/or modify
@@ -62,6 +62,6 @@ void us_timer_timer_Handler (void);
 
 void evt_sd_handler_swi_Handler (void);
 
-//void sensebe_ble_swi_Handler (void);
+void sensebe_ble_swi_Handler (void);
 
 #endif //TEMPLATE_ISR_MANAGE_H

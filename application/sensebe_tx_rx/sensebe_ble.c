@@ -30,7 +30,7 @@
 #include "string.h"
 
 #if ISR_MANAGER == 1
-#include "template_isr_manage.h"
+#include "isr_manager.h"
 #endif
 
 /**< Name of device, to be included in the advertising data. */

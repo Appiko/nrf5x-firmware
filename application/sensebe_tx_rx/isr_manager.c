@@ -1,5 +1,5 @@
 /**
- *  template_isr_manage.c : Template for ISR sharing.
+ *  isr_manager.c : File to handle and share ISRs as required.
  *  Copyright (C) 2019  Appiko
  *
  *  This program is free software: you can redistribute it and/or modify
@@ -16,7 +16,7 @@
  *  along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#include "template_isr_manage.h"
+#include "isr_manager.h"
 #include "nrf.h"
 
 #if SYS_CFG_PRESENT == 1

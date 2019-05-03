@@ -68,7 +68,7 @@ C_SRC += tssp_detect.c
 C_SRC += cam_trigger.c
 C_SRC += simple_pwm.c
 C_SRC += tssp_ir_tx.c
-C_SRC += template_isr_manage.c
+C_SRC += isr_manager.c
 #Gets the name of the application folder
 APPLN = $(shell basename $(PWD))
 

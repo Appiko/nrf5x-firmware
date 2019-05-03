@@ -22,7 +22,7 @@
 #include "boards.h"
 
 #if ISR_MANAGER == 1
-#include "template_isr_manage.h"
+#include "isr_manager.h"
 #endif
 
 #ifndef BUTTON_ACTIVE_STATE

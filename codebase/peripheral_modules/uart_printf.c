@@ -25,7 +25,7 @@
 #include <stdbool.h>
 
 #if ISR_MANAGER == 1
-#include "template_isr_manage.h"
+#include "isr_manager.h"
 #endif
 
 #define UARTE_ID CONCAT_2(NRF_UARTE,UARTE_USED_UART_PRINTF)

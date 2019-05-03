@@ -1,5 +1,5 @@
 /**
- *  template_isr_manage.c : Template for ISR sharing.
+ *  template_isr_manager.c : Template for file to handle and share ISRs as required.
  *  Copyright (C) 2019  Appiko
  *
  *  This program is free software: you can redistribute it and/or modify
@@ -16,8 +16,8 @@
  *  along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#ifndef TEMPLATE_ISR_MANAGE_H
-#define TEMPLATE_ISR_MANAGE_H
+#ifndef TEMPLATE_ISR_MANAGER_H
+#define TEMPLATE_ISR_MANAGER_H
 
 //Drivers for hal level Irq management
 void hal_gpio_Handler (void);
@@ -62,6 +62,6 @@ void us_timer_timer_Handler (void);
 
 void evt_sd_handler_swi_Handler (void);
 
-void sensebe_ble_swi_Handler (void);
+//void sensebe_ble_swi_Handler (void);
 
-#endif //TEMPLATE_ISR_MANAGE_H
+#endif //TEMPLATE_ISR_MANAGER_H
