@@ -21,7 +21,11 @@
 
 #if SYS_CFG_PRESENT == 1
 #include "sys_config.h"
-#endif
+
+void HardFault_IRQHandler (void)
+{
+    while(1);
+}
 
 void POWER_CLOCK_IRQHandler (void)
 {
@@ -357,8 +361,8 @@ void COMP_LPCOMP_IRQHandler (void)
 
 void SWI0_EGU0_IRQHandler (void)
 {
-#if defined EVT_SD_HANDLER_SWI_USED
-#if EVT_SD_HANDLER_SWI_USED == 0
+#if defined SWI_USED_EVT_SD_HANDLER
+#if SWI_USED_EVT_SD_HANDLER == 0
     evt_sd_handler_swi_Handler ();
 #endif
 #endif
@@ -372,20 +376,16 @@ void SWI0_EGU0_IRQHandler (void)
 #if defined EGU_USED_TSSP_DETECT
 #if EGU_USED_TSSP_DETECT == 0
     tssp_detect_swi_Handler ();
+    NRF_EGU0->EVENTS_TRIGGERED[EGU_CHANNEL_USED_TSSP_DETECT] = 0;
 #endif
 #endif
-//Clear events
-    for(uint32_t x; x < 16; x++)
-    {
-        NRF_EGU0->EVENTS_TRIGGERED[x] = 0;
-    }
 
 }
 
 void SWI1_EGU1_IRQHandler (void)
 {
-#if defined EVT_SD_HANDLER_SWI_USED
-#if EVT_SD_HANDLER_SWI_USED == 1
+#if defined SWI_USED_EVT_SD_HANDLER
+#if SWI_USED_EVT_SD_HANDLER == 1
     evt_sd_handler_swi_Handler ();
 #endif
 #endif
@@ -399,18 +399,15 @@ void SWI1_EGU1_IRQHandler (void)
 #if defined EGU_USED_TSSP_DETECT
 #if EGU_USED_TSSP_DETECT == 1
     tssp_detect_swi_Handler ();
+    NRF_EGU1->EVENTS_TRIGGERED[EGU_CHANNEL_USED_TSSP_DETECT] = 0;
 #endif
 #endif
-//Clear events
-    for(uint32_t x; x < 16; x++)
-    {
-        NRF_EGU1->EVENTS_TRIGGERED[x] = 0;
-    }
 }
+
 void SWI2_EGU2_IRQHandler (void)
 {
-#if defined EVT_SD_HANDLER_SWI_USED
-#if EVT_SD_HANDLER_SWI_USED == 2
+#if defined SWI_USED_EVT_SD_HANDLER
+#if SWI_USED_EVT_SD_HANDLER == 2
     evt_sd_handler_swi_Handler ();
 #endif
 #endif
@@ -426,19 +423,12 @@ void SWI2_EGU2_IRQHandler (void)
     tssp_detect_swi_Handler ();
 #endif
 #endif
-//Clear events
-#if defined NRF52840
-    for(uint32_t x; x < 16; x++)
-    {
-        NRF_EGU2->EVENTS_TRIGGERED[x] = 0;
-    }
-#endif
 }
 
 void SWI3_EGU3_IRQHandler (void)
 {
-#if defined EVT_SD_HANDLER_SWI_USED
-#if EVT_SD_HANDLER_SWI_USED == 3
+#if defined SWI_USED_EVT_SD_HANDLER
+#if SWI_USED_EVT_SD_HANDLER == 3
     evt_sd_handler_swi_Handler ();
 #endif
 #endif
@@ -454,19 +444,12 @@ void SWI3_EGU3_IRQHandler (void)
     tssp_detect_swi_Handler ();
 #endif
 #endif
-//Clear events
-#if defined NRF52840
-    for(uint32_t x; x < 16; x++)
-    {
-        NRF_EGU3->EVENTS_TRIGGERED[x] = 0;
-    }
-#endif
 }
 
 void SWI4_EGU4_IRQHandler (void)
 {
-#if defined EVT_SD_HANDLER_SWI_USED
-#if EVT_SD_HANDLER_SWI_USED == 4
+#if defined SWI_USED_EVT_SD_HANDLER
+#if SWI_USED_EVT_SD_HANDLER == 4
     evt_sd_handler_swi_Handler ();
 #endif
 #endif
@@ -483,19 +466,12 @@ void SWI4_EGU4_IRQHandler (void)
     tssp_detect_swi_Handler ();
 #endif
 #endif
-//Clear events
-#if defined NRF52840
-    {
-    for(uint32_t x; x < 16; x++)
-        NRF_EGU4->EVENTS_TRIGGERED[x] = 0;
-    }
-#endif
 }
 
 void SWI5_EGU5_IRQHandler (void)
 {
-#if defined EVT_SD_HANDLER_SWI_USED
-#if EVT_SD_HANDLER_SWI_USED == 5
+#if defined SWI_USED_EVT_SD_HANDLER
+#if SWI_USED_EVT_SD_HANDLER == 5
     evt_sd_handler_swi_Handler ();
 #endif
 #endif
@@ -511,13 +487,6 @@ void SWI5_EGU5_IRQHandler (void)
 #if EGU_USED_TSSP_DETECT == 5
     tssp_detect_swi_Handler ();
 #endif
-#endif
-//Clear events
-#if defined NRF52840
-    for(uint32_t x; x < 16; x++)
-    {
-        NRF_EGU5->EVENTS_TRIGGERED[x] = 0;
-    }
 #endif
 }
 
@@ -713,4 +682,5 @@ void I2S_IRQHandler (void)
 void FPU_IRQHandler (void)
 {
 }
+#endif
 #endif

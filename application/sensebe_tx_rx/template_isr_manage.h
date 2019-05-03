@@ -54,7 +54,7 @@ void tssp_detect_rtc_Handler (void);
 
 void tssp_ir_tx_timer1_Handler (void);
 
-extern void tssp_ir_tx_timer2_Handler (void);
+void tssp_ir_tx_timer2_Handler (void);
 
 void uart_printf_uart_Handler (void);
 
