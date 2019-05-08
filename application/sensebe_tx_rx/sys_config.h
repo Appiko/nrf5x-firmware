@@ -42,6 +42,8 @@
 /** UART peripheral used for hal driver */
 #define HAL_UART_PERIPH_USED 0
 
+#define HAL_RADIO_PERIPH_USED 0
+
 /** RTC used for MS_TIMER module */
 #define RTC_USED_MS_TIMER 1
 /** RTC used for TSSP detect module */
@@ -52,6 +54,8 @@
 #define MS_TIMER_USED_OUT_GEN 1
 /** MS_TIMER used for SenseBe TxRx module */
 #define MS_TIMER_USED_SENSBE_TX_RX 2
+
+#define MS_TIMER_USED_SENSEBE_RADIO_CONTROL 3
 /** 1st PPI channel used for TSSP detect module */
 #define PPI_CH_USED_TSSP_DETECT_1 0
 /** 2nd PPI channel used for TSSP detect module */
@@ -80,14 +84,19 @@
 #define TIMER_USED_TSSP_IR_TX_1 2
 /** 2nd Timer used for TSSP IR transmission module */
 #define TIMER_USED_TSSP_IR_TX_2 1
+#define TIMER_USED_RADIO_TRIGGER 0
 /** Timer for future use  */
-#define TIMER_USED_EXTRA 2
+#define TIMER_USED_EXTRA 0 //Shared with softdevices
 /** 1st Channel from 1st timer used for TSSP IR transmission module */
 #define TIMER_CHANNEL_USED_TSSP_IR_TX_1_1 0
 /** 1st Channel from 2nd timer used for TSSP IR transmission module */
 #define TIMER_CHANNEL_USED_TSSP_IR_TX_2_1 0
 /** 2nd Channel from 2nd timer used for TSSP IR transmission module */
 #define TIMER_CHANNEL_USED_TSSP_IR_TX_2_2 3
+#define TIMER_CHANNEL_USED_RADIO_TRIGGER_0 0 
+#define TIMER_CHANNEL_USED_RADIO_TRIGGER_1 1
+#define TIMER_CHANNEL_USED_RADIO_TRIGGER_2 2
+
 /** Event Generator Unit used for TSSP detect module */
 #define EGU_USED_TSSP_DETECT 0
 /** EGU channel used by TSSP module */

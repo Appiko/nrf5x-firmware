@@ -33,6 +33,8 @@
 #include "string.h"
 #include "hal_nop_delay.h"
 #include "tssp_ir_tx.h"
+#include "hal_radio.h"
+#include "radio_trigger.h"
 
 /***********MACROS***********/
 /** Time upto which LED feedback is to be given in motion detection mode */
@@ -50,6 +52,15 @@
 /** Off time for TSSP receiver while module is in motion sync mode */
 #define MOTION_SYNC_OFF_TIME 800
 
+#define RADIO_TX_ON_TIME_MS 102
+
+#define RADIO_TX_FREQ_MS 1
+
+#define RADIO_RX_ON_TIME_MS 1
+
+#define RADIO_RX_FREQ_MS 50
+
+#define MS_TIMER_TICKS_500US MS_TIMER_TICKS_MS(1)/2
 /***********ENUMS***********/
 /** List of states for Motion Detection module. */
 typedef enum
@@ -73,6 +84,8 @@ typedef enum
     MOD_MOTION,
     /**IR transmission module*/
     MOD_IR_TX,
+    /**Radio trigger Module*/
+    MOD_RADIO,
     /**Maximum number of modules*/
     MAX_MODS,
 }modules_t;
@@ -153,7 +166,18 @@ static uint32_t light_check_en_pin = 0;
 /** Variable to select the boards functionality */
 static rx_tx_mod_en_t MOD_FUNC_SEL = RX_EN;
 
+static uint32_t radio_on_mod_ticks;
+
+static uint32_t radio_ticks;
+
 /***********FUNCTIONS***********/
+/** Wireless triggering functions */
+/** Handler which will be called when wireless trigger is received */
+void wireless_trig_rx_handler (void * buff, uint32_t len);
+
+void radio_module_start ();
+void radio_module_add_mod_ticks ();
+void radio_module_stop ();
 /** Motion Detection Module Related Functions. */
 /**Function to start motion detection module*/
 void motion_module_start (void);
@@ -328,7 +352,6 @@ void ir_range_long ()
 
 void camera_unit_handler(uint32_t trigger)
 {
-    log_printf("%s\n", __func__);
     switch(trigger)
     {
         case MOD_MOTION : 
@@ -347,6 +370,12 @@ void timer_trigger_handler ()
     }
 }
 
+void wireless_trig_rx_handler (void * buff, uint32_t len)
+{
+    uint8_t * temp_buff = (uint8_t * )buff;
+    cam_trigger ((uint32_t)temp_buff[0]);
+}
+
 void window_detect_handler ()
 {
     led_ui_stop_seq (LED_UI_LOOP_SEQ, LED_SEQ_DETECT_PULSE);
@@ -355,6 +384,10 @@ void window_detect_handler ()
     arr_state_change[motion_state] ();
     tssp_detect_pulse_detect ();
     cam_trigger (MOD_MOTION);
+//    if(is_radio_trigger_availabel ())
+    {
+        radio_trigger_yell ();
+    }
 }
 
 bool compare_margin(uint32_t data, uint32_t ref, uint32_t margin)
@@ -505,6 +538,32 @@ void light_sense_add_ticks (uint32_t interval)
         //Disable light sense module
         hal_gpio_pin_clear (light_check_en_pin);
         timepassed = 0;
+    }
+}
+
+void radio_module_start ()
+{
+    
+    cam_trigger_config_t cam_trig_config = 
+    {
+        .setup_number = MOD_MOTION,
+        .trig_duration_100ms = sensebe_config.tssp_conf.intr_trig_timer,
+        .trig_mode = sensebe_config.tssp_conf.cam_oper.mode,
+        .trig_param1 = sensebe_config.tssp_conf.cam_oper.larger_value,
+        .trig_param2 = sensebe_config.tssp_conf.cam_oper.smaller_value,
+        .pre_focus_en = (bool)sensebe_config.timer_conf.cam_oper.pre_focus,
+    };
+    cam_trigger_set_trigger (&cam_trig_config);
+
+}
+
+void radio_module_add_mod_ticks ()
+{
+    radio_ticks++;
+    if(radio_ticks >= radio_on_mod_ticks)
+    {
+        radio_ticks = 0;
+        radio_trigger_listen ();
     }
 }
 
@@ -718,6 +777,10 @@ void module_tick_handler ()
     {
         ir_tx_module_add_mod_ticks ();
     }
+    if(MOD_FUNC_SEL == TX_EN)
+    {
+        radio_module_add_mod_ticks ();
+    }
 }
 
 void sensebe_tx_rx_init (sensebe_tx_rx_config_t * sensebe_rx_detect_config)
@@ -731,12 +794,14 @@ void sensebe_tx_rx_init (sensebe_tx_rx_config_t * sensebe_rx_detect_config)
     hal_gpio_cfg_output (light_check_en_pin, 0);
     
     hal_gpio_cfg_input (sensebe_rx_detect_config->rx_tx_sel, HAL_GPIO_PULL_DISABLED);
+    hal_nop_delay_us (1);
     MOD_FUNC_SEL = hal_gpio_pin_read (sensebe_rx_detect_config->rx_tx_sel);
     log_printf("MOD_FUNC_SEL %d\n",MOD_FUNC_SEL);
-
     
+        
     memcpy (&sensebe_config, sensebe_rx_detect_config->sensebe_config,
             sizeof(sensebe_config_t));
+            log_printf("%s\n", __func__);
     
     tssp_detect_config_t local_tssp_detect_config = 
     {
@@ -757,7 +822,36 @@ void sensebe_tx_rx_init (sensebe_tx_rx_config_t * sensebe_rx_detect_config)
         .focus_pin = sensebe_rx_detect_config->rx_detect_config.focus_pin_no,
         .trigger_pin = sensebe_rx_detect_config->rx_detect_config.trigger_pin_no
     };
-    cam_trigger_init (&cam_trig_setup);    
+    cam_trigger_init (&cam_trig_setup);   
+    
+    if(MOD_FUNC_SEL == RX_EN)
+    {
+        radio_trigger_init_t radio_init = 
+        {
+            .comm_direction = RADIO_TRIGGER_Tx,
+            .comm_freq = 95,
+            .irq_priority = APP_IRQ_PRIORITY_HIGH,
+            .tx_on_freq_us = 500,
+            .tx_on_time_ms = 100,
+        };
+        radio_trigger_init (&radio_init);
+    }
+    else
+    {
+        radio_trigger_init_t radio_init = 
+        {
+            .comm_direction = RADIO_TRIGGER_Rx,
+            .comm_freq = 95,
+            .irq_priority = APP_IRQ_PRIORITY_HIGH,
+            .radio_trigger_rx_callback = wireless_trig_rx_handler,
+            .rx_on_time_ms = 1,
+        };
+        radio_trigger_init (&radio_init);
+        log_printf("Radio init : %d\n", radio_init.comm_direction);
+    }
+    
+    static modules_t mod_trig = MOD_MOTION;
+    radio_trigger_memorize_data (&mod_trig, sizeof(modules_t));
     
     tssp_ir_tx_init (sensebe_rx_detect_config->tx_transmit_config.tx_en_pin,
                      sensebe_rx_detect_config->tx_transmit_config.tx_in_pin);
@@ -773,8 +867,8 @@ void sensebe_tx_rx_init (sensebe_tx_rx_config_t * sensebe_rx_detect_config)
 
 void sensebe_tx_rx_start (void)
 {
-    log_printf("%s\n", __func__);
     feedback_timepassed = 0;
+    log_printf("%s\n", __func__);
     if(memcmp (&sensebe_config, sensebe_store_config_get_last_config(),
                sizeof(sensebe_config_t)) != 0)
     {
@@ -812,6 +906,12 @@ void sensebe_tx_rx_start (void)
         ir_tx_module_stop ();
     }
     
+    if(MOD_FUNC_SEL == TX_EN)
+    {
+        radio_module_start ();
+        radio_on_mod_ticks = RADIO_RX_FREQ_MS/arr_module_tick_duration[sensebe_config.ir_tx_conf.ir_tx_speed];
+    }
+    
     ms_timer_start (SENSEBE_OPERATION_MS_TIMER, MS_REPEATED_CALL,
         MS_TIMER_TICKS_MS(arr_module_tick_duration[sensebe_config.ir_tx_conf.ir_tx_speed])
         , module_tick_handler);
@@ -826,6 +926,7 @@ void sensebe_tx_rx_stop (void)
     motion_module_stop ();
     timer_module_stop ();
     ir_tx_module_stop ();
+    radio_trigger_shut ();
     ms_timer_stop (SENSEBE_OPERATION_MS_TIMER);
 }
 

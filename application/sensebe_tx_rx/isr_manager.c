@@ -177,6 +177,12 @@ void TIMER0_IRQHandler (void)
     us_timer_timer_Handler ();
 #endif
 #endif
+    
+#if defined TIMER_USED_RADIO_TRIGGER
+#if TIMER_USED_RADIO_TRIGGER == 0
+    radio_trigger_timer_Handler ();
+#endif
+#endif
 
 #if defined TIMER_USED_PROFILE_TIMER
 #if TIMER_USED_PROFILE_TIMER == 0
@@ -209,6 +215,12 @@ void TIMER1_IRQHandler (void)
 #if defined TIMER_USED_TSSP_IR_TX_2
 #if TIMER_USED_TSSP_IR_TX_2 == 1
     tssp_ir_tx_timer2_Handler ();
+#endif
+#endif
+
+#if defined TIMER_USED_RADIO_TRIGGER
+#if TIMER_USED_RADIO_TRIGGER == 1
+    radio_trigger_timer_Handler ();
 #endif
 #endif
 
@@ -247,6 +259,12 @@ void TIMER2_IRQHandler (void)
 #if defined TIMER_USED_TSSP_IR_TX_2
 #if TIMER_USED_TSSP_IR_TX_2 == 2
     tssp_ir_tx_timer2_Handler ();
+#endif
+#endif
+
+#if defined TIMER_USED_RADIO_TRIGGER
+#if TIMER_USED_RADIO_TRIGGER == 2
+    radio_trigger_timer_Handler ();
 #endif
 #endif
 
@@ -504,6 +522,12 @@ void TIMER3_IRQHandler (void)
 #endif
 #endif
 
+#if defined TIMER_USED_RADIO_TRIGGER
+#if TIMER_USED_RADIO_TRIGGER == 3
+    radio_trigger_timer_Handler ();
+#endif
+#endif
+
 #if defined TIMER_USED_US_TIMER
 #if TIMER_USED_US_TIMER == 3
     us_timer_timer_Handler ();
@@ -545,6 +569,12 @@ void TIMER4_IRQHandler (void)
 #if defined TIMER_USED_US_TIMER
 #if TIMER_USED_US_TIMER == 4
     us_timer_timer_Handler ();
+#endif
+#endif
+
+#if defined TIMER_USED_RADIO_TRIGGER
+#if TIMER_USED_RADIO_TRIGGER == 4
+    radio_trigger_timer_Handler ();
 #endif
 #endif
 
