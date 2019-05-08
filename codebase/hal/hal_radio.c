@@ -177,7 +177,9 @@ void RADIO_IRQHandler ()
 {
     if(NRF_RADIO->EVENTS_CRCOK == 1)
     {
+#if ISR_MANAGER == false
         NRF_RADIO->EVENTS_CRCOK = 0;
+#endif
         if(pb_rx_done_handler != NULL)
         {
             pb_rx_done_handler (payload_buff.p_payload, payload_buff.payload_len - 1);
@@ -185,12 +187,16 @@ void RADIO_IRQHandler ()
     }
     if(NRF_RADIO->EVENTS_CRCERROR == 1)
     {
+#if ISR_MANAGER == false
         NRF_RADIO->EVENTS_CRCERROR = 0;
+#endif
         
     }
     if(NRF_RADIO->EVENTS_END == 1)
     {
+#if ISR_MANAGER == false
         NRF_RADIO->EVENTS_END = 0;
+#endif
         if(pb_tx_done_handler != NULL)
         {
             pb_tx_done_handler (payload_buff.p_payload, payload_buff.payload_len - 1);
