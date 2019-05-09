@@ -77,6 +77,11 @@ void hal_radio_start_rx ();
 void hal_radio_stop ();
 
 /**
+ * @brief Function to de-initiate the radio peripheral. 
+ */
+void hal_radio_deinit ();
+
+/**
  * @brief Function to check status of radio peripheral
  * @return Status of radio peripheral
  * @retval True Radio is being used and is not available

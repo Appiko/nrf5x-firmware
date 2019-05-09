@@ -139,7 +139,7 @@ void radio_trigger_shut ()
 {
     TIMER_ID->TASKS_STOP = 1;
     TIMER_ID->TASKS_SHUTDOWN = 1;
-    hal_radio_stop ();
+    hal_radio_deinit ();
     is_radio_free = true;
 }
 
@@ -179,7 +179,7 @@ void TIMER_IRQ_Handler ()
             TIMER_ID->TASKS_STOP = 1;
             TIMER_ID->TASKS_SHUTDOWN = 1;
             (void) TIMER_ID->TASKS_SHUTDOWN;
-            hal_radio_stop ();
+            hal_radio_deinit ();
             is_radio_free = true;
         }
     }
@@ -202,7 +202,7 @@ void TIMER_IRQ_Handler ()
             TIMER_ID->TASKS_STOP = 1;
             TIMER_ID->TASKS_SHUTDOWN = 1;
             (void) TIMER_ID->TASKS_SHUTDOWN;
-            hal_radio_stop ();
+            hal_radio_deinit ();
             is_radio_free = true;
         }
     }
