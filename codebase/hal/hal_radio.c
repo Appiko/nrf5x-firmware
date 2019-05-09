@@ -161,6 +161,16 @@ void hal_radio_start_rx ()
 void hal_radio_stop ()
 {
     NRF_RADIO->TASKS_DISABLE = 1;
+    NRF_RADIO->TASKS_STOP = 1;
+}
+
+void hal_radio_deinit ()
+{
+    NVIC_DisableIRQ (RADIO_IRQn);
+    NRF_RADIO->INTENCLR = 0xFFFFFFFF;
+    NRF_RADIO->TASKS_DISABLE = 1;
+    NRF_RADIO->POWER = (RADIO_POWER_POWER_Disabled << RADIO_POWER_POWER_Pos) &
+        RADIO_POWER_POWER_Msk;
 }
 
 bool hal_radio_is_on ()
