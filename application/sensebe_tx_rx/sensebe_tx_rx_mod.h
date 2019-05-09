@@ -48,7 +48,7 @@ extern "C" {
 #endif
         
 #define SENSEBE_OPERATION_MS_TIMER CONCAT_2(MS_TIMER,MS_TIMER_USED_SENSBE_TX_RX)
-
+    
 /** Structure containing all the values required for sensebe_rx_detect module */
 typedef struct 
 {

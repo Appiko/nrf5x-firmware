@@ -69,6 +69,8 @@ C_SRC += cam_trigger.c
 C_SRC += simple_pwm.c
 C_SRC += tssp_ir_tx.c
 C_SRC += isr_manager.c
+C_SRC += hal_radio.c
+C_SRC += radio_trigger.c
 #Gets the name of the application folder
 APPLN = $(shell basename $(PWD))
 
