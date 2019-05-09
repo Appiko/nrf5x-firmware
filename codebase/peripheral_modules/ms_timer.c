@@ -20,6 +20,10 @@
 #include "stddef.h"
 #include "nrf_assert.h"
 
+#if ISR_MANAGER == 1
+#include "isr_manager.h"
+#endif
+
 /** @anchor rtc_defines
  * @name Defines for the specific RTC peripheral used for ms timer
  * @{*/
@@ -83,7 +87,6 @@ static void cal_overflow_ticks_req (uint32_t counter_val, uint64_t ticks, uint32
  */
 void rtc_overflow_handler ()
 {
-    RTC_ID->EVENTS_OVRFLW = 0;
     for (ms_timer_num id = MS_TIMER0; id < MS_TIMER_MAX; id++)
     {
         if(ms_timer[id].timer_over_flow_num != 0)
@@ -189,11 +192,18 @@ bool ms_timer_get_on_status(ms_timer_num id)
  * Triggered Compare register of timer ID
  */
 __attribute__((optimize("unroll-loops")))
+#if ISR_MANAGER == 1
+void ms_timer_rtc_Handler ()
+#else
 void RTC_IRQ_Handler()
+#endif
 {
     uint32_t counter_val = RTC_ID->COUNTER;
     if(RTC_ID->EVENTS_OVRFLW)
     {
+#if ISR_MANAGER == 0
+        RTC_ID->EVENTS_OVRFLW = 0;
+#endif
         rtc_overflow_handler ();
     }
     for (ms_timer_num id = MS_TIMER0; id < MS_TIMER_MAX; id++)
@@ -202,8 +212,10 @@ void RTC_IRQ_Handler()
         {
             RTC_ID->EVTENCLR = 1 << (RTC_INTENSET_COMPARE0_Pos + id);
             RTC_ID->INTENCLR = 1 << (RTC_INTENSET_COMPARE0_Pos + id);
+#if ISR_MANAGER == 0
             RTC_ID->EVENTS_COMPARE[id] = 0;
             (void)RTC_ID->EVENTS_COMPARE[id];
+#endif
 
             void (*cb_handler)(void) = NULL;
             if (ms_timer[id].timer_handler != NULL)
