@@ -112,7 +112,7 @@
 /** Number of transitions required for Video operation triggered by Timer */
 #define TIMER_VIDEO_TRANSITIONS 3
 /** Ticks duration of trigger pulse to start a video */
-#define VIDEO_START_PULSE MS_TIMER_TICKS_MS(250)
+#define VIDEO_START_PULSE MS_TIMER_TICKS_MS(2500)
 /** Ticks duration of trigger pulse to end a video */
 #define VIDEO_END_PULSE MS_TIMER_TICKS_MS(300)
 /** Number of maximum extensions for Video */
@@ -791,7 +791,7 @@ void out_gen_config_full_video(cam_trig_state_t data_process_mode, uint32_t vide
     {
         .num_transitions = TIMER_VIDEO_TRANSITIONS,
         .next_out = {{0,1,0,1},
-            {1,1,1,1}},
+            {0,1,0,1}},
         .transitions_durations = {VIDEO_START_PULSE,
                     MS_TIMER_TICKS_MS(video_len),
                     VIDEO_END_PULSE},
@@ -816,7 +816,7 @@ void out_gen_config_part_video_start(uint32_t video_len)
     {
         .num_transitions = SINGLE_SHOT_TRANSITIONS,
         .next_out = {{0,1,1}
-        ,{1,1,1}},
+        ,{0,1,1}},
         .transitions_durations = {VIDEO_START_PULSE, 
                                     (MS_TIMER_TICKS_MS(video_len))},
         .done_handler = out_gen_done_handler,
@@ -850,7 +850,7 @@ void out_gen_config_part_video_end()
     {
         .num_transitions = SINGLE_SHOT_TRANSITIONS,
         .next_out = {{1,0,1},
-            {1,1,1}},
+            {1,0,1}},
         .transitions_durations = {MS_TIMER_TICKS_MS(VIDEO_PIR_ON), VIDEO_END_PULSE,},
         .done_handler = out_gen_done_handler,
         .out_gen_state = PIR_IDLE,
