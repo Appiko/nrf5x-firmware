@@ -51,6 +51,10 @@
   #include "sensebe_rev1.h"
 #elif defined(BOARD_SENSEBE_REV3)
   #include "sensebe_rev3.h"
+#elif defined(BOARD_SENSEBETX_REV3)
+  #include "sensebetx_rev3.h"
+#elif defined(BOARD_SENSEBERX_REV3)
+  #include "senseberx_rev3.h"
 #elif defined(BOARD_CUSTOM)
   #include "custom_board.h"
 #else
