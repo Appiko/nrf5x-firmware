@@ -33,6 +33,7 @@
 #include "string.h"
 #include "hal_nop_delay.h"
 #include "tssp_ir_tx.h"
+#include "radio_trigger.h"
 
 /***********MACROS***********/
 /** Time upto which LED feedback is to be given in motion detection mode */
@@ -286,6 +287,7 @@ void window_detect_handler ()
     arr_state_change[motion_state] ();
     tssp_detect_pulse_detect ();
     cam_trigger (MOD_MOTION);
+    radio_trigger_yell ();
 }
 
 bool compare_margin(uint32_t data, uint32_t ref, uint32_t margin)
@@ -458,6 +460,20 @@ void motion_module_start ()
         .pre_focus_en = (bool)sensebe_config.cam_trigs[MOTION_ALL].pre_focus,
     };
     cam_trigger_set_trigger (&motion_cam_trig_config);
+    
+    radio_trigger_init_t radio_init = 
+    {
+        .comm_direction = RADIO_TRIGGER_Tx,
+        .comm_freq = 95,
+        .irq_priority = APP_IRQ_PRIORITY_HIGH,
+        .tx_on_freq_us = 500,
+        .tx_on_time_ms = 100,
+    };
+    radio_trigger_init (&radio_init);
+    
+    modules_t radio_payload = MOD_MOTION;
+    radio_trigger_memorize_data (&radio_payload, sizeof(modules_t));
+    
 
     tssp_detect_config.window_duration_ticks =
         sensebe_config.tssp_conf.detect_window;

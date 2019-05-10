@@ -33,6 +33,7 @@
 #include "string.h"
 #include "hal_nop_delay.h"
 #include "tssp_ir_tx.h"
+#include "radio_trigger.h"
 
 /***********MACROS***********/
 /** Time upto which LED feedback is to be given in motion detection mode */
@@ -50,12 +51,16 @@
 /** Off time for TSSP receiver while module is in motion sync mode */
 #define MOTION_SYNC_OFF_TIME 800
 
+#define RADIO_ON_FREQ_MS 50
+
 /***********ENUMS***********/
 /** List of all submodules which are being managed by this module */
 typedef enum
 {
     /**Timer Module*/
     MOD_TIMER,
+    /**Radio Module*/
+    MOD_RADIO,
     /**IR transmission module*/
     MOD_IR_TX,
     /**Maximum number of modules*/
@@ -126,6 +131,8 @@ static uint32_t light_check_sense_pin = 0;
 /**Global variable to store pin number of Light sensor control pin*/
 static uint32_t light_check_en_pin = 0;
 
+static uint32_t radio_mod_ticks_freq = 0;
+
 /***********FUNCTIONS***********/
 /** Timer Module Related Functions. */
 /**Function to start timer module*/
@@ -139,6 +146,14 @@ void timer_module_stop (void);
 
 /**Function which is to be called when timer trigger should happen*/
 void timer_trigger_handler ();
+
+void radio_module_start ();
+
+void radio_module_add_mod_ticks ();
+
+void radio_module_stop ();
+
+void radio_module_trigger_handler (void * p_trig, uint32_t len);
 
 /** IR Transmitter Module Related Functions */
 /**Function to start IR transmitter module*/
@@ -322,6 +337,56 @@ void light_sense_add_ticks (uint32_t interval)
     }
 }
 
+void radio_module_start ()
+{
+    arr_is_mod_on[MOD_RADIO] = 1;
+    radio_trigger_init_t radio_init = 
+    {
+        .comm_direction = RADIO_TRIGGER_Rx,
+        .comm_freq = 95,
+        .irq_priority = APP_IRQ_PRIORITY_HIGH,
+        .radio_trigger_rx_callback = radio_module_trigger_handler,
+        .rx_on_time_ms = 1,
+    };
+    radio_trigger_init (&radio_init);
+    
+    cam_trigger_config_t cam_trigg = 
+    {
+        .setup_number = MOD_RADIO,
+        .pre_focus_en = sensebe_config.cam_trigs[RADIO_ALL].pre_focus,
+        .trig_duration_100ms = 15,
+        .trig_mode = sensebe_config.cam_trigs[RADIO_ALL].mode,
+        .trig_param1 = sensebe_config.cam_trigs[RADIO_ALL].larger_value,
+        .trig_param2 = sensebe_config.cam_trigs[RADIO_ALL].smaller_value,
+    };
+    cam_trigger_set_trigger (&cam_trigg);
+    
+}
+
+void radio_module_add_mod_ticks ()
+{
+    static uint32_t radio_cnt = 0;
+    radio_cnt++;
+    if(radio_cnt >= radio_mod_ticks_freq)
+    {
+        radio_trigger_listen ();
+        radio_cnt = 0;
+    }
+}
+
+void radio_module_stop ()
+{
+    arr_is_mod_on[MOD_RADIO] = 0;
+    radio_trigger_shut ();
+}
+
+void radio_module_trigger_handler (void * p_trig, uint32_t len)
+{
+    uint32_t * buff = (uint32_t *)p_trig;
+    log_printf("%s : %d\n", __func__, buff[0]);
+    cam_trigger (buff[0]);
+}
+
 void timer_module_start ()
 {
     oper_time_t timer_oper_time = sensebe_config.timer_conf.oper_time;
@@ -445,6 +510,10 @@ void module_tick_handler ()
     {
         ir_tx_module_add_mod_ticks ();
     }
+    if(arr_is_mod_on[MOD_RADIO] == true)
+    {
+        radio_module_add_mod_ticks ();
+    }
 }
 
 void sensebe_tx_rx_init (sensebe_tx_config_t * sensebe_tx_init)
@@ -507,12 +576,24 @@ void sensebe_tx_rx_start (void)
     
     if ((sensebe_config.trig_conf != TIMER_ONLY))
     {
+        radio_module_start ();
+    }
+    else
+    {
+        radio_module_stop ();
+    }
+
+    if ((sensebe_config.ir_tx_conf.is_enable == 1))
+    {
         ir_tx_module_start ();
     }
     else
     {
         ir_tx_module_stop ();
     }
+    
+    radio_mod_ticks_freq = RADIO_ON_FREQ_MS/
+        arr_module_tick_duration[sensebe_config.ir_tx_conf.ir_tx_speed];
     
     ms_timer_start (SENSEBE_OPERATION_MS_TIMER, MS_REPEATED_CALL,
         MS_TIMER_TICKS_MS(arr_module_tick_duration[sensebe_config.ir_tx_conf.ir_tx_speed])
@@ -527,6 +608,7 @@ void sensebe_tx_rx_stop (void)
     cam_trigger_stop ();
     timer_module_stop ();
     ir_tx_module_stop ();
+    radio_module_stop ();
     ms_timer_stop (SENSEBE_OPERATION_MS_TIMER);
 }
 

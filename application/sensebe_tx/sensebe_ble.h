@@ -125,7 +125,7 @@ typedef enum
 
 //    MOTION_ALL,         //at rx side
 
-//    RADIO_ALL,        //at tx side
+    RADIO_ALL,        //at tx side
 
 //    TIMER_DAY,
 //    TIMER_NIGHT,

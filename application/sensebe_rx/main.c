@@ -136,8 +136,8 @@ static sensebe_config_t sensebe_ble_default_config = {
     .tssp_conf.detect_window = 100,
     .tssp_conf.intr_trig_timer = 15,
 
-    .cam_trigs[MOTION_ALL].mode = CAM_TRIGGER_SINGLE_SHOT,
-    .cam_trigs[MOTION_ALL].larger_value = 0,
+    .cam_trigs[MOTION_ALL].mode = CAM_TRIGGER_LONG_PRESS,
+    .cam_trigs[MOTION_ALL].larger_value = 30,
     .cam_trigs[MOTION_ALL].smaller_value = 0,
     .cam_trigs[MOTION_ALL].pre_focus = 0,
 
