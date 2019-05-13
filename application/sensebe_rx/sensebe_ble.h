@@ -1,50 +1,34 @@
 /*
- *  sensebe_ble.h
+ *  sensebe_ble.h : BLE Support file for SenseBe application 
+ *  Copyright (C) 2019  Appiko
  *
- *  Created on: 09-May-2018
+ *  This program is free software: you can redistribute it and/or modify
+ *  it under the terms of the GNU General Public License as published by
+ *  the Free Software Foundation, either version 3 of the License, or
+ *  (at your option) any later version.
  *
- *  Copyright (c) 2018, Appiko
- *  All rights reserved.
- *
- *  Redistribution and use in source and binary forms, with or without modification,
- *  are permitted provided that the following conditions are met:
- *
- *  1. Redistributions of source code must retain the above copyright notice,
- *  this list of conditions and the following disclaimer.
- *
- *  2. Redistributions in binary form must reproduce the above copyright notice,
- *  this list of conditions and the following disclaimer in the documentation
- *  and/or other materials provided with the distribution.
- *
- *  3. Neither the name of the copyright holder nor the names of its contributors
- *  may be used to endorse or promote products derived from this software without
- *  specific prior written permission.
- *
- *  THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
- *  ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
- *  WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED.
- *  IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT,
- *  INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING,
- *  BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA,
- *  OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY,
- *  WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
- *  ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
- *  POSSIBILITY OF SUCH DAMAGE.
+ *  This program is distributed in the hope that it will be useful,
+ *  but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ *  GNU General Public License for more details.
+ *  
+ *  You should have received a copy of the GNU General Public License
+ *  along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
 /**
- * @addtogroup sense_appln
+ * @addtogroup sensebe_appln
  * @{
  *
- * @defgroup ble_support The support code for the PIR based Sense units.
- * @brief The PIR sense application's support file that handles ble operations.
+ * @defgroup ble_support The support code for the active IR based Sense units.
+ * @brief The active IR sense application's support file that handles ble operations.
  *
  * @{
  *
  */
 
-#ifndef APPLICATION_SENSE_PIR_SENSEBE_BLE_H_
-#define APPLICATION_SENSE_PIR_SENSEBE_BLE_H_
+#ifndef APPLICATION_SENSEBE_BLE_H_
+#define APPLICATION_SENSEBE_BLE_H_
 
 #include "stdint.h"
 #include "stdbool.h"
@@ -56,6 +40,7 @@ typedef struct
     dev_id_t id;
     uint8_t battery_status;
     fw_ver_t fw_ver;
+    uint8_t board_sel;
 }__attribute__ ((packed)) sensebe_sysinfo ;
 /**
  * @brief Enum of all posiible modes of operation.
@@ -66,6 +51,17 @@ typedef enum
     MOTION_ONLY,       ///Trigger only on motion detection
     MOTION_AND_TIMER,  ///Trigger on both motion detection or timer.
 }trigger_conf_t;
+
+/**
+ * @brief Enum to select operation speed for Device
+ */
+typedef enum 
+{
+    LIGHTNING,  ///Lightning mode
+    FAST, ///Fast mode
+    NORM,     ///Normal mode
+    SLOWMO,     ///Slow mode
+}device_speed_t;
 
 /**
  * @brief Strcture for Operation time.
@@ -84,12 +80,12 @@ typedef struct
 }__attribute__ ((packed)) oper_time_t;
 
 /**
- * @brief Strcture to configure PIR sensing. 
+ * @brief Structure to control camera operations
  */
 typedef struct
 {
-    /** To decide in which light condition PIR should operate. */
-    oper_time_t oper_time;     
+    /** To decide if pre_focus pulse of 1.5 sec is required or not */
+    uint8_t pre_focus : 1;
     /**
      * MODE DATA FORMAT:
      *  |31  (bits) 24|23  (bits)     8|7 (bits) 0| 
@@ -115,12 +111,45 @@ typedef struct
      *  Larger Value    : --\n
      *  Smaller Value   : --\n
      */
-    uint8_t mode;
+    uint8_t mode : 7;
     uint16_t larger_value;
     uint8_t smaller_value;
+}__attribute__ ((packed)) cam_oper_t;
+
+/**
+ * @brief Enum to store the list of camera triggers possible
+ */
+typedef enum
+{
+    TIMER_ALL,        
+
+    MOTION_ALL,         //at rx side
+
+//    RADIO_ALL,        //at tx side
+
+//    TIMER_DAY,
+//    TIMER_NIGHT,
+            
+//    MOTION_DAY,
+//    MOTION_NIGHT,
+
+//    RADIO_DAY,
+//    RADIO_NIGHT,
+    MAX_TRIGGERS,
+}cam_trig_ls_t;
+
+
+
+/**
+ * @brief Strcture to configure TSSP sensing. 
+ */
+typedef struct
+{
+    /** To decide in which light condition TSSP should operate. */
+    oper_time_t oper_time;     
     /** In tssp_Conf: Detection window duration in resolution of 100ms. */
     uint16_t detect_window;
-    /** In tssp_Conf: Time between triggers by a PIR in s (with a resolution of 0.1s). */
+    /** In tssp_Conf: Time between triggers by a TSSP window detect in s (with a resolution of 0.1s). */
     uint16_t intr_trig_timer; 
 }__attribute__ ((packed)) tssp_conf_t;
 
@@ -131,10 +160,8 @@ typedef struct
 {
     /** In timer_conf: Interval between two triggers. */
     uint16_t timer_interval;
+    /** To decide in which light condition timer should operate. */
     oper_time_t oper_time;
-    uint8_t mode;
-    uint16_t larger_value;
-    uint8_t smaller_value;
 }__attribute__ ((packed)) timer_conf_t;
 
 /**
@@ -144,10 +171,15 @@ typedef struct
 {
     /** In sensebe_conf: Mode of operation */
     trigger_conf_t trig_conf;
+    /** Array of all the possible triggers */
+    cam_oper_t cam_trigs[MAX_TRIGGERS];      
+    /** In sensebe_conf: Device Spped*/
+    device_speed_t speed;
     /** In sensebe_conf: TSSP Configuration */
     tssp_conf_t  tssp_conf;
-    /** In sensebe_conf: Time configuration */
+    /** In sensebe_conf: Timer Configuration */
     timer_conf_t  timer_conf;
+    /**list of camera triggers*/
 }__attribute__ ((packed)) sensebe_config_t ;
 
 typedef struct
@@ -218,7 +250,7 @@ void sensebe_ble_adv_init(sensebe_ble_adv_data_t * sensebe_ble_adv_data);
  */
 void sensebe_ble_adv_start(void);
 
-#endif /* APPLICATION_SENSE_PIR_SENSEBE_BLE_H_ */
+#endif /* APPLICATION_SENSEBE_BLE_H_ */
 
 /**
  * @}

@@ -1,15 +1,17 @@
 
-BOARD           := BOARD_SENSEBE_RX_REV2
+BOARD           := BOARD_SENSEBETX_REV3
 SLNO            := 682073614
 BLE_REQD        := BLE_STACK_SUPPORT_REQD
 PINRESET_REQD   := CONFIG_GPIO_AS_PINRESET
 DEBUGGER        := BMP
 LOGGER          := LOG_UART_PRINTF
 FW_VER_VAL      := 0
-MS_TIMER_FREQ   := 100
-TSSP_DETECT_FREQ := 1000
+MS_TIMER_FREQ   := 32768
+TSSP_DETECT_FREQ := 32768
 SD_USED         := s112
 SD_VER          := 6.0.0
+CONFIG_HEADER	:= 1
+SHARED_RESOURCES := 1
 
 SDK_DIR         = ../../SDK_components
 DOC_DIR         = ../../doc
@@ -57,11 +59,18 @@ C_SRC += sensebe_ble.c
 C_SRC += hal_pwm.c
 C_SRC += dev_id_fw_ver.c
 C_SRC += out_pattern_gen.c
-C_SRC += sensebe_rx_detect.c
+C_SRC += sensebe_tx_mod.c
+C_SRC += sensebe_store_config.c
+C_SRC += hal_nvmc.c
 C_SRC += led_ui.c
 C_SRC += led_seq.c
 C_SRC += tssp_detect.c
 C_SRC += cam_trigger.c
+C_SRC += simple_pwm.c
+C_SRC += tssp_ir_tx.c
+C_SRC += isr_manager.c
+C_SRC += hal_radio.c
+C_SRC += radio_trigger.c
 #Gets the name of the application folder
 APPLN = $(shell basename $(PWD))
 
@@ -72,6 +81,8 @@ CFLAGS_APP += -D$(LOGGER)
 CFLAGS_APP += -DFW_VER=$(FW_VER_VAL)
 CFLAGS_APP += -DMS_TIMER_FREQ=$(MS_TIMER_FREQ)
 CFLAGS_APP += -DTSSP_DETECT_FREQ=$(TSSP_DETECT_FREQ)
+CFLAGS_APP += -DSYS_CFG_PRESENT=$(CONFIG_HEADER)
+CFLAGS_APP += -DISR_MANAGER=$(SHARED_RESOURCES)
 
 
 #Lower case of BOARD

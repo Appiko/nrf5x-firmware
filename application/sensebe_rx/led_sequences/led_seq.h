@@ -2,7 +2,7 @@
  * @file led_seq.h Header to access the PWM values for the
  *                 one or more color LED(s) for the different sequences 
  *
- * Automagically created on: 22-01-2019 at 12:08
+ * Automagically created on: 06-02-2019 at 17:13
  */
 
 #ifndef _LED_SEQ_H_
@@ -12,13 +12,16 @@
 
 /** Specify the different LED patterns possible */
 typedef enum {
-  LED_SEQ_DETECT_PULSE = 0,
-  LED_SEQ_RAMP_OFFSET = 1,
-  LED_SEQ_RED_PULSE = 2,
-  LED_SEQ_ORANGE_WAVE = 3,
-  LED_SEQ_DETECT_WINDOW = 4,
-  LED_SEQ_DUAL_FREQ = 5,
-  LED_SEQ_GREEN_WAVE = 6,
+  LED_SEQ_GREEN_PULSE = 0,
+  LED_SEQ_DETECT_SYNC = 1,
+  LED_SEQ_DETECT_PULSE = 2,
+  LED_SEQ_RAMP_OFFSET = 3,
+  LED_SEQ_RED_PULSE = 4,
+  LED_SEQ_ORANGE_WAVE = 5,
+  LED_SEQ_ORANGE_PULSE = 6,
+  LED_SEQ_DETECT_WINDOW = 7,
+  LED_SEQ_DUAL_FREQ = 8,
+  LED_SEQ_GREEN_WAVE = 9,
   LED_SEQ_NULL = 255,
 } led_sequences;
 

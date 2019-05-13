@@ -1,44 +1,27 @@
 /*
- *  main.c
+ *  main.c : Application for SenseBe devices.
+ *  Copyright (C) 2019  Appiko
  *
- *  Created on: 30-Jan-2018
+ *  This program is free software: you can redistribute it and/or modify
+ *  it under the terms of the GNU General Public License as published by
+ *  the Free Software Foundation, either version 3 of the License, or
+ *  (at your option) any later version.
  *
- *  Copyright (c) 2018, Appiko
- *  Copyright (c) 2013, Nordic Semiconductor ASA
- *  All rights reserved.
- *
- *  Redistribution and use in source and binary forms, with or without modification,
- *  are permitted provided that the following conditions are met:
- *
- *  1. Redistributions of source code must retain the above copyright notice,
- *  this list of conditions and the following disclaimer.
- *
- *  2. Redistributions in binary form must reproduce the above copyright notice,
- *  this list of conditions and the following disclaimer in the documentation
- *  and/or other materials provided with the distribution.
- *
- *  3. Neither the name of the copyright holder nor the names of its contributors
- *  may be used to endorse or promote products derived from this software without
- *  specific prior written permission.
- *
- *  THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
- *  ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
- *  WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED.
- *  IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT,
- *  INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING,
- *  BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA,
- *  OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY,
- *  WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
- *  ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
- *  POSSIBILITY OF SUCH DAMAGE.
+ *  This program is distributed in the hope that it will be useful,
+ *  but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ *  GNU General Public License for more details.
+ *  
+ *  You should have received a copy of the GNU General Public License
+ *  along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
 /**
  * @addtogroup group_appln
  * @{
  *
- * @defgroup sense_appln The code for the PIR based Sense units.
- * @brief The PIR sense application's main file that makes it operate.
+ * @defgroup sensebe_appln The code for the active IR based Sense units.
+ * @brief The active IR sense application's main file that makes it operate.
  *
  * @{
  *
@@ -71,10 +54,12 @@
 #include "app_error.h"
 #include "out_pattern_gen.h"
 #include "sensebe_ble.h"
-#include "sensebe_rx_detect.h"
+#include "sensebe_rx_mod.h"
+#include "sensebe_store_config.h"
 #include "dev_id_fw_ver.h"
 #include "led_seq.h"
 #include "led_ui.h"
+#include "cam_trigger.h"
 /* ----- Defines ----- */
 
 /**< Name of device, to be included in the advertising data. */
@@ -82,9 +67,9 @@
 #define APP_DEVICE_NAME_CHAR           'S','e','n','s','e','B','e'
 const uint8_t app_device_name[] = { APP_DEVICE_NAME_CHAR };
 
-/** Complete 128 bit UUID of the SensePi service
- * 3c73dc50-07f5-480d-b066-837407fbde0a */
-#define APP_UUID_COMPLETE        0x0a, 0xde, 0xfb, 0x07, 0x74, 0x83, 0x66, 0xb0, 0x0d, 0x48, 0xf5, 0x07, 0x50, 0xdc, 0x73, 0x3c
+/** Complete 128 bit UUID of the SenseBe service
+ * 3c73dc60-07f5-480d-b066-837407fbde0a */
+#define APP_UUID_COMPLETE        0x0a, 0xde, 0xfb, 0x07, 0x74, 0x83, 0x66, 0xb0, 0x0d, 0x48, 0xf5, 0x07, 0x60, 0xdc, 0x73, 0x3c
 
 /** The data to be sent in the advertising payload. It is of the format
  *  of a sequence of {Len, type, data} */
@@ -110,13 +95,6 @@ const uint8_t app_device_name[] = { APP_DEVICE_NAME_CHAR };
 /** Flag to specify if the Watchdog timer is used or not */
 #define ENABLE_WDT                 1
 
-/** The interval at which the PIR sensor's signal is sampled.
- * 20 Hz interval is chosen so that as per Nyquist's criterion
- * signals up to 10 Hz can be sensed. */
-#define PIR_SENSE_INTERVAL_MS      50
-/** The static threshold above and below which PIR detects motion */
-#define PIR_SENSE_THRESHOLD        600
-
 /** The fast tick interval in ms in the Sense mode */
 #define SENSE_FAST_TICK_INTERVAL_MS      60
 /** The slow tick interval in ms in the Sense mode */
@@ -138,8 +116,7 @@ const uint8_t app_device_name[] = { APP_DEVICE_NAME_CHAR };
 /** Defines the states possible in the SensePi device */
 typedef enum
 {
-     //!< Use PIR sensor to sense motion based on the set configuration
-    SENSING,
+    SENSING,    //!< Use IR Tx-Rx to sense motion based on the set configuration
     ADVERTISING,//!< BLE advertising to get connected to an app
     CONNECTED   //!< BLE connection established with an app
 }sense_states;
@@ -156,29 +133,40 @@ static uint32_t conn_count;
 static sensebe_config_t sensebe_ble_default_config = {
     .tssp_conf.oper_time.day_or_night = 1,
     .tssp_conf.oper_time.threshold = 0b0000000,
-    .tssp_conf.detect_window = 5,
-    .tssp_conf.mode = 0x00000000,
+    .tssp_conf.detect_window = 100,
     .tssp_conf.intr_trig_timer = 15,
+
+    .cam_trigs[MOTION_ALL].mode = CAM_TRIGGER_LONG_PRESS,
+    .cam_trigs[MOTION_ALL].larger_value = 30,
+    .cam_trigs[MOTION_ALL].smaller_value = 0,
+    .cam_trigs[MOTION_ALL].pre_focus = 0,
 
     .timer_conf.oper_time.day_or_night = 1,
     .timer_conf.oper_time.threshold = 0b0000000,
-    .timer_conf.mode = 0x00000000,
     .timer_conf.timer_interval = 50,
+
+    .cam_trigs[TIMER_ALL].mode = CAM_TRIGGER_SINGLE_SHOT,
+    .cam_trigs[TIMER_ALL].larger_value = 0,
+    .cam_trigs[TIMER_ALL].smaller_value = 0,
+    .cam_trigs[TIMER_ALL].pre_focus = 0,
     
     .trig_conf = MOTION_ONLY,
-
+    
+    .speed = FAST,
 };
 
 
-sensebe_rx_detect_config_t default_sensebe_rx_detect_config = 
+sensebe_tx_rx_config_t default_sensebe_tx_rx_config = 
 {
-    .rx_en_pin = TSSP_RX_EN,
-    .rx_out_pin = TSSP_RX_OUT,
-    .focus_pin_no = JACK_FOCUS_PIN,
-    .trigger_pin_no = JACK_TRIGGER_PIN,
-    .photodiode_pin = PIN_TO_ANALOG_INPUT(PHOTODIODE_LIGHT_SENSE),
-    .photodiode_en_pin = PHOTODIODE_ENABLE_PIN,
-    .init_sensebe_config = &sensebe_ble_default_config,
+    
+    .rx_detect_config.rx_en_pin = TSSP_RX_EN,
+    .rx_detect_config.rx_out_pin = TSSP_RX_OUT,
+    .cam_config.focus_pin_no = JACK_FOCUS_PIN,
+    .cam_config.trigger_pin_no = JACK_TRIGGER_PIN,
+    .light_sense_config.photodiode_pin = PIN_TO_ANALOG_INPUT(PHOTODIODE_LIGHT_SENSE),
+    .light_sense_config.photodiode_en_pin = PHOTODIODE_LIGHT_SENSE_EN,
+    
+    .sensebe_config = &sensebe_ble_default_config,
     
 };
 
@@ -248,13 +236,7 @@ static void ble_evt_handler(ble_evt_t * evt)
  */
 static void get_sensebe_config_t(sensebe_config_t *config)
 {
-//    log_printf("Trig mode %d, PIR ope time %08x, PIR mode %08x, PIR amp %d, PIR thres %d, 
-//             PIR int trig time %04d, Timer oper %x, Timer mode %x, timer interval %04d \n",
-//            config->trig_conf, config->tssp_conf.oper_time, config->tssp_conf.mode,
-//            config->tssp_conf.amplification, config->tssp_conf.threshold,
-//            config->tssp_conf.intr_trig_timer,
-//            config->timer_conf.oper_time, config->timer_conf.mode, config->timer_conf.timer_interval);
-    sensebe_rx_detect_update_config (config);
+    sensebe_tx_rx_update_config (config);
 }
 
 /**
@@ -271,7 +253,7 @@ void next_interval_handler(uint32_t interval)
     case SENSING:
     {
         log_printf("Nxt Evt Hndlr : SENSING\n");
-        sensebe_rx_detect_add_ticks (interval);
+        sensebe_tx_rx_add_ticks (interval);
 
     }
         break;
@@ -319,13 +301,13 @@ void state_change_handler(uint32_t new_state)
             led_ui_type_stop_all(LED_UI_LOOP_SEQ);
            
             device_tick_init(&tick_cfg);
-            sensebe_rx_detect_start();
+            sensebe_tx_rx_start();
 
         }
         break;
     case ADVERTISING:
         {
-            sensebe_rx_detect_stop ();
+            sensebe_tx_rx_stop ();
             conn_count = 0;
 
             device_tick_cfg tick_cfg =
@@ -353,7 +335,7 @@ void state_change_handler(uint32_t new_state)
                 memcpy(&sysinfo.fw_ver, fw_ver_get(), sizeof(fw_ver_t));
                 sensebe_ble_update_sysinfo(&sysinfo);
 
-                sensebe_config_t * config = sensebe_rx_detect_last_config ();
+                sensebe_config_t * config = sensebe_tx_rx_last_config ();
                 sensebe_ble_update_config (config);
 
                 ///Get config from sensebe_cam_trigger and send to the BLE module
@@ -405,12 +387,14 @@ void button_handler(button_ui_steps step, button_ui_action act)
             };
             device_tick_init(&tick_cfg);
             break;
-        case BUTTON_UI_STEP_PRESS:
+        case BUTTON_UI_STEP_QUICK:
             if(current_state == SENSING)
             {
                 irq_msg_push(MSG_STATE_CHANGE, (void *) ADVERTISING);
             }
 
+            break;
+        case BUTTON_UI_STEP_SHORT:
             break;
         case BUTTON_UI_STEP_LONG:
             {
@@ -439,8 +423,10 @@ void button_handler(button_ui_steps step, button_ui_action act)
         {
         case BUTTON_UI_STEP_WAKE:
             break;
-        case BUTTON_UI_STEP_PRESS:
+        case BUTTON_UI_STEP_QUICK:
             break;
+        case BUTTON_UI_STEP_SHORT:
+                break;
         case BUTTON_UI_STEP_LONG:
             break;
         }
@@ -516,6 +502,17 @@ void boot_pwr_config(void)
     NRF_POWER->TASKS_LOWPWR = 1;
 }
 
+/**
+ * @brief function to load previous sensebe configuration present in flash memory
+ */
+void load_last_config()
+{
+    if(sensebe_store_config_is_memory_empty())
+    {
+        sensebe_store_config_write (&sensebe_ble_default_config);
+    }
+    sensebe_tx_rx_update_config (sensebe_store_config_get_last_config ());
+}
 
 /**
  * Different calls to sleep depending on the status of Softdevice
@@ -544,7 +541,7 @@ int main(void)
 
     /* Mandatory welcome message */
     log_init();
-    log_printf("\n\nHello SensePi World!\n");
+    log_printf("\n\nHello SenseBe World!\n");
     boot_pwr_config();
 
     lfclk_init(LFCLK_SRC_Xtal);
@@ -563,11 +560,13 @@ int main(void)
         irq_msg_init(&cb);
     }  
 
-    sensebe_rx_detect_init(&default_sensebe_rx_detect_config);
+    sensebe_tx_rx_init(&default_sensebe_tx_rx_config);
 
     current_state = ADVERTISING; //So that a state change happens
     irq_msg_push(MSG_STATE_CHANGE, (void *)SENSING);
     sensebe_ble_init(ble_evt_handler, get_sensebe_config_t);
+    sensebe_store_config_check_fw_ver ();
+    load_last_config ();
 
     while (true)
     {
