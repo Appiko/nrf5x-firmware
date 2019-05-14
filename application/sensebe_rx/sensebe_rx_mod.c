@@ -685,6 +685,7 @@ void sensebe_tx_rx_start (void)
 void sensebe_tx_rx_stop (void)
 {
     log_printf("%s\n", __func__);
+    radio_trigger_shut ();
     cam_trigger_stop ();
     motion_module_stop ();
     timer_module_stop ();
