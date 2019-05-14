@@ -139,6 +139,7 @@ void radio_trigger_shut ()
 {
     TIMER_ID->TASKS_STOP = 1;
     TIMER_ID->TASKS_SHUTDOWN = 1;
+    NVIC_DisableIRQ (TIMER_IRQN);
     hal_radio_deinit ();
     is_radio_free = true;
 }
