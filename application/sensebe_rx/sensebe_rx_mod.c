@@ -467,7 +467,7 @@ void motion_module_start ()
         .comm_freq = 95,
         .irq_priority = APP_IRQ_PRIORITY_HIGH,
         .tx_on_freq_us = 500,
-        .tx_on_time_ms = 100,
+        .tx_on_time_ms = 125,
     };
     radio_trigger_init (&radio_init);
     

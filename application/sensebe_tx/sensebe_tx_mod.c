@@ -346,7 +346,7 @@ void radio_module_start ()
         .comm_freq = 95,
         .irq_priority = APP_IRQ_PRIORITY_HIGH,
         .radio_trigger_rx_callback = radio_module_trigger_handler,
-        .rx_on_time_ms = 1,
+        .rx_on_time_ms = 2,
     };
     radio_trigger_init (&radio_init);
     
