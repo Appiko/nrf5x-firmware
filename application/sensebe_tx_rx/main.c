@@ -90,7 +90,7 @@ const uint8_t app_device_name[] = { APP_DEVICE_NAME_CHAR };
 
 /** The WDT bites if not fed every 301 sec (5 min)
  * @warning All the tick intervals must be lower than this*/
-#define WDT_PERIOD_MS              301000
+#define WDT_PERIOD_MS              30100
 
 /** Flag to specify if the Watchdog timer is used or not */
 #define ENABLE_WDT                 1
@@ -98,7 +98,7 @@ const uint8_t app_device_name[] = { APP_DEVICE_NAME_CHAR };
 /** The fast tick interval in ms in the Sense mode */
 #define SENSE_FAST_TICK_INTERVAL_MS      60
 /** The slow tick interval in ms in the Sense mode */
-#define SENSE_SLOW_TICK_INTERVAL_MS      300000
+#define SENSE_SLOW_TICK_INTERVAL_MS      30000
 
 /** The fast tick interval in ms in the Advertising mode */
 #define ADV_FAST_TICK_INTERVAL_MS  60

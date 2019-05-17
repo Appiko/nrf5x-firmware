@@ -24,6 +24,10 @@
 #include "stddef.h"
 #include "log.h"
 
+#if ISR_MANAGER == 1
+#include "isr_manager.h"
+#endif
+
 /** RTC used by this module */
 #define TSSP_DETECT_RTC_USED CONCAT_2(NRF_RTC, RTC_USED_TSSP_DETECT)
 
@@ -46,7 +50,7 @@
 /** Channel 1 of RTC0 is used for Synchronization */
 #define SYNC_OFF_RTC_CHANNEL 1
 /** Channel 0 of EGU0 is used here */
-#define EGU_CHANNEL_USED 0
+#define EGU_CHANNEL_USED EGU_CHANNEL_USED_TSSP_DETECT
 /** Half of duration for which sensor will be enabled while detecting window */
 #define HALF_TSSP_ENABLE_DURATION TSSP_DETECT_TICKS_MS(2)
 
@@ -226,36 +230,51 @@ void tssp_detect_window_sync (uint32_t sync_ms)
     
 }
 
-
+#if ISR_MANAGER == 1
+void tssp_detect_swi_Handler (void)
+#else
 void SWI0_IRQHandler ()
+#endif
 {
+#if ISR_MANAGER == 0
     TSSP_DETECT_EGU_USED->EVENTS_TRIGGERED[EGU_CHANNEL_USED] = 0;
     (void) TSSP_DETECT_EGU_USED->EVENTS_TRIGGERED[EGU_CHANNEL_USED];
+#endif
     NRF_PPI->CHENCLR |= 1 << PPI_CHANNEL_USED_EGU;
     detect_handler ( TSSP_DETECT_RTC_USED->COUNTER );
 }
 
+#if ISR_MANAGER == 1
+void tssp_detect_rtc_Handler (void)
+#else
 void RTC0_IRQHandler (void)
+#endif
 {
     if(TSSP_DETECT_RTC_USED->EVENTS_COMPARE[SYNC_ON_RTC_CHANNEL] == 1)
     {
+#if ISR_MANAGER == 0
         TSSP_DETECT_RTC_USED->EVENTS_COMPARE[SYNC_ON_RTC_CHANNEL] = 0;
+        (void) TSSP_DETECT_RTC_USED->EVENTS_COMPARE[SYNC_ON_RTC_CHANNEL];
+#endif
         hal_gpio_pin_write (tssp_en_pin, ENABLE);
         TSSP_DETECT_RTC_USED->CC[SYNC_OFF_RTC_CHANNEL] = HALF_TSSP_ENABLE_DURATION;
         
-        (void) TSSP_DETECT_RTC_USED->EVENTS_COMPARE[SYNC_ON_RTC_CHANNEL];
     }
     if(TSSP_DETECT_RTC_USED->EVENTS_COMPARE[SYNC_OFF_RTC_CHANNEL] == 1)
     {
+#if ISR_MANAGER == 0
         TSSP_DETECT_RTC_USED->EVENTS_COMPARE[SYNC_OFF_RTC_CHANNEL] = 0;
         (void) TSSP_DETECT_RTC_USED->EVENTS_COMPARE[SYNC_OFF_RTC_CHANNEL];
+#endif
         hal_gpio_pin_write (tssp_en_pin, DISABLE);
         TSSP_DETECT_RTC_USED->CC[SYNC_ON_RTC_CHANNEL] = (tssp_sync_ms - HALF_TSSP_ENABLE_DURATION);
     }
     if(TSSP_DETECT_RTC_USED->EVENTS_COMPARE[WINDOW_RTC_CHANNEL] == 1)
     {
+#if ISR_MANAGER == 0
         TSSP_DETECT_RTC_USED->EVENTS_COMPARE[WINDOW_RTC_CHANNEL] = 0;
         (void) TSSP_DETECT_RTC_USED->EVENTS_COMPARE[WINDOW_RTC_CHANNEL];
+#endif
         missed_handler ();
         TSSP_DETECT_RTC_USED->TASKS_CLEAR = 1;
         (void) TSSP_DETECT_RTC_USED->TASKS_CLEAR;

@@ -36,6 +36,17 @@
 #error "nRF51 series SoCs don't have a PWM peripheral"
 #endif
 
+#if SYS_CFG_PRESENT == 1
+#include "sys_config.h"
+#endif
+#ifndef HAL_PWM_PERIPH_USED 
+#define HAL_PWM_PERIPH_USED 0
+#endif
+
+
+/** Specify which TWIM peripheral is used for this HAL module */
+#define PWM_USED           HAL_PWM_PERIPH_USED
+
 /** The maximum number of pins supported by this module */
 #define HAL_PWM_MAX_PIN_NUM     4
 

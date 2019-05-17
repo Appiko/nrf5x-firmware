@@ -19,6 +19,10 @@
 #include "gpio_level_handler.h"
 #include "hal_gpio.h"
 
+#if ISR_MANAGER == 1
+#include "isr_manager.h"
+#endif
+
 #define GPIO_BUFFER_SIZE   4
 
 gpio_level_cfg cfg_buffer[GPIO_BUFFER_SIZE];
@@ -63,8 +67,11 @@ void gpio_level_init(gpio_level_cfg * cfg, uint32_t cfg_num, uint32_t irq_priori
     NVIC_EnableIRQ(GPIOTE_IRQn);
 
 }
-
+#if ISR_HADNLER == 1
+void gpio_level_handler_gpiote_Handler ()
+#else
 void GPIOTE_IRQHandler(void)
+#endif
 {
     NRF_GPIOTE->EVENTS_PORT = 0;
     (void) NRF_GPIOTE->EVENTS_PORT;
