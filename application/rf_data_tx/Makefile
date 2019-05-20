@@ -31,6 +31,8 @@ INCLUDEDIRS += $(CODEBASE_DIR)/sd_assist
 INCLUDEDIRS += $(CODEBASE_DIR)/peripheral_modules
 INCLUDEDIRS += $(CODEBASE_DIR)/util
 
+INCLUDEDIRS += $(CODEBASE_DIR)/ti_radio_lib
+INCLUDEDIRS += $(CODEBASE_DIR)/ti_radio_lib/cc112x_drv
 
 C_SRC_DIRS = .
 
@@ -43,6 +45,8 @@ C_SRC_DIRS += $(CODEBASE_DIR)/sd_assist
 C_SRC_DIRS += $(CODEBASE_DIR)/peripheral_modules
 C_SRC_DIRS += $(CODEBASE_DIR)/util
 
+C_SRC_DIRS += $(CODEBASE_DIR)/ti_radio_lib
+C_SRC_DIRS += $(CODEBASE_DIR)/ti_radio_lib/cc112x_drv
 
 
 C_SRC = main.c
@@ -78,6 +82,8 @@ C_SRC += S2LP_Types.c
 C_SRC += S2LP_Timer.c
 C_SRC += S2LP_Timer_ex.c
 
+C_SRC += hal_spi_rf.c
+C_SRC += cc112x_drv.c
 
 #Gets the name of the application folder
 APPLN = $(shell basename $(PWD))
