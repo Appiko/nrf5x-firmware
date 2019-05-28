@@ -112,7 +112,7 @@
 /** Number of transitions required for Video operation triggered by Timer */
 #define TIMER_VIDEO_TRANSITIONS 3
 /** Ticks duration of trigger pulse to start a video */
-#define VIDEO_START_PULSE MS_TIMER_TICKS_MS(2500)
+#define VIDEO_START_PULSE MS_TIMER_TICKS_MS(4500)
 /** Ticks duration of trigger pulse to end a video */
 #define VIDEO_END_PULSE MS_TIMER_TICKS_MS(300)
 /** Number of maximum extensions for Video */
