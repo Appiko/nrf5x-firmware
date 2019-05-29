@@ -245,3 +245,28 @@
 #define WRITE_BURST       0x40
 #define READ_SINGLE       0x80
 #define READ_BURST        0xC0
+
+
+
+// MARC_STATUS1 flag bits
+
+#define MARC_NO_FAILURE             0x00
+#define MARC_RX_TIMEOUT             0x01
+#define MARC_RX_CS_PQT_TERMINATE    0x02
+#define MARC_eWOR_SYNC_LOST         0x03
+#define MARC_PKT_DISC_LEN           0x04
+#define MARC_PKT_DISC_ADDR          0x05
+#define MARC_PKT_DISC_CRC           0x06
+#define MARC_TX_FIFO_OF             0x07
+#define MARC_TX_FIFO_UF             0x08
+#define MARC_RX_FIFO_OF             0x09
+#define MARC_RX_FIFO_UF             0X0A
+#define MARC_TX_ONCCA_FAIL          0x0B
+#define MARC_TX_SUCCESSFUL          0x40
+#define MARC_RX_SUCCESSFUL          0X80
+
+#define RSSI0_RSSI_VALID            0x01
+#define RSSI0_CARRIER_SENSE_VALID   0X02
+#define RSSI0_CARRIER_SENSE         0x04
+#define RSSI0_RSSI_3_0_MSK          0x70
+#define RSSI0_RSSI_3_0_POS          3

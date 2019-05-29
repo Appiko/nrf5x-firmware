@@ -3,7 +3,7 @@ BOARD           := BOARD_BLUEY_1V1
 SLNO            := 682073614
 BLE_REQD        := BLE_STACK_SUPPORT_REQD
 PINRESET_REQD   := CONFIG_GPIO_AS_PINRESET
-DEBUGGER        := JLINK
+DEBUGGER        := BMP
 LOGGER          := LOG_UART_PRINTF
 FW_VER_VAL      := 0
 MS_TIMER_FREQ   := 32768
@@ -87,6 +87,7 @@ C_SRC += S2LP_Timer_ex.c
 
 C_SRC += hal_spi_rf.c
 C_SRC += cc112x_drv.c
+C_SRC += cc112x_utils.c
 
 #Gets the name of the application folder
 APPLN = $(shell basename $(PWD))

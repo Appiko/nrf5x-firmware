@@ -59,7 +59,7 @@
 /******************************************************************************
  * GLOBALS -  used by the driver
  */
-unsigned char rf_end_packet = 0;
+uint8_t rf_end_packet = 0;
 
 /******************************************************************************
  * Configuration extracted from SmartRF Studio version 7 Release 2.0.0
@@ -292,16 +292,16 @@ const registerSetting_t preferredSettings_50kbps[]=
 };
 
 // Address Config = No address check 
-// Bit Rate = 0.3 
-// Carrier Frequency = 868.000000 
+// Bit Rate = 1.2 
+// Carrier Frequency = 915.000000 
 // Deviation = 3.997803 
 // Device Address = 0 
 // Manchester Enable = false 
 // Modulation Format = 2-FSK 
 // PA Ramping = true 
 // Packet Bit Length = 0 
-// Packet Length = 255 
-// Packet Length Mode = Variable 
+// Packet Length = 2 
+// Packet Length Mode = Fixed 
 // Performance Mode = High Performance 
 // RX Filter BW = 10.000000 
 // Symbol rate = 1.2 
@@ -314,9 +314,9 @@ const registerSetting_t trial_Settings[]=
     {IOCFG2,            0x06},
     {IOCFG1,            0xB0},
     {IOCFG0,            0x40},
-    {SYNC_CFG1,         0x0F},
-    {MODCFG_DEV_E,      0x83},
+    {SYNC_CFG1,         0x0B},
     {DCFILT_CFG,        0x1C},
+    {PREAMBLE_CFG1,     0x18},
     {IQIC,              0xC6},
     {MDMCFG0,           0x05},
     {AGC_REF,           0x20},
@@ -324,13 +324,14 @@ const registerSetting_t trial_Settings[]=
     {AGC_CFG1,          0xA9},
     {AGC_CFG0,          0xCF},
     {FIFO_CFG,          0x00},
+    {PKT_CFG1,          0x04},
+    {PKT_CFG0,          0x00},
     {FS_CFG,            0x12},
-    {PKT_CFG0,          0x20},
-    {PKT_LEN,           0xFF},
+    {PKT_LEN,           0x02},
     {IF_MIX_CFG,        0x00},
     {FREQOFF_CFG,       0x22},
-    {FREQ2,             0x6C},
-    {FREQ1,             0x80},
+    {FREQ2,             0x72},
+    {FREQ1,             0x60},
     {FS_DIG1,           0x00},
     {FS_DIG0,           0x5F},
     {FS_CAL1,           0x40},
@@ -346,6 +347,7 @@ const registerSetting_t trial_Settings[]=
     {XOSC5,             0x0E},
     {XOSC1,             0x03},
 };
+
 /******************************************************************************
  * @fn         radio_init
  *
@@ -361,10 +363,10 @@ const registerSetting_t trial_Settings[]=
  * @return      void
  *
  */
-int radio_init(unsigned char config_select) {
+int radio_init(uint8_t config_select) {
 
-	unsigned char i, writeByte, preferredSettings_length;
-	unsigned int bit_rate;
+	uint8_t i, writeByte, preferredSettings_length;
+	uint32_t bit_rate;
 	registerSetting_t *preferredSettings;
 
 
@@ -410,7 +412,7 @@ int radio_init(unsigned char config_select) {
 	case 4:
 		preferredSettings_length = sizeof(trial_Settings)/sizeof(registerSetting_t);
 		preferredSettings = (registerSetting_t *)trial_Settings;
-		bit_rate = 12;
+		bit_rate = 02;
 		break;
 	default:
 		preferredSettings_length = sizeof(preferredSettings_1200bps)/sizeof(registerSetting_t);
@@ -447,16 +449,15 @@ int radio_init(unsigned char config_select) {
  *
  * input parameters
  *
- * @param       unsigned char *payload     - pointer to payload
- *              unsigned short payload_len - payload length information
+ * @param       uint8_t *payload     - pointer to payload
+ *              uint16_t payload_len - payload length information
  *
  * output parameters
  *
  * @return      0
  *
  */
-int radio_prepare(unsigned char *payload, unsigned short payload_len) {
-
+int radio_prepare(uint8_t *payload, uint16_t payload_len) {
 	trx8BitRegAccess(RADIO_WRITE_ACCESS+RADIO_BURST_ACCESS, TXFIFO, payload, payload_len);
 
 	return 0;
@@ -470,8 +471,8 @@ int radio_prepare(unsigned char *payload, unsigned short payload_len) {
  *
  * input parameters
  *
- * @param       unsigned char *payload     - pointer to payload
- *              unsigned short payload_len - payload length information
+ * @param       uint8_t *payload     - pointer to payload
+ *              uint16_t payload_len - payload length information
  *
  * output parameters
  *
@@ -507,6 +508,7 @@ int radio_transmit(void) {
  */
 int radio_receive_on(void) {
 
+		trxSpiCmdStrobe(SFRX);	                     // Flush RXFIFO
 	/* Range extender in RX mode */
 #ifdef ENABLE_RANGE_EXTENDER
 	range_extender_rxon();
@@ -526,8 +528,8 @@ int radio_receive_on(void) {
  *
  * input parameters
  *
- * @param       unsigned char *payload
- *              unsigned short payload_len
+ * @param       uint8_t *payload
+ *              uint16_t payload_len
  *
  * output parameters
  *
@@ -535,10 +537,19 @@ int radio_receive_on(void) {
  *
  *
  */
-int radio_send(unsigned char *payload, unsigned short payload_len) {
+int radio_send(uint8_t *payload, uint16_t payload_len) {
 
+    
+    trxSpiCmdStrobe (SFTX);
+    
 	/* Write packet to TX FIFO */
 	trx8BitRegAccess(RADIO_WRITE_ACCESS|RADIO_BURST_ACCESS, TXFIFO, payload, payload_len);
+    
+	/* Read number of bytes in TX FIFO */
+	uint8_t pktLen;
+
+	trx16BitRegAccess(RADIO_READ_ACCESS|RADIO_BURST_ACCESS, 0x2F, 0xff & NUM_TXBYTES, &pktLen, 1);
+//    log_printf("Pkt : %d, %d\n", payload_len, pktLen);
 
 	/* Range extender in TX mode */
 #ifdef ENABLE_RANGE_EXTENDER
@@ -559,8 +570,8 @@ int radio_send(unsigned char *payload, unsigned short payload_len) {
  *
  * input parameters
  *
- * @param       unsigned char *buf
- *              unsigned short buf_len
+ * @param       uint8_t *buf
+ *              uint16_t buf_len
  *
  * output parameters
  *
@@ -568,14 +579,15 @@ int radio_send(unsigned char *payload, unsigned short payload_len) {
  *
  *
  */
-int radio_read(unsigned char *buf, unsigned short *buf_len) {
-	unsigned char status;
-	unsigned char pktLen;
+int radio_read(uint8_t *buf, uint8_t *buf_len) {
+	uint8_t status;
+	uint8_t pktLen;
 
 	/* Read number of bytes in RX FIFO */
 	trx16BitRegAccess(RADIO_READ_ACCESS, 0x2F, 0xff & NUM_RXBYTES, &pktLen, 1);
-	pktLen = pktLen  & NUM_RXBYTES;
+//	pktLen = pktLen  & NUM_RXBYTES;    
 
+//    log_printf("Pkt :%d, %d\n",*buf_len, pktLen);
 	/* make sure the packet size is appropriate, that is 1 -> buffer_size */
 	if ((pktLen > 0) && (pktLen <= *buf_len)) {
 
@@ -590,11 +602,13 @@ int radio_read(unsigned char *buf, unsigned short *buf_len) {
 
 		/* Return CRC_OK bit */
 		status  = status & CRC_OK;
+        trxSpiCmdStrobe(SFRX);	                     // Flush RXFIFO
 
 	} else {
 
 		/* if the length returned by the transciever does not make sense, flush it */
 
+        log_printf("Wrong..!!");
 		*buf_len = 0;                                // Return 0 indicating a failure
 		status = 0;                                  // Return 0 indicating a failure
 		trxSpiCmdStrobe(SFRX);	                     // Flush RXFIFO
@@ -623,7 +637,7 @@ int radio_read(unsigned char *buf, unsigned short *buf_len) {
  *
  */
 int radio_channel_clear(void) {
-	unsigned char status;
+	uint8_t status;
 
 	/* get RSSI0, and return the carrier sense signal */
 	trx16BitRegAccess(RADIO_READ_ACCESS, 0x2F, 0xff & RSSI0, &status, 1);
@@ -653,10 +667,10 @@ int radio_channel_clear(void) {
  */
 
 //COMPLETELY BROKEN
-int radio_wait_for_idle(unsigned short max_hold) {
+int radio_wait_for_idle(uint16_t max_hold) {
 
-	unsigned int status;
-	unsigned char reg_status;
+	uint32_t status;
+	uint8_t reg_status;
 
 	/* check that we are still in RX mode before entering wait for RX end */
 	trx16BitRegAccess(RADIO_READ_ACCESS, 0x2F, 0xff & MARCSTATE, &reg_status, 1);
@@ -808,7 +822,7 @@ int radio_set_pwr(int tx_pwr) {
  *
  * @return      void
  */
-int radio_set_freq(unsigned long freq) {
+int radio_set_freq(uint64_t freq) {
 
 	uint8_t freq_regs[3];
 	uint32_t freq_regs_uint32;
@@ -946,17 +960,17 @@ int radio_wake(void) {
  */
 int radio_freq_error(void) {
 
-	unsigned long freq_error_est;
+	uint64_t freq_error_est;
 	long freq_error_est_int;
-	unsigned char sign, regState, regState1;
-	unsigned int freq_reg_error;
+	uint8_t sign, regState, regState1;
+	uint32_t freq_reg_error;
 
     /* Read marcstate to check for frequency error estimate */
 	trx16BitRegAccess(RADIO_READ_ACCESS, 0x2F, (0xFF & FREQOFF_EST0), &regState, 1);
 	trx16BitRegAccess(RADIO_READ_ACCESS, 0x2F, (0xFF & FREQOFF_EST1), &regState1, 1);
 
     /* Calculate the frequency error in Hz */
-	freq_reg_error = ((unsigned int)regState1 << 8) + regState;
+	freq_reg_error = ((uint32_t)regState1 << 8) + regState;
 
 	/* the incoming data is 16 bit two complement format, separate "sign" */
 	if (freq_reg_error > 32768) {
@@ -982,6 +996,45 @@ int radio_freq_error(void) {
 }
 
 
+int radio_check_status_flag (uint8_t status_bits)
+{
+    uint8_t marc_sts1 ;
+	trx16BitRegAccess((RADIO_READ_ACCESS | RADIO_BURST_ACCESS), 0x2F,
+                     (0x00FF & MARC_STATUS1), &marc_sts1, 1);
+    
+    if((status_bits & marc_sts1) == status_bits)
+    {
+        return 1;
+    }
+    else
+    {
+        return 0;
+    }
+    
+}
+
+
+int radio_get_rssi_val (void)
+{
+    uint8_t rssi_regs[2];
+    uint8_t rssi_val;
+    trx16BitRegAccess (RADIO_READ_ACCESS, 0x2F, (0xFF & RSSI1), rssi_regs, 
+                       sizeof(rssi_regs));
+    if(rssi_regs[1] & RSSI0_RSSI_VALID)
+    {
+//        rssi_val = ((rssi_regs[0]<<RSSI0_RSSI_3_0_POS) |
+//            ((rssi_regs[1]&RSSI0_RSSI_3_0_MSK)>>RSSI0_RSSI_3_0_POS));
+//        rssi_val--;
+//        rssi_val = 0xFF - rssi_val;
+        rssi_val = 0xFF - (rssi_regs[0] -1);
+    }
+    else
+    {
+        rssi_val = 0xFF;
+    }
+//    rssi_val = rssi_regs[0];
+    return rssi_val;
+}
 /******************************************************************************
  * @fn         radio_ISR
  *

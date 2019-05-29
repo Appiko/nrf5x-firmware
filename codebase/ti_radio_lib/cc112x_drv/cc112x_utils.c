@@ -37,9 +37,9 @@
  *******************************************************************************/
 #include "stdio.h"
 #include "stdlib.h"
-#include "msp430.h"
 #include "cc112x_def.h"
 #include "hal_spi_rf.h"
+#include "log.h"
 
 #ifdef USE_CC112X
 
@@ -58,20 +58,20 @@
 * @return      void
 */
 void set_tx_unmodulated_test_mode(void) {
-	uint8 regs_uint8;
+	uint8_t regs_uint8_t;
 
 	/* disable FIFO mode*/
-	regs_uint8 = 0x06;
-	trx8BitRegAccess(RADIO_WRITE_ACCESS , MDMCFG1, &regs_uint8, 1);
+	regs_uint8_t = 0x06;
+	trx8BitRegAccess(RADIO_WRITE_ACCESS , MDMCFG1, &regs_uint8_t, 1);
 
 	/* configure continuous mode*/
-	trx8BitRegAccess(RADIO_READ_ACCESS , PA_CFG2, &regs_uint8, 1);
-	regs_uint8 = regs_uint8 | 0x40;
-	trx8BitRegAccess(RADIO_WRITE_ACCESS , PA_CFG2, &regs_uint8, 1);
+	trx8BitRegAccess(RADIO_READ_ACCESS , PA_CFG2, &regs_uint8_t, 1);
+	regs_uint8_t = regs_uint8_t | 0x40;
+	trx8BitRegAccess(RADIO_WRITE_ACCESS , PA_CFG2, &regs_uint8_t, 1);
 
 	/* disable the modulator */
-	regs_uint8 = 0x01;
-	trx16BitRegAccess(RADIO_WRITE_ACCESS , 0x2F, (0xFF & CFM_DATA_CFG), &regs_uint8, 1);
+	regs_uint8_t = 0x01;
+	trx16BitRegAccess(RADIO_WRITE_ACCESS , 0x2F, (0xFF & CFM_DATA_CFG), &regs_uint8_t, 1);
 
 	return;
 }
@@ -90,25 +90,25 @@ void set_tx_unmodulated_test_mode(void) {
 * @return      void
 */
 void set_tx_modulated_test_mode(void) {
-	uint8 regs_uint8;
+	uint8_t regs_uint8_t;
 
 	/* disable FIFO mode*/
-	regs_uint8 = 0x46;
-	trx8BitRegAccess(RADIO_WRITE_ACCESS , MDMCFG1, &regs_uint8, 1);
+	regs_uint8_t = 0x46;
+	trx8BitRegAccess(RADIO_WRITE_ACCESS , MDMCFG1, &regs_uint8_t, 1);
 
 	/* disable FIFO mode*/
-	regs_uint8 = 0x05;
-	trx8BitRegAccess(RADIO_WRITE_ACCESS , MDMCFG0, &regs_uint8, 1);
+	regs_uint8_t = 0x05;
+	trx8BitRegAccess(RADIO_WRITE_ACCESS , MDMCFG0, &regs_uint8_t, 1);
 
 	/* configure set_tx_modulated_test_mode */
-	regs_uint8 = 0x06;
-	trx8BitRegAccess(RADIO_WRITE_ACCESS , PKT_CFG2, &regs_uint8, 1);
+	regs_uint8_t = 0x06;
+	trx8BitRegAccess(RADIO_WRITE_ACCESS , PKT_CFG2, &regs_uint8_t, 1);
 
-	regs_uint8 = 0x40;
-	trx8BitRegAccess(RADIO_WRITE_ACCESS , PKT_CFG0, &regs_uint8, 1);
+	regs_uint8_t = 0x40;
+	trx8BitRegAccess(RADIO_WRITE_ACCESS , PKT_CFG0, &regs_uint8_t, 1);
 
 	/* load a random byte into the FIFO, this causes the modulator to start */
-	trx8BitRegAccess(RADIO_WRITE_ACCESS+RADIO_BURST_ACCESS, TXFIFO, &regs_uint8, 1);
+	trx8BitRegAccess(RADIO_WRITE_ACCESS+RADIO_BURST_ACCESS, TXFIFO, &regs_uint8_t, 1);
 
 	return;
 }
@@ -116,7 +116,7 @@ void set_tx_modulated_test_mode(void) {
 /******************************************************************************
 * @fn          radio_get_rssi
 *
-* @brief       Get and calculate the RSSI from unsigned char value
+* @brief       Get and calculate the RSSI from uint8_t value
 *
 * input parameters
 *
@@ -128,7 +128,7 @@ void set_tx_modulated_test_mode(void) {
 */
 int radio_get_rssi(void) {
 	int rssi;
-	uint8 cc_rssi;
+	uint8_t cc_rssi;
 
 	trx16BitRegAccess(RADIO_READ_ACCESS , 0x2F, (0xFF & RSSI1), &cc_rssi, 1);
 
@@ -155,9 +155,9 @@ int radio_get_rssi(void) {
 * @return      char - device id define
 */
 char get_device_id(void) {
-	uint8 ret_partnum;
-	uint8 ret_version;
-	uint8 ret;
+	uint8_t ret_partnum;
+	uint8_t ret_version;
+	uint8_t ret;
 
 	/*  Read the PARTNUM status register */
 	trx16BitRegAccess(RADIO_READ_ACCESS , 0x2F, (0xFF & PARTNUMBER), &ret_partnum, 1);
@@ -194,22 +194,27 @@ char get_device_id(void) {
 *
 * input parameters
 *
-* @param       unsigned char length - length of fixed payload
+* @param       uint8_t length - length of fixed payload
 *
 * output parameters
 *
 * @return      0 - no_error
 */
-unsigned char set_rf_packet_length(unsigned char length) {
-	uint8 regs_uint8;
-
-	/* configure set_rf_packet_length */
-	regs_uint8 = length;
-	trx8BitRegAccess(RADIO_WRITE_ACCESS , PKT_LEN, &regs_uint8, 1);
+uint8_t set_rf_packet_length(uint8_t length) {
+	uint8_t regs_uint8_t;
 
 	/* configure set_rf_packet_lengthe */
-	regs_uint8 = 0x00;
-	trx8BitRegAccess(RADIO_WRITE_ACCESS , PKT_CFG0, &regs_uint8, 1);
+	regs_uint8_t = 0x00;
+	trx8BitRegAccess(RADIO_WRITE_ACCESS , PKT_CFG0, &regs_uint8_t, 1);
+
+	/* configure set_rf_packet_length */
+	regs_uint8_t = length;
+	trx8BitRegAccess(RADIO_WRITE_ACCESS , PKT_LEN, &regs_uint8_t, 1);
+    
+    regs_uint8_t = 0;
+	trx8BitRegAccess(RADIO_READ_ACCESS , PKT_LEN, &regs_uint8_t, 1);
+    log_printf("Pkt Len set to : %d\n", regs_uint8_t);
+
 
 	return (0);
 }

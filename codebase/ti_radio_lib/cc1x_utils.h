@@ -42,11 +42,11 @@ void set_tx_unmodulated_test_mode(void);
 /* Configure transceiver for continuous modulated data test mode */
 void set_tx_modulated_test_mode(void);
 
-/* Get and calculate the RSSI from unsigned char value */
+/* Get and calculate the RSSI from uint8_t value */
 int radio_get_rssi(void);
 
 /* Gets the device ID by reading the version and partnum registers */
 char get_device_id(void);
 
 /* Configure the radio to handle fixed packets with fixed packet length */
-unsigned char set_rf_packet_length(unsigned char length);
+uint8_t set_rf_packet_length(uint8_t length);

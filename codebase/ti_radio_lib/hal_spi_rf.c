@@ -47,6 +47,7 @@
 #include "string.h"
 #include "hal_gpio.h"
 #include "log.h"
+#include "hal_nop_delay.h"
 
 
 /******************************************************************************
@@ -67,10 +68,11 @@ void trxRfSpiInterfaceInit()
         .miso_pin = RF_MISO_PIN,
         .mosi_pin = RF_MOSI_PIN,
         .sck_pin = RF_SCK_PIN,
-        .freq = HAL_SPIM_FREQ_125K,
+        .freq = HAL_SPIM_FREQ_2M,
         .spi_mode = HAL_SPIM_SPI_MODE0,
         .byte_order = HAL_SPIM_MSB_FIRST,
         .en_intr = 0,
+        .irq_priority = APP_IRQ_PRIORITY_HIGHEST,
         .tx_done_handler = NULL,
         .rx_done_handler = NULL,
         
@@ -118,16 +120,26 @@ rfStatus_t trx8BitRegAccess(uint8_t accessType, uint8_t addrByte, uint8_t *pData
 //	/* return the status byte value */
   uint8_t tx_buff[257];
   tx_buff[0] = accessType|addrByte;
-  uint8_t rx_buff[2];
-  memcpy (&tx_buff[1], pData, len);
+  uint8_t rx_buff[257];
   
-    
-  hal_spim_tx_rx (tx_buff, len+1, rx_buff, 2);
-  while(hal_spim_is_busy ());
+  
+  if((accessType&RADIO_READ_ACCESS) == RADIO_READ_ACCESS)  
+  {
+      memset (&tx_buff[1], 0x00, len);
+      hal_spim_tx_rx (tx_buff, len+1, rx_buff, 1 + len);
+      while(hal_spim_is_busy ());
+      memcpy(pData,rx_buff  + 1, len); 
+  }
+  else if((accessType&RADIO_WRITE_ACCESS) == RADIO_WRITE_ACCESS)
+  {
+      memcpy (&tx_buff[1], pData, len);
+      hal_spim_tx_rx (tx_buff, len+1, rx_buff, 2);
+      while(hal_spim_is_busy ());
+  }
   
 //  ((uint8_t*)&status)[1]=rx_buff[0];
 //  ((uint8_t*)&status)[0]=rx_buff[1];
-  readValue = rx_buff[1];
+  readValue = rx_buff[0];
   
 	return(readValue);
 }
@@ -173,16 +185,26 @@ rfStatus_t trx16BitRegAccess(uint8_t accessType, uint8_t extAddr, uint8_t regAdd
     uint8_t tx_buff[257];
     tx_buff[0] = accessType|extAddr;
     tx_buff[1] = regAddr;
-    uint8_t rx_buff[2];
-    memcpy (&tx_buff[2], pData, len);
+    uint8_t rx_buff[257];
 
 
-    hal_spim_tx_rx (tx_buff, len+2, rx_buff, 2);
-    while(hal_spim_is_busy ());
+  if((accessType&RADIO_READ_ACCESS) == RADIO_READ_ACCESS)  
+  {
+      memset (&tx_buff[2], 0x00, len);
+      hal_spim_tx_rx (tx_buff, len+2, rx_buff, len+2);
+      while(hal_spim_is_busy ());
+      memcpy(pData, &rx_buff[2], len);   
+  }
+  else if((accessType&RADIO_WRITE_ACCESS) == RADIO_WRITE_ACCESS)
+  {
+      memcpy (&tx_buff[2], pData, len);
+      hal_spim_tx_rx (tx_buff, len+2, rx_buff, 2);
+      while(hal_spim_is_busy ());
+  }
   
 //  ((uint8_t*)&status)[1]=rx_buff[0];
 //  ((uint8_t*)&status)[0]=rx_buff[1];
-    readValue = rx_buff[1];
+    readValue = rx_buff[0];
   
     return(readValue);
 }

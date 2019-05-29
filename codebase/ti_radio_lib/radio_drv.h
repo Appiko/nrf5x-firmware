@@ -35,12 +35,14 @@
  *  OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  *
  *******************************************************************************/
+#include "stdint.h"
+
 
 /* Initialize the radio hardware */
-int radio_init(unsigned char config_select);
+int radio_init(uint8_t config_select);
 
 /* Prepare the radio with a packet to be sent */
-int radio_prepare(unsigned char *payload, unsigned short payload_len);
+int radio_prepare(uint8_t *payload, uint16_t payload_len);
 
 /* Send the packet that has previously been prepared (used for exact timing)*/
 int radio_transmit(void);
@@ -49,16 +51,16 @@ int radio_transmit(void);
 int radio_receive_on(void);
 
 /* Prepare & transmit a packet in same call (slightly worse timing jitter) */
-int radio_send(unsigned char *payload, unsigned short payload_len);
+int radio_send(uint8_t *payload, uint16_t payload_len);
 
 /* Read a received packet into a buffer */
-int radio_read(unsigned char *buf, unsigned short *buf_len);
+int radio_read(uint8_t * buf, uint8_t *buf_len);
 
 /* Perform a Clear-Channel Assessment (CCA) to find out if channel is clear */
 int radio_channel_clear(void);
 
 /* Wait for radio to become idle (currently receiving or transmitting) */
-int radio_wait_for_idle(unsigned short max_hold);
+int radio_wait_for_idle(uint16_t max_hold);
 
 /* Check if the radio driver has just received a packet */
 int radio_pending_packet(void);
@@ -70,7 +72,7 @@ int radio_clear_pending_packet(void);
 int radio_set_pwr(int tx_pwr);
 
 /* Change channel of radio */
-int radio_set_freq(unsigned long freq);
+int radio_set_freq(uint64_t freq);
 
 /* Idle the radio, used when leaving low power modes (below)*/
 int radio_idle(void);
@@ -86,3 +88,9 @@ int radio_calibrate_on(void);
 
 /* extract the frequency error estimate of the previous packet */
 int radio_freq_error(void);
+
+/* Function to check certain status flag */
+int radio_check_status_flag (uint8_t status_bits);
+
+/* Function to get RSSI Value */
+int radio_get_rssi_val  ();

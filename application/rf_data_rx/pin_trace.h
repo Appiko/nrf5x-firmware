@@ -11,10 +11,10 @@
 //#define GPIO1 12  //With BMP:Hackable
 //#define GPIO2 13  //With BMP:Hackable
 //#define GPIO3 14  //With BMP:Hackable
-#define GPIO0 03
-#define GPIO1 28
-#define GPIO2 29
-#define GPIO3 31
+#define GPIO0 26
+#define GPIO1 27
+#define GPIO2 28
+#define GPIO3 29
 
 //#define SDN   05  //With BMP:Hackable
 #define SDN   18  //With JLINK

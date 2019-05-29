@@ -64,26 +64,27 @@ C_SRC += hal_wdt.c
 C_SRC += nrf_util.c 
 
 C_SRC += hal_spim.c
-
-C_SRC += SDK_EVAL_Spi_Driver.c
-
-C_SRC += S2LP_Commands.c
-C_SRC += S2LP_Csma.c
-C_SRC += S2LP_Fifo.c
-C_SRC += S2LP_General.c
-C_SRC += S2LP_Gpio.c
-C_SRC += S2LP_PacketHandler.c
-C_SRC += S2LP_PktBasic.c
-C_SRC += S2LP_PktStack.c
-C_SRC += S2LP_PktWMbus.c
-C_SRC += S2LP_Qi.c
-C_SRC += S2LP_Radio.c
-C_SRC += S2LP_Types.c
-C_SRC += S2LP_Timer.c
-C_SRC += S2LP_Timer_ex.c
+#
+#C_SRC += SDK_EVAL_Spi_Driver.c
+#
+#C_SRC += S2LP_Commands.c
+#C_SRC += S2LP_Csma.c
+#C_SRC += S2LP_Fifo.c
+#C_SRC += S2LP_General.c
+#C_SRC += S2LP_Gpio.c
+#C_SRC += S2LP_PacketHandler.c
+#C_SRC += S2LP_PktBasic.c
+#C_SRC += S2LP_PktStack.c
+#C_SRC += S2LP_PktWMbus.c
+#C_SRC += S2LP_Qi.c
+#C_SRC += S2LP_Radio.c
+#C_SRC += S2LP_Types.c
+#C_SRC += S2LP_Timer.c
+#C_SRC += S2LP_Timer_ex.c
 
 C_SRC += hal_spi_rf.c
 C_SRC += cc112x_drv.c
+C_SRC += cc112x_utils.c
 
 #Gets the name of the application folder
 APPLN = $(shell basename $(PWD))
