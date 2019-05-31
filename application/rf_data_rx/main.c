@@ -84,7 +84,7 @@ int32_t rssi_sum = 0;
 
 //static volatile bool rx_started = false;
 
-//static mod_ble_data_t ble_data;
+static mod_ble_data_t ble_data;
 
 static volatile bool is_connected = false;
 void ms_timer_handler ()
@@ -96,6 +96,7 @@ void ms_timer_handler ()
 //                BANDWIDTH, PREAMBLE_LENGTH, SYNC_LENGTH);
     
     log_printf ("Packet no.s : S %d, C %d\n", start_pkt_no, current_pkt_no);
+    is_timer_on = false;
   
 }
 
@@ -224,18 +225,20 @@ void GPIOTE_IRQHandler ()
             ms_timer_start (MS_TIMER0, MS_SINGLE_CALL, MS_TIMER_TICKS_MS(TEST_DURATION_MS), ms_timer_handler);
             is_timer_on = true;
             pkt_no = 0;
+            rssi_sum = 0;
             start_pkt_no = current_pkt_no;
         }
         log_printf("Test Val : %d\n", current_pkt_no);
 //        S2LPGpioIrqClearStatus();
-        log_printf("RSSI : %d\n", (int8_t)radio_get_rssi_val ());
-//        {
-//            ble_data.rf_rx_rssi = (uint8_t)radio_get_rssi_val ();
-//            ble_data.pkt_no = current_pkt_no;
-//            ble_data.CRC_ERR = (uint8_t) radio_check_status_flag (MARC_PKT_DISC_CRC);
-//            rf_rx_ble_update_status_byte (&ble_data);
-//        }
-//        rssi_sum += ble_data.rf_rx_rssi;
+        log_printf("RSSI : %d\n", (int8_t)radio_get_rssi ());
+//        if(is_connected)
+        {
+            ble_data.rf_rx_rssi = (uint8_t)radio_get_rssi ();
+            ble_data.pkt_no = current_pkt_no;
+            ble_data.CRC_ERR = (uint8_t) radio_check_status_flag (MARC_PKT_DISC_CRC);
+            rf_rx_ble_update_status_byte (&ble_data);
+        }
+        rssi_sum += ble_data.rf_rx_rssi;
     }
     else
     {
@@ -274,6 +277,7 @@ int main(void)
     radio_set_freq (915000);
     set_rf_packet_length (2);
 
+    hal_gpio_cfg_output (LNA_EN_PIN, 1);
     hal_gpio_cfg_input (GPIO_PIN, HAL_GPIO_PULL_DOWN);
     NRF_GPIOTE->CONFIG[GPIOTE_CHANNEL_USED] = ((GPIOTE_CONFIG_MODE_Event << GPIOTE_CONFIG_MODE_Pos) & GPIOTE_CONFIG_MODE_Msk) |
         ((GPIOTE_CONFIG_POLARITY_HiToLo << GPIOTE_CONFIG_POLARITY_Pos)&GPIOTE_CONFIG_POLARITY_Msk) |
@@ -302,15 +306,15 @@ int main(void)
 //
 //    S2LPGpioIrqClearStatus();
     
-//    rf_rx_ble_stack_init ();
-//    rf_rx_ble_gap_params_init ();
-//    rf_rx_ble_adv_init ();
-//    rf_rx_ble_adv_start (on_connect);
-//    rf_rx_ble_service_init ();
-//
-//    ble_data.rf_rx_rssi = 0;
-//    rf_rx_ble_update_status_byte (&ble_data);
-//
+    rf_rx_ble_stack_init ();
+    rf_rx_ble_gap_params_init ();
+    rf_rx_ble_adv_init ();
+    rf_rx_ble_adv_start (on_connect);
+    rf_rx_ble_service_init ();
+
+    ble_data.rf_rx_rssi = 0;
+    rf_rx_ble_update_status_byte (&ble_data);
+
     start_rx();
 
     log_printf("Here..!!\n");

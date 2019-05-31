@@ -98,6 +98,8 @@
 
 #define GPIO_PIN GPIO0
 
+
+
 /**
 * @brief IRQ status struct declaration
 */
@@ -112,7 +114,8 @@ void ms_timer_handler ()
 //    S2LPSpiWriteFifo(sizeof(test_cnt), (uint8_t *)&test_cnt);
 //    arr_test[1] = 0xCD;
 //    arr_test[0] = 0xAB;
-    hal_nop_delay_us (500);
+//    hal_gpio_pin_set (PA_EN_PIN);
+//    hal_nop_delay_us (500);
 //    radio_send ((uint8_t *)arr_test, sizeof(arr_test));
     
     test_cnt++;
@@ -189,6 +192,7 @@ void GPIOTE_IRQHandler ()
     if(radio_check_status_flag (MARC_NO_FAILURE) )
     {
         log_printf("Data sent\n");
+//        hal_gpio_pin_clear (PA_EN_PIN);
             trxSpiCmdStrobe (SFTX);
 
 //        S2LPGpioIrqClearStatus();
@@ -220,6 +224,7 @@ int main(void)
 //    radio_prepare ((unsigned char *)&test_cnt, (uint16_t)sizeof(test_cnt));
     set_rf_packet_length (sizeof(test_cnt));
     log_printf("Here..!!\n");
+    hal_gpio_cfg_output (PA_EN_PIN, 1);
 
     hal_gpio_cfg_input (GPIO_PIN, HAL_GPIO_PULL_DISABLED);
     NRF_GPIOTE->CONFIG[GPIOTE_CHANNEL_USED] = ((GPIOTE_CONFIG_MODE_Event << GPIOTE_CONFIG_MODE_Pos) & GPIOTE_CONFIG_MODE_Msk) |

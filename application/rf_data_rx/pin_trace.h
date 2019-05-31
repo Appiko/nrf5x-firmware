@@ -19,3 +19,5 @@
 //#define SDN   05  //With BMP:Hackable
 #define SDN   18  //With JLINK
 //#define SDN   26 //With BMP:Bluey
+#define PA_EN_PIN   30
+#define LNA_EN_PIN  31

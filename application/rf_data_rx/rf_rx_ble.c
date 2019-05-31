@@ -244,14 +244,22 @@ void rf_rx_ble_service_init(void)
     ble_gatts_char_md_t char_md;
     ble_gatts_attr_t attr_char_value;
     ble_gatts_attr_md_t attr_md;
+//    ble_gatts_attr_md_t cccd_md;
 
     memset(&char_md, 0, sizeof(char_md));
+//    memset(&cccd_md, 0, sizeof(cccd_md));
+
+//    BLE_GAP_CONN_SEC_MODE_SET_OPEN(&cccd_md.read_perm);
+//    BLE_GAP_CONN_SEC_MODE_SET_OPEN(&cccd_md.write_perm);    
+//    cccd_md.vloc = BLE_GATTS_VLOC_STACK;
 
     char_md.char_props.read = 1;
     char_md.char_props.write = 0;
+//    char_md.char_props.notify = 1;
     char_md.p_char_user_desc = NULL;
     char_md.p_char_pf = NULL;
     char_md.p_user_desc_md = NULL;
+//    char_md.p_cccd_md = &cccd_md;
     char_md.p_cccd_md = NULL;
     char_md.p_sccd_md = NULL;
 
@@ -368,6 +376,7 @@ bool rf_rx_is_bt_on ()
 void rf_rx_ble_update_status_byte (mod_ble_data_t * status_byte)
 {
     uint32_t err_code;
+//    uint16_t len = sizeof(mod_ble_data_t);
     ble_gatts_value_t val =
     {
         .len = sizeof(mod_ble_data_t),
@@ -377,5 +386,15 @@ void rf_rx_ble_update_status_byte (mod_ble_data_t * status_byte)
     err_code = sd_ble_gatts_value_set(h_conn,
             h_status_byte.value_handle, &val);
     APP_ERROR_CHECK(err_code);
-
+    
+//    ble_gatts_hvx_params_t params = 
+//    {
+//        .p_len = &len,
+//        .p_data = (uint8_t *) status_byte,
+//        .type = BLE_GATT_HVX_NOTIFICATION,
+//        .handle = h_status_byte.value_handle,
+//    };
+//    
+//    err_code = sd_ble_gatts_hvx (h_conn, &params);
+//    APP_ERROR_CHECK(err_code);
 }
