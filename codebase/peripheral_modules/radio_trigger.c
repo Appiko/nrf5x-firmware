@@ -73,10 +73,13 @@ void (* p_radio_tx_handler) (void * p_data, uint32_t len);
  
 hal_radio_config_t radio_config; 
 
+app_irq_priority_t radio_trig_irq_priority;
+
 void radio_trigger_init (radio_trigger_init_t* radio_trig_init)
 {
     p_radio_rx_handler = radio_trig_init->radio_trigger_rx_callback;
     p_radio_tx_handler = radio_trig_init->radio_trigger_tx_callback;
+    radio_trig_irq_priority = radio_trig_init->irq_priority;
     radio_dir = radio_trig_init->comm_direction;
     {
         radio_config.freq = radio_trig_init->comm_freq;
@@ -100,9 +103,6 @@ void radio_trigger_init (radio_trigger_init_t* radio_trig_init)
             (MS_TO_US_CONV(radio_trig_init->tx_on_time_ms) + XTAL_STARTUP_TIME);
         TIMER_ID->CC[TIMER_CHANNEL_TX_FREQ] = radio_trig_init->tx_on_freq_us+ XTAL_STARTUP_TIME;
         radio_tx_freq_ticks = radio_trig_init->tx_on_freq_us;
-        log_printf("CC[%d] : %d\n", TIMER_CHANNEL_TX_ON, TIMER_ID->CC[TIMER_CHANNEL_TX_ON]);
-        log_printf("CC[%d] : %d\n", TIMER_CHANNEL_TX_FREQ, TIMER_ID->CC[TIMER_CHANNEL_TX_FREQ]);
-        log_printf("Tx Freq Ticks : %d\n", radio_tx_freq_ticks);
     }
     else
     {
@@ -120,12 +120,13 @@ void radio_trigger_init (radio_trigger_init_t* radio_trig_init)
 
 void radio_trigger_yell ()
 {
-    log_printf("%s\n", __func__);
     is_radio_free = false;
     TIMER_ID->CC[TIMER_CHANNEL_TX_FREQ] = radio_tx_freq_ticks + XTAL_STARTUP_TIME;
 
     TIMER_ID->TASKS_START = 1;
     hal_radio_init (&radio_config);
+    NVIC_SetPriority (TIMER_IRQN, radio_trig_irq_priority);
+    NVIC_EnableIRQ (TIMER_IRQN);
 }
 
 void radio_trigger_listen ()
@@ -133,6 +134,8 @@ void radio_trigger_listen ()
     is_radio_free = false;
     TIMER_ID->TASKS_START = 1;
     hal_radio_init (&radio_config);
+    NVIC_SetPriority (TIMER_IRQN, radio_trig_irq_priority);
+    NVIC_EnableIRQ (TIMER_IRQN);
 }
 
 void radio_trigger_shut ()
