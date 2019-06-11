@@ -17,7 +17,7 @@
  */
 
 #include "time_tracker.h"
-
+#include "string.h"
 
 
 #define DAY_TICK_LENGTH (24 * 3600 * MS_TIMER_TICKS_MS(1000))
@@ -32,10 +32,6 @@ typedef struct
 
 static uint32_t last_date[] = {0xff, 31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31};
 
-static time_tracker_ddmmyy_t current_date;
-
-static uint32_t current_time = TIME_TRACKER_TIME_NOT_SET;
-
 static date_time_log_t date_time;
 
 static uint32_t log_id;
@@ -43,31 +39,31 @@ static uint32_t log_id;
 void update_date ()
 {
     //check if it's a last day of year
-    if(current_date.mm == NO_OF_MONTHS &&
-       current_date.dd == last_date[[NO_OF_MONTHS]])
+    if(date_time.log_date.mm == NO_OF_MONTHS &&
+       date_time.log_date.dd == last_date[NO_OF_MONTHS])
     {
     //update year, and check if updated year is leap year
-        current_date.yy++;
+        date_time.log_date.yy++;
     //if it's leap year, make feb's last date 29
-        last_date[2] = (current_date.yy%4 == 0) ? 29 : 28;
+        last_date[2] = (date_time.log_date.yy%4 == 0) ? 29 : 28;
     //set date 01/01/updated year
-        current_date.dd = 1;
-        current_date.mm = 1;
+        date_time.log_date.dd = 1;
+        date_time.log_date.mm = 1;
         return;        
     }
 
     //check if it's a last day of on going month
-    if(current_date.dd == last_date[current_date.mm])
+    if(date_time.log_date.dd == last_date[date_time.log_date.mm])
     {
     //if it is, update month
-        current_date.mm++;
+        date_time.log_date.mm++;
     //set date 01/update month/running year
-        current_date.dd = 1;
+        date_time.log_date.dd = 1;
         return;
     }
     
     //update date
-    current_date.dd++;
+    date_time.log_date.dd++;
     return;    
 }
 
@@ -89,18 +85,20 @@ uint32_t time_tracker_init (uint32_t time_log)
     {
         //last entry from log to current time
         nvm_logger_fetch_tail_data (log_id, &date_time, 1);
-        current_time = date_time.log_time;
-        memcpy(&current_date, &date_time.log_date, sizeof(time_tracker_ddmmyy_t));
+    }
+    else
+    {
+        date_time.log_time = TIME_TRACKER_TIME_NOT_SET;
     }
     return log_id;
 }
 
-void time_tracker_set_date_time (time_tracker_ddmmyy_t date_ddmmyy, uint32_t time_s)
+void time_tracker_set_date_time (time_tracker_ddmmyy_t * p_date_ddmmyy, uint32_t time_s)
 {
-    current_time = MS_TIMER_TICKS_MS(time_s * 1000);
-    date_time.log_time = current_time;
-    memcpy(&date_time.log_date, &current_date, sizeof(time_tracker_ddmmyy_t));
+    date_time.log_time = MS_TIMER_TICKS_MS(time_s * 1000);
+    memcpy(&date_time.log_date, p_date_ddmmyy, sizeof(time_tracker_ddmmyy_t));
     nvm_logger_feed_data (log_id, &date_time);
+    memcpy(&date_time.log_date, p_date_ddmmyy, sizeof(time_tracker_ddmmyy_t));
     
 }
 
@@ -108,20 +106,24 @@ void time_tracker_set_date_time (time_tracker_ddmmyy_t date_ddmmyy, uint32_t tim
 void time_tracker_update_time (uint32_t ticks)
 {
     //update current time
-    current_time = (current_time + ticks);
-    if(current_time > DAY_TICK_LENGTH)
+    date_time.log_time = (date_time.log_time + ticks);
+    if(date_time.log_time > DAY_TICK_LENGTH)
     {
         update_date ();
-        current_time = current_time - DAY_TICK_LENGTH;
+        date_time.log_time = date_time.log_time - DAY_TICK_LENGTH;
     }
     //add current date and time entry in time tracking log
-    date_time.log_time = current_time;
-    memcpy(&date_time.log_date, &current_date, sizeof(time_tracker_ddmmyy_t));
     nvm_logger_feed_data (log_id, &date_time);
 }
 
 
 uint32_t time_tracker_get_current_time_s ()
 {
-    return (current_time/MS_TIMER_FREQ);
+    return (date_time.log_time/MS_TIMER_FREQ);
 }
+
+time_tracker_ddmmyy_t * time_tracker_get_current_date ()
+{
+    return &date_time.log_date;
+}
+

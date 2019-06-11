@@ -50,6 +50,8 @@
 
 #define TIME_TRACKER_TIME_NOT_SET 0xFFFFFFFF
 
+#define TIME_TRACKER_DAY_LEN_S (24 * 3600 )
+
 typedef struct
 {
     uint8_t dd;
