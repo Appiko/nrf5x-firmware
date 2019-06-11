@@ -47,7 +47,7 @@ void oper_manage_set_slot (oper_manage_slot_t * new_slot)
     {
         arr_start_cond[new_slot->slot_no] = new_slot->start_cond;
         arr_end_cond[new_slot->slot_no] = new_slot->end_cond;
-        uint32_t current_time = time_tracker_get_current_time();
+        uint32_t current_time = time_tracker_get_current_time_s();
         if(current_time >=  new_slot->start_cond 
            && current_time <= new_slot->end_cond)
         {
@@ -58,7 +58,7 @@ void oper_manage_set_slot (oper_manage_slot_t * new_slot)
 
 uint8_t oper_manage_check_update ()
 {
-    uint32_t current_time = time_tracker_get_current_time();
+    uint32_t current_time = time_tracker_get_current_time_s();
     uint32_t light_val = simple_adc_get_value (SIMPLE_ADC_GAIN1_6, light_sense_pin);
     for(uint32_t slot_no = 0; slot_no < OPER_MANAGE_MAX_SLOTS; slot_no++)
     {

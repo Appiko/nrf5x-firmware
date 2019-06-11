@@ -50,6 +50,13 @@
 
 #define TIME_TRACKER_TIME_NOT_SET 0xFFFFFFFF
 
+typedef struct
+{
+    uint8_t dd;
+    uint8_t mm;
+    uint8_t yy;
+}time_tracker_ddmmyy_t;
+
 /**
  * @brief Function to initiate the time tracker module.
  * @param time_log NVM Log which is to be used to keep track of time
@@ -60,9 +67,11 @@ uint32_t time_tracker_init (uint32_t time_log);
 
 /**
  * @brief Function to set current time
- * @param time_ticks Current time in ticks
+ * @param date_yymmdd Structure pointer of data type @ref time_tracker_ddmmyy_t
+ * which contains current date.
+ * @param time_s Current time in seconds
  */
-void time_tracker_set_time (uint32_t time_ticks);
+void time_tracker_set_date_time (time_tracker_ddmmyy_t * p_date_ddmmyy, uint32_t time_s);
 
 /**
  * @brief Function to update time
@@ -71,10 +80,17 @@ void time_tracker_set_time (uint32_t time_ticks);
 void time_tracker_update_time (uint32_t ticks);
 
 /**
- * @brief Function to get check how many time slots are active right now.
+ * @brief Function to get current time in ms.
  * @return Last time entry in log.
  */
-uint32_t time_tracker_get_current_time ();
+uint32_t time_tracker_get_current_time_s ();
+
+/**
+ * @brief Function to get current date
+ * @return Structure pointer of data type @ref time_tracker_ddmmyy_t which 
+ * stores current date
+ */
+time_tracker_ddmmyy_t * time_tracker_get_current_date ();
 
 #endif /* CODEBASE_PERIPHERAL_MODULES_TIME_TRACKER_H_ */
 
