@@ -19,12 +19,6 @@
 #include "oper_manage.h"
 #include "simple_adc.h"
 
-typedef enum
-{
-    AMBI_LIGHT,
-    TIME_OF_DAY,
-}oper_list_t;
-
 static uint32_t light_sense_pin;
 
 static uint32_t arr_start_cond [OPER_MANAGE_MAX_SLOTS];
@@ -66,7 +60,7 @@ uint8_t oper_manage_check_update ()
         {
             active_slots &= (0xFF & (0 << slot_no));
         }
-        else if(arr_oper_cond[slot_no] == TIME_OF_DAY)
+        else if(arr_oper_cond[slot_no] == OPER_MANAGE_TIME_OF_DAY)
         {
             if(current_time >= arr_start_cond[slot_no] 
                && current_time <= arr_end_cond[slot_no])
@@ -78,7 +72,7 @@ uint8_t oper_manage_check_update ()
                 active_slots &= (0xFF & (0 << slot_no));
             }
         }
-        else if(arr_oper_cond[slot_no] == AMBI_LIGHT)
+        else if(arr_oper_cond[slot_no] == OPER_MANAGE_AMBI_LIGHT)
         {
             if(light_val >= arr_start_cond[slot_no] 
                && light_val <= arr_end_cond[slot_no])
