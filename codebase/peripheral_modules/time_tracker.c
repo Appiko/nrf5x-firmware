@@ -98,7 +98,7 @@ void time_tracker_set_date_time (time_tracker_ddmmyy_t * p_date_ddmmyy, uint32_t
     date_time.log_time = MS_TIMER_TICKS_MS(time_s * 1000);
     memcpy(&date_time.log_date, p_date_ddmmyy, sizeof(time_tracker_ddmmyy_t));
     nvm_logger_feed_data (log_id, &date_time);
-    memcpy(&date_time.log_date, p_date_ddmmyy, sizeof(time_tracker_ddmmyy_t));
+    last_date[2] = (date_time.log_date.yy%4 == 0) ? 29 : 28;
     
 }
 
