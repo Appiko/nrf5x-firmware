@@ -18,6 +18,7 @@
 
 #include "oper_manage.h"
 #include "simple_adc.h"
+#include "common_util.h"
 
 static uint32_t light_sense_pin;
 
@@ -41,6 +42,7 @@ void oper_manage_set_slot (oper_manage_slot_t * new_slot)
     {
         arr_start_cond[new_slot->slot_no] = new_slot->start_cond;
         arr_end_cond[new_slot->slot_no] = new_slot->end_cond;
+        arr_oper_cond[new_slot->slot_no] = new_slot->oper_sel;
         uint32_t current_time = time_tracker_get_current_time_s();
         if(current_time >=  new_slot->start_cond 
            && current_time <= new_slot->end_cond)
@@ -58,18 +60,18 @@ uint8_t oper_manage_check_update ()
     {
         if(arr_start_cond[slot_no] == arr_end_cond[slot_no])
         {
-            active_slots &= (0xFF & (0 << slot_no));
+                active_slots = CLR_BIT_VAR(active_slots, slot_no);
         }
         else if(arr_oper_cond[slot_no] == OPER_MANAGE_TIME_OF_DAY)
         {
             if(current_time >= arr_start_cond[slot_no] 
                && current_time <= arr_end_cond[slot_no])
             {
-                active_slots |= 1 << slot_no;
+                active_slots = SET_BIT_VAR(active_slots, slot_no);
             }
             else
             {
-                active_slots &= (0xFF & (0 << slot_no));
+                active_slots = CLR_BIT_VAR(active_slots, slot_no);
             }
         }
         else if(arr_oper_cond[slot_no] == OPER_MANAGE_AMBI_LIGHT)
@@ -77,11 +79,11 @@ uint8_t oper_manage_check_update ()
             if(light_val >= arr_start_cond[slot_no] 
                && light_val <= arr_end_cond[slot_no])
             {
-                active_slots |= 1 << slot_no;
+                active_slots = SET_BIT_VAR(active_slots, slot_no);
             }
             else
             {
-                active_slots &= (0xFF & (0 << slot_no));
+                active_slots = CLR_BIT_VAR(active_slots, slot_no);
             }            
         }
     }

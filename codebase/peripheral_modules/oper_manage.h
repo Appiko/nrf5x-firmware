@@ -72,7 +72,7 @@ void oper_manage_set_slot (oper_manage_slot_t * new_slot);
  * @return bitwise status of all the slots. 
  * @retval if [i]th bit is 1 then [i]th condition slot is active.
  */
-uint8_t oper_manage_get_status ();
+uint8_t oper_manage_get_active_slots ();
 
 /**
  * @brief Function to check if there are any changes in active slots.
