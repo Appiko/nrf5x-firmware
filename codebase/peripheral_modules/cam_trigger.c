@@ -75,6 +75,7 @@ typedef enum
     LONG_PRESS,
     VIDEO_WO_EXT,
     HALF_PRESS,
+    NO_SHOT,
     VIDEO_W_EXT,
 }trig_modes_t;
 
@@ -201,13 +202,14 @@ void single_shot (cam_trigger_config_t * cam_trigger_config)
     uint32_t number_of_transition = SINGLE_SHOT_TRANSITIONS + PRE_FOCUS_TRANSITIONS;
     int32_t time_remain;
     uint32_t local_setup_no = cam_trigger_config->setup_number;
+    uint32_t press_duration = MS_TIMER_TICKS_MS(cam_trigger_config->trig_press_duration_100ms * 100);
     uint32_t pre_focus_time = PRE_FOCUS_OFF_TIME;
     if(cam_trigger_config->pre_focus_en == true)
     {
-        pre_focus_time = PRE_FOCUS_ON_TIME;
+        pre_focus_time = MS_TIMER_TICKS_MS(cam_trigger_config->prf_press_duration_100ms*100);
     }
 
-    time_remain = MS_TIMER_TICKS_MS(cam_trigger_config->trig_duration_100ms * 100) - SINGLE_SHOT_DURATION - pre_focus_time;
+    time_remain = MS_TIMER_TICKS_MS(cam_trigger_config->trig_duration_100ms * 100) - press_duration - pre_focus_time;
     
     if(time_remain <= 0)
     {
@@ -219,7 +221,7 @@ void single_shot (cam_trigger_config_t * cam_trigger_config)
         .num_transitions = number_of_transition,
         .done_handler = out_gen_done_handler,
         .out_gen_state = NON_VIDEO_EXT_RUNNING,
-        .transitions_durations = {pre_focus_time, SINGLE_SHOT_DURATION, time_remain },
+        .transitions_durations = {pre_focus_time, press_duration, time_remain },
         .next_out = {{0, 0, 1, 1},
                      {1, 0, 1, 1}},
     };
@@ -233,6 +235,7 @@ void multi_shot (cam_trigger_config_t * cam_trigger_config, uint32_t time_betwee
 {
 
     uint32_t local_setup_no = cam_trigger_config->setup_number;
+    uint32_t press_duration = MS_TIMER_TICKS_MS(cam_trigger_config->trig_press_duration_100ms * 100);
     if(no_of_shots > MAX_NO_OF_SHOTS)
     {
         no_of_shots = MAX_NO_OF_SHOTS;
@@ -241,15 +244,15 @@ void multi_shot (cam_trigger_config_t * cam_trigger_config, uint32_t time_betwee
 
     if(cam_trigger_config->pre_focus_en == true)
     {
-        pre_focus_time = PRE_FOCUS_ON_TIME;
+        pre_focus_time = MS_TIMER_TICKS_MS(cam_trigger_config->prf_press_duration_100ms*100);
     }
     int32_t time_remain;
     uint32_t number_of_transition = (SINGLE_SHOT_TRANSITIONS * no_of_shots) 
         + PRE_FOCUS_TRANSITIONS;
     //Time for trigger pulse and time till next trigger for each burst
     uint32_t repeat_delay_array[SINGLE_SHOT_TRANSITIONS] = 
-    {SINGLE_SHOT_DURATION,
-    MS_TIMER_TICKS_MS (time_between_shots_100ms * 100) - SINGLE_SHOT_DURATION};
+    {press_duration,
+    MS_TIMER_TICKS_MS (time_between_shots_100ms * 100) - press_duration};
     out_gen_config_t local_out_gen_config =
     {
         .num_transitions = number_of_transition,
@@ -275,8 +278,8 @@ void multi_shot (cam_trigger_config_t * cam_trigger_config, uint32_t time_betwee
         }
     }
     time_remain = MS_TIMER_TICKS_MS(cam_trigger_config->trig_duration_100ms * 100)
-        - SINGLE_SHOT_DURATION*no_of_shots - 
-        ((MS_TIMER_TICKS_MS (time_between_shots_100ms * 100) - SINGLE_SHOT_DURATION)
+        - press_duration*no_of_shots - 
+        ((MS_TIMER_TICKS_MS (time_between_shots_100ms * 100) - press_duration)
         *(no_of_shots - 1) - pre_focus_time);    
     if(time_remain <= 0)
     {
@@ -300,7 +303,7 @@ void long_press (cam_trigger_config_t * cam_trigger_config, uint32_t expousure_t
 
     if(cam_trigger_config->pre_focus_en == true)
     {
-        pre_focus_time = PRE_FOCUS_ON_TIME;
+        pre_focus_time = MS_TIMER_TICKS_MS(cam_trigger_config->prf_press_duration_100ms*100);
     }
 
     time_remain = MS_TIMER_TICKS_MS(cam_trigger_config->trig_duration_100ms * 100)
@@ -331,12 +334,13 @@ void long_press (cam_trigger_config_t * cam_trigger_config, uint32_t expousure_t
 void video_without_extn (cam_trigger_config_t * cam_trigger_config, uint32_t video_len_s)
 {
     uint32_t local_setup_no = cam_trigger_config->setup_number;
+    uint32_t press_duration = MS_TIMER_TICKS_MS(cam_trigger_config->trig_press_duration_100ms * 100);
     uint32_t pre_focus_time = PRE_FOCUS_OFF_TIME;
     int32_t time_remain;
     video_len_s = MS_TIMER_TICKS_MS(video_len_s * 1000);
     if(cam_trigger_config->pre_focus_en == true)
     {
-        pre_focus_time = PRE_FOCUS_ON_TIME;
+        pre_focus_time = MS_TIMER_TICKS_MS(cam_trigger_config->prf_press_duration_100ms*100);
     }
 
     time_remain = MS_TIMER_TICKS_MS(cam_trigger_config->trig_duration_100ms * 100) - 
@@ -352,7 +356,7 @@ void video_without_extn (cam_trigger_config_t * cam_trigger_config, uint32_t vid
         .next_out = 
         {{0,0,1,0,1,1},
         {1,1,1,1,1,1}},
-        .transitions_durations = {pre_focus_time, VIDEO_START_PULSE,
+        .transitions_durations = {pre_focus_time, press_duration,
                     (video_len_s),
                     VIDEO_END_PULSE,  time_remain},
         .done_handler = out_gen_done_handler,
@@ -368,10 +372,11 @@ void video_with_extn (cam_trigger_config_t * cam_trigger_config, uint32_t video_
                       uint32_t extn_len_s)
 {
     uint32_t local_setup_no = cam_trigger_config->setup_number;
+    uint32_t press_duration = MS_TIMER_TICKS_MS(cam_trigger_config->trig_press_duration_100ms * 100);
     uint32_t pre_focus_time = PRE_FOCUS_OFF_TIME;
     if(cam_trigger_config->pre_focus_en == true)
     {
-        pre_focus_time = PRE_FOCUS_ON_TIME;
+        pre_focus_time = MS_TIMER_TICKS_MS(cam_trigger_config->prf_press_duration_100ms*100);
     }
     
     ext[local_setup_no].extend_duration =
@@ -399,7 +404,7 @@ void video_with_extn (cam_trigger_config_t * cam_trigger_config, uint32_t video_
         .next_out = 
         {{0,0,1,1},
         {1,1,1,1}},
-        .transitions_durations = {pre_focus_time, VIDEO_START_PULSE,
+        .transitions_durations = {pre_focus_time, press_duration,
             MS_TIMER_TICKS_MS(video_len_s)},
         .done_handler = out_gen_done_handler,
         .out_gen_state = VIDEO_EXT_EXTEND,
@@ -413,15 +418,16 @@ void half_press (cam_trigger_config_t * cam_trigger_config)
 {
     uint32_t local_setup_no = cam_trigger_config->setup_number;
     uint32_t pre_focus_time = PRE_FOCUS_OFF_TIME;
+    uint32_t press_duration = MS_TIMER_TICKS_MS(cam_trigger_config->trig_press_duration_100ms * 100);
     int32_t time_remain;
     uint32_t number_of_transition = FOCUS_TRANSITIONS + PRE_FOCUS_TRANSITIONS;
     if(cam_trigger_config->pre_focus_en == true)
     {
-        pre_focus_time = PRE_FOCUS_ON_TIME;
+        pre_focus_time = MS_TIMER_TICKS_MS(cam_trigger_config->prf_press_duration_100ms*100);
     }
     
     time_remain = MS_TIMER_TICKS_MS(cam_trigger_config->trig_duration_100ms * 100) - 
-        SINGLE_SHOT_DURATION - pre_focus_time;
+        press_duration - pre_focus_time;
     if(time_remain <= 0)
     {
         time_remain =1;
@@ -432,7 +438,7 @@ void half_press (cam_trigger_config_t * cam_trigger_config)
         .done_handler = out_gen_done_handler,
         .out_gen_state = NON_VIDEO_EXT_RUNNING,
         .transitions_durations =
-            {pre_focus_time, SINGLE_SHOT_DURATION, time_remain},
+            {pre_focus_time, press_duration, time_remain},
         .next_out =
             {
                 {0, 0, 1, 1},
@@ -440,6 +446,22 @@ void half_press (cam_trigger_config_t * cam_trigger_config)
             },
     };
     
+    memcpy (&arr_out_gen_config[local_setup_no], &local_out_gen_config,
+            sizeof(out_gen_config_t));
+}
+
+void no_Shot (cam_trigger_config_t * cam_trigger_config)
+{
+    uint32_t local_setup_no = cam_trigger_config->setup_number;
+    uint32_t trigg_duration = MS_TIMER_TICKS_MS(cam_trigger_config_t.trig_duration_100ms * 100);
+    out_gen_config_t local_out_gen_config = 
+    {
+        .done_handler = out_gen_done_handler,
+        .next_out = {{1,1}, {1,1}},
+        .num_transitions = 1,
+        .transitions_durations = {trigg_duration},
+        .out_gen_state = NON_VIDEO_EXT_RUNNING,
+    };
     memcpy (&arr_out_gen_config[local_setup_no], &local_out_gen_config,
             sizeof(out_gen_config_t));
 }
@@ -494,6 +516,8 @@ void cam_trigger_set_trigger (cam_trigger_config_t * cam_trigger_config)
         case HALF_PRESS :
             half_press (cam_trigger_config);
             break;
+        case NO_SHOT :
+            no_shot (cam_trigger_config);
     }
 }
 
