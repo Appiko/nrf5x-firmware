@@ -72,12 +72,6 @@ const uint8_t device_name[] = { DEVICE_NAME_CHAR };
 #endif
 
 
-typedef enum
-{
-    STANDARD,
-    RECHARAGEABLE,
-    LITHIUM,
-}battery_type_t;
 
 typedef struct
 {
@@ -85,6 +79,15 @@ typedef struct
     dev_id_t dev_id;
     uint8_t battery_voltage;
 }senseberx_sysinfo;
+
+/** List of different battery types */
+typedef enum
+{
+    STANDARD,
+    RECHARAGEABLE,
+    LITHIUM,
+}battery_type_t;
+
 /** List of all possible device speed. (sampling speed or sys_wakeup time)
      The interval at which IR pulses are sent from the Tx unit
      This should be same on the Tx and Rx unit. Reduce this to save power but reduce sensitivity */
@@ -260,10 +263,10 @@ typedef struct          //older structure as it it
 typedef struct
 {
     /** Camera trigger  configuration */
-    cam_trig_t cam_trigger;         //8Bytes
+    cam_trig_t cam_trigger;         //9Bytes
     /** Operational condition selection */
     oper_cond_t oper_cond;          //8Bytes
-}cam_settings_t;
+}cam_settings_t;///17Bytes
 
 typedef struct
 {
@@ -286,12 +289,12 @@ typedef union
 typedef struct
 {
     /** Trigger selection */
-    triggers_t trig_sel;         //1Byte
-    /** Functional Settings */  // 4 Bytes
-    function_settings_t func_setting;
+    triggers_t trig_sel;                //1Byte
+    /** Functional Settings */  
+    function_settings_t func_setting;   //8Bytes
     /** Camera settings */
-    cam_settings_t cam_setting;     //17Bytes
-}settings_t;             
+    cam_settings_t cam_setting;         //17Bytes
+}settings_t;//26Bytes
 
 /** Structure to store radio triggering parameters */
 typedef struct
@@ -321,20 +324,20 @@ typedef struct
     /** Array of operation condition selection for each trigger */
     oper_cond_sel_t trigger_oper_cond_sel[MOTION_AND_TIMER];    //2Bytes
     /** Array of generic settings */
-    settings_t generic_settings[MAX_SETTINGS];                  //176Bytes
+    settings_t generic_settings[MAX_SETTINGS];                  //208Bytes
     /** Radio control */
-    radio_control_t radio_control;                              //2Bytes
+    radio_control_t radio_control;                              //3Bytes
     /** System speed */
     device_speed_t speed;                                       //1Byte
     /** Battery type */
-    battery_type_t battery_type;
+    battery_type_t battery_type;                                //1Byte
     /** User device name */
-    uint8_t dev_name[16];
+    uint8_t dev_name[16];                                       //16Bytes
     /** Current time in sec.s */
-    uint32_t current_time;
+    uint32_t current_time;                                      //4Bytes    
     /** Current Date in dd/mm/yy format */
-    date_ble_t current_date;
-}senseberx_config_t;                                              //181Bytes
+    date_ble_t current_date;                                    //3Bytes
+}senseberx_config_t;///238Bytes
 
 typedef struct
 {

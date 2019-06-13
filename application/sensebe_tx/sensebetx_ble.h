@@ -72,12 +72,6 @@ const uint8_t device_name[] = { DEVICE_NAME_CHAR };
 #endif
 
 
-typedef enum
-{
-    STANDARD,
-    RECHARAGEABLE,
-    LITHIUM,
-}battery_type_t;
 
 typedef struct
 {
@@ -85,6 +79,15 @@ typedef struct
     dev_id_t dev_id;
     uint8_t battery_voltage;
 }sensebetx_sysinfo;
+
+/** List of different battery types */
+typedef enum
+{
+    STANDARD,
+    RECHARAGEABLE,
+    LITHIUM,
+}battery_type_t;
+
 /** List of all possible device speed. (sampling speed or sys_wakeup time)
      The interval at which IR pulses are sent from the Tx unit
      This should be same on the Tx and Rx unit. Reduce this to save power but reduce sensitivity */
@@ -245,7 +248,7 @@ typedef struct          //older structure as it it
     /** Camera trigger mode */
     trigger_mode_t mode:5;
     /** Settings based on the mode */
-    mode_settings_t mode_setting;
+    mode_settings_t mode_setting;           //4Bytes
     /** Pulse duration of trigger and focus signal in 100ms, 25s max, 300 ms default */
    /** Editable in single shot, multi shot, video and half-press mode  */
     uint8_t trig_pulse_duration_100ms;      //1Byte
@@ -254,16 +257,16 @@ typedef struct          //older structure as it it
     uint8_t prf_pulse_duration_100ms;       //1Byte
     /** Minimum time duration between two consecutive triggers, 100 ms unit, 100 min max*/
     uint16_t inter_trig_time;		    //2Bytes
-}cam_trig_t;
+}cam_trig_t; ///9Bytes
 
 /** Structure to store camera operational settings common for both MOTION and TIMER trigger */
 typedef struct
 {
     /** Camera trigger  configuration */
-    cam_trig_t cam_trigger;         //8Bytes
+    cam_trig_t cam_trigger;         //9Bytes
     /** Operational condition selection */
     oper_cond_t oper_cond;          //8Bytes
-}cam_settings_t;
+}cam_settings_t;          ///17Bytes
 
 typedef struct
 {
@@ -284,12 +287,12 @@ typedef union
 typedef struct
 {
     /** Trigger selection */
-    triggers_t trig_sel;         //1Byte
-    /** Functional Settings */  // 4 Bytes
-    function_settings_t func_setting;
+    triggers_t trig_sel;                    //1Byte
+    /** Functional Settings */  
+    function_settings_t func_setting;       //8Bytes
     /** Camera settings */
-    cam_settings_t cam_setting;     //17Bytes
-}settings_t;             
+    cam_settings_t cam_setting;             //17Bytes
+}settings_t;///26 Bytes             
 
 /** Structure to store radio triggering parameters */
 typedef struct
@@ -300,7 +303,7 @@ typedef struct
     uint8_t radio_oper_duration_25ms;     //1Byte
     /** Radio operation frequency(time period after which radio operation is to be repeated) */
     uint8_t radio_oper_freq_100us;            //1Byte
-}radio_control_t;
+}radio_control_t;///3Bytes
 
 /** Structure to store date in ble data */
 typedef struct
@@ -311,7 +314,7 @@ typedef struct
     uint8_t mm;
     /** Year */
     uint8_t yy;
-}date_ble_t;
+}date_ble_t;///3Bytes
 
 /** BLE structure */
 typedef struct
@@ -319,20 +322,20 @@ typedef struct
     /** Array of operation condition selection for each trigger */
     oper_cond_sel_t trigger_oper_cond_sel[MOTION_AND_TIMER];    //2Bytes
     /** Array of generic settings */
-    settings_t generic_settings[MAX_SETTINGS];                  //176Bytes
+    settings_t generic_settings[MAX_SETTINGS];                  //208Bytes
     /** Radio control */
-    radio_control_t radio_control;                              //2Bytes
+    radio_control_t radio_control;                              //3Bytes
     /** System speed */
     device_speed_t speed;                                       //1Byte
     /** Battery type */
-    battery_type_t battery_type;
+    battery_type_t battery_type;                                //1Byte
     /** User device name */
-    uint8_t dev_name[16];
+    uint8_t dev_name[16];                                       //16Bytes
     /** Current time in sec.s */
-    uint32_t current_time;
+    uint32_t current_time;                                      //4Bytes
     /** Current Date in dd/mm/yy format */
-    date_ble_t current_date;
-}sensebetx_config_t;                                              //181Bytes
+    date_ble_t current_date;                                    //3Bytes
+}sensebetx_config_t;
 
 typedef struct
 {
