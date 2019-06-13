@@ -35,13 +35,13 @@
 #include "ble.h"
 #include "dev_id_fw_ver.h"
 
-#if ISR_MANAGER == 1
-#include "isr_manager.h"
+#if SYS_CFG_PRESENT == 1
+#include "sys_config.h"
 #endif
 
 /**< Name of device, to be included in the advertising data. */
 
-#define DEVICE_NAME_CHAR           'S','e','n','s','e','B','e'
+#define DEVICE_NAME_CHAR           'S','e','n','s','e','B','e',' ' ,'T','x'
 const uint8_t device_name[] = { DEVICE_NAME_CHAR };
 
 
@@ -320,7 +320,7 @@ typedef struct
 typedef struct
 {
     /** Array of operation condition selection for each trigger */
-    oper_cond_sel_t trigger_oper_cond_sel[MOTION_AND_TIMER];    //2Bytes
+    oper_cond_sel_t trigger_oper_cond_sel[RADIO_AND_TIMER];    //2Bytes
     /** Array of generic settings */
     settings_t generic_settings[MAX_SETTINGS];                  //208Bytes
     /** Radio control */
@@ -404,6 +404,16 @@ void sensebetx_ble_adv_init(sensebetx_ble_adv_data_t * sensebetx_ble_adv_data);
  * @brief Function to start advertising.
  */
 void sensebetx_ble_adv_start(void);
+
+/**
+ * @brief Function to set advertising data.
+ * @param sensebetx_ble_adv_data Structure where advertising data is to be stored
+ * @param device_name User defined device name.
+ * @param batt_type Battery type @ref battery_type_t
+ */
+void sensebetx_ble_set_adv_data(sensebetx_ble_adv_data_t * sensebetx_ble_adv_data,
+             uint8_t * device_name, battery_type_t batt_type);
+
 
 #endif /* APPLICATION_SENSEBETX_BLE_H_ */
 

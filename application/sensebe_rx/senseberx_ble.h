@@ -35,13 +35,13 @@
 #include "ble.h"
 #include "dev_id_fw_ver.h"
 
-#if ISR_MANAGER == 1
-#include "isr_manager.h"
+#if SYS_CFG_PRESENT == 1
+#include "sys_config.h"
 #endif
 
 /**< Name of device, to be included in the advertising data. */
 
-#define DEVICE_NAME_CHAR           'S','e','n','s','e','B','e'
+#define DEVICE_NAME_CHAR           'S','e','n','s','e','B','e',' ','R','x'
 const uint8_t device_name[] = { DEVICE_NAME_CHAR };
 
 
@@ -406,6 +406,16 @@ void senseberx_ble_adv_init(senseberx_ble_adv_data_t * senseberx_ble_adv_data);
  * @brief Function to start advertising.
  */
 void senseberx_ble_adv_start(void);
+
+/**
+ * @brief Function to set advertising data.
+ * @param senseberx_ble_adv_data Structure where advertising data is to be stored
+ * @param device_name User defined device name.
+ * @param batt_type Battery type @ref battery_type_t
+ */
+void senseberx_ble_set_adv_data(senseberx_ble_adv_data_t * senseberx_ble_adv_data,
+             uint8_t * device_name, battery_type_t batt_type);
+
 
 #endif /* APPLICATION_SENSEBERX_BLE_H_ */
 
