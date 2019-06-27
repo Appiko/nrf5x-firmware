@@ -27,10 +27,11 @@
 
 #include <stdbool.h>
 #include <stdint.h>
+#include "string.h"
 #include "math.h"
 
 #include "nrf.h"
-
+#include "common_util.h"
 #include "boards.h"
 #include "hal_clocks.h"
 #include "ms_timer.h"
@@ -104,8 +105,8 @@
 * @brief IRQ status struct declaration
 */
 //S2LPIrqs xIrqStatus;
-//volatile uint8_t arr_test[2];
-volatile uint16_t test_cnt;
+uint8_t arr_test[3];
+uint16_t test_cnt;
 void ms_timer_handler ()
 {
 //    log_printf("%s \n",__func__);
@@ -119,7 +120,10 @@ void ms_timer_handler ()
 //    radio_send ((uint8_t *)arr_test, sizeof(arr_test));
     
     test_cnt++;
-    radio_send ((uint8_t *)&test_cnt, sizeof(test_cnt));
+    arr_test[0] = (uint8_t) (test_cnt & 0xFF);
+    arr_test[1] = (uint8_t) ((test_cnt & 0xFF00) >> 8);
+    arr_test[2] = hal_gpio_pin_read (HALL_PIN);
+    radio_send (arr_test, (sizeof(uint8_t) * ARRAY_SIZE(arr_test)));
 //    radio_transmit ();
 //    radio_prepare ((unsigned char *)arr_test, (uint16_t)sizeof(arr_test));
     
@@ -211,6 +215,7 @@ int main(void)
 
     lfclk_init (LFCLK_SRC_Xtal);
     ms_timer_init(APP_IRQ_PRIORITY_LOWEST);
+    hal_gpio_cfg_input (HALL_PIN, HAL_GPIO_PULL_DISABLED);
 //    for(uint8_t cnt = 0; cnt < ARRAY_SIZE(arr_test); cnt++)
 //    {
 //        arr_test[cnt] = cnt+1;
@@ -222,7 +227,7 @@ int main(void)
     radio_set_freq (915000);
 //    set_rf_packet_length ((unsigned char)sizeof(arr_test));
 //    radio_prepare ((unsigned char *)&test_cnt, (uint16_t)sizeof(test_cnt));
-    set_rf_packet_length (sizeof(test_cnt));
+    set_rf_packet_length (sizeof(uint8_t) * ARRAY_SIZE(arr_test));
     log_printf("Here..!!\n");
     hal_gpio_cfg_output (PA_EN_PIN, 1);
 

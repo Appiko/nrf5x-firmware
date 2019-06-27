@@ -292,20 +292,20 @@ const registerSetting_t preferredSettings_50kbps[]=
 };
 
 // Address Config = No address check 
-// Bit Rate = 1.2 
+// Bit Rate = 0.3 
 // Carrier Frequency = 915.000000 
-// Deviation = 3.997803 
+// Deviation = 1.998901 
 // Device Address = 0 
 // Manchester Enable = false 
 // Modulation Format = 2-FSK 
 // PA Ramping = true 
 // Packet Bit Length = 0 
-// Packet Length = 2 
-// Packet Length Mode = Fixed 
+// Packet Length = 255 
+// Packet Length Mode = Variable 
 // Performance Mode = High Performance 
-// RX Filter BW = 10.000000 
-// Symbol rate = 1.2 
-// TX Power = 15 
+// RX Filter BW = 8.000000 
+// Symbol rate = 0.3 
+// TX Power = 26 
 // Whitening = false 
 
 const registerSetting_t trial_Settings[]=
@@ -315,25 +315,25 @@ const registerSetting_t trial_Settings[]=
     {IOCFG1,            0xB0},
     {IOCFG0,            0x40},
     {SYNC_CFG1,         0x0B},
+    {MODCFG_DEV_E,      0x02},
     {DCFILT_CFG,        0x1C},
     {PREAMBLE_CFG1,     0x18},
     {IQIC,              0xC6},
+    {CHAN_BW,           0x19},
     {MDMCFG0,           0x05},
+    {SYMBOL_RATE2,      0x23},
     {AGC_REF,           0x20},
     {AGC_CS_THR,        0x19},
     {AGC_CFG1,          0xA9},
     {AGC_CFG0,          0xCF},
     {FIFO_CFG,          0x00},
-    {PKT_CFG1,          0x04},
-    {PKT_CFG0,          0x00},
     {FS_CFG,            0x12},
+    {PKT_CFG0,          0x20},
     {PA_CFG2,           0x77},
-    {PA_CFG1,           0x56},
-    {PA_CFG0,           0x7C},
-    {PKT_LEN,           0x02},
+    {PA_CFG0,           0x7E},
+    {PKT_LEN,           0xFF},
     {IF_MIX_CFG,        0x00},
-    {DCFILT_CFG,        0x0A},
-    {FREQOFF_CFG,       0x30},
+    {FREQOFF_CFG,       0x22},
     {FREQ2,             0x72},
     {FREQ1,             0x60},
     {FS_DIG1,           0x00},
@@ -351,6 +351,7 @@ const registerSetting_t trial_Settings[]=
     {XOSC5,             0x0E},
     {XOSC1,             0x03},
 };
+
 
 /******************************************************************************
  * @fn         radio_init

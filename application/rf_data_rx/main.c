@@ -228,13 +228,14 @@ void GPIOTE_IRQHandler ()
             rssi_sum = 0;
             start_pkt_no = current_pkt_no;
         }
-        log_printf("Test Val : %d\n", current_pkt_no);
+        log_printf("Test Val : %d, %d\n", current_pkt_no, vectcRxBuff[2]);
 //        S2LPGpioIrqClearStatus();
         log_printf("RSSI : %d\n", (int8_t)radio_get_rssi ());
 //        if(is_connected)
         {
             ble_data.rf_rx_rssi = (uint8_t)radio_get_rssi ();
             ble_data.pkt_no = current_pkt_no;
+            ble_data.mag_status = vectcRxBuff[2];
             ble_data.CRC_ERR = (uint8_t) radio_check_status_flag (MARC_PKT_DISC_CRC);
             rf_rx_ble_update_status_byte (&ble_data);
         }
@@ -275,7 +276,7 @@ int main(void)
 //    hal_gpio_pin_clear (SDN);
     radio_init(4);
     radio_set_freq (915000);
-    set_rf_packet_length (2);
+    set_rf_packet_length (3);
 
     hal_gpio_cfg_output (LNA_EN_PIN, 1);
     hal_gpio_cfg_input (GPIO_PIN, HAL_GPIO_PULL_DOWN);
