@@ -22,7 +22,7 @@
  *
  * @defgroup group_irq_msg IRQ to main thread message passer
  * @brief This module is used to pass messages from any higher priority
- *  interrupts to lower priority ones or the main thread so that the higher
+ *  interrupts to the main thread so that the higher
  *  priority interrupt can finish soon and off-load non-real time tasks.
  * @{
  */
@@ -32,24 +32,26 @@
 
 #include "stdint.h"
 
-typedef enum {
+typedef enum
+{
   MSG_NEXT_INTERVAL,
   MSG_STATE_CHANGE,
 
-  MSG_MAX_SIZE = ((2^32)-1)    //To make the enum 32 bit long
-}irq_msg_types;
+  MSG_MAX_SIZE = ((2 ^ 32) - 1) //To make the enum 32 bit long
+} irq_msg_types;
 
-typedef struct {
+typedef struct
+{
   void (*next_interval_cb)(uint32_t duration);
   void (*state_change_cb)(uint32_t next_state);
-}irq_msg_callbacks;
+} irq_msg_callbacks;
 
 /**
  * Initialize the messenger ring buffer system
  * @param cb_ptr The array of function pointers that gets called for
  * different message types.
  */
-void irq_msg_init(irq_msg_callbacks * cb_ptr);
+void irq_msg_init(irq_msg_callbacks *cb_ptr);
 
 /**
  * This function is to be called in the higher priority interrupt and
@@ -57,7 +59,7 @@ void irq_msg_init(irq_msg_callbacks * cb_ptr);
  * @param pushed_msg The type of message to be pushed
  * @param more_data The data of the message to be pushed
  */
-void irq_msg_push(irq_msg_types pushed_msg, void * more_data);
+void irq_msg_push(irq_msg_types pushed_msg, void *more_data);
 
 /**
  *  This function is to be called in the while(1) loop in main()
