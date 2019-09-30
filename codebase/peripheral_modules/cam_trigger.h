@@ -74,7 +74,9 @@ typedef enum
     /** Global Video Trigger */
     CAM_TRIGGER_VIDEO,
     /** Global Half Press Trigger */
-    CAM_TRIGGER_HALF_PRESS
+    CAM_TRIGGER_HALF_PRESS,
+    /** Global No Press Trigger */
+    CAM_TRIGGER_NO_PRESS,
 }cam_trigger_list_t;
 
 /**
@@ -101,6 +103,12 @@ typedef struct
     
     /** Pre-Focus signal setup */
     bool pre_focus_en;
+    
+    /** Trigger press duration 100ms */
+    uint8_t trig_press_duration_100ms;
+    
+    /** Pre focus press duration 100ms */
+    uint8_t prf_press_duration_100ms;
 
 }cam_trigger_config_t;
 /**
