@@ -33,6 +33,16 @@
 #ifndef SYS_CONFIG_H
 #define SYS_CONFIG_H
 
+/** Complete 128 bit UUID of the SenseBe service
+ * 3c73dc60-07f5-480d-b066-837407fbde0a */
+#define DEVICE_UUID_COMPLETE        0x0a, 0xde, 0xfb, 0x07, 0x74, 0x83, 0x66, 0xb0, 0x0d, 0x48, 0xf5, 0x07, 0x60, 0xdc, 0x73, 0x3c
+/** The 16 bit UUID of the Sense Be service */
+#define DEVICE_UUID_SERVICE         0xdc60
+/** The 16 bit UUID of the read-only System Info characteristic */
+#define DEVICE_UUID_SYSINFO         0xdc61
+/** The 16 bit UUID of the read-write Config characteristic */
+#define DEVICE_UUID_CONFIG          0xdc62
+
 /** PWM peripheral used for hal driver */
 #define HAL_PWM_PERIPH_USED 0
 /** SPIM peripheral used for hal driver */
@@ -41,7 +51,7 @@
 #define HAL_TWIM_PERIPH_USED 0
 /** UART peripheral used for hal driver */
 #define HAL_UART_PERIPH_USED 0
-
+/** Radio peripheral used for hal_driver */
 #define HAL_RADIO_PERIPH_USED 0
 
 /** RTC used for MS_TIMER module */
@@ -84,19 +94,20 @@
 #define TIMER_USED_TSSP_IR_TX_1 2
 /** 2nd Timer used for TSSP IR transmission module */
 #define TIMER_USED_TSSP_IR_TX_2 1
+/** Timer used by radio trigger module */
 #define TIMER_USED_RADIO_TRIGGER 0
-/** Timer for future use  */
-#define TIMER_USED_EXTRA 0 //Shared with softdevices
 /** 1st Channel from 1st timer used for TSSP IR transmission module */
 #define TIMER_CHANNEL_USED_TSSP_IR_TX_1_1 0
 /** 1st Channel from 2nd timer used for TSSP IR transmission module */
 #define TIMER_CHANNEL_USED_TSSP_IR_TX_2_1 0
 /** 2nd Channel from 2nd timer used for TSSP IR transmission module */
 #define TIMER_CHANNEL_USED_TSSP_IR_TX_2_2 3
+/** 1st timer channel used for radio trigger module */
 #define TIMER_CHANNEL_USED_RADIO_TRIGGER_0 0 
+/** 2nd timer channel used for radio trigger module */
 #define TIMER_CHANNEL_USED_RADIO_TRIGGER_1 1
+/** 3rd timer channel used for radio trigger module */
 #define TIMER_CHANNEL_USED_RADIO_TRIGGER_2 2
-
 /** Event Generator Unit used for TSSP detect module */
 #define EGU_USED_TSSP_DETECT 0
 /** EGU channel used by TSSP module */

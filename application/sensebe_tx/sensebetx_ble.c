@@ -1,5 +1,5 @@
 /*
- *  sensebe_ble.c : BLE Support file for SenseBe application 
+ *  sensebetx_ble.c : BLE Support file for SenseBe application 
  *  Copyright (C) 2019  Appiko
  *
  *  This program is free software: you can redistribute it and/or modify
@@ -24,7 +24,7 @@
 #include "stddef.h"
 #include "common_util.h"
 #include "nrf_util.h"
-#include "sensebe_ble.h"
+#include "sensebetx_ble.h"
 #include "log.h"
 #include "evt_sd_handler.h"
 #include "string.h"
@@ -33,23 +33,31 @@
 #include "isr_manager.h"
 #endif
 
-/**< Name of device, to be included in the advertising data. */
-
-#define DEVICE_NAME_CHAR           'S','e','n','s','e','B','e'
-const uint8_t device_name[] = { DEVICE_NAME_CHAR };
-
-
 /** Complete 128 bit UUID of the SenseBe service
  * 3c73dc60-07f5-480d-b066-837407fbde0a */
-#define SENSEBE_UUID_COMPLETE        0x0a, 0xde, 0xfb, 0x07, 0x74, 0x83, 0x66, 0xb0, 0x0d, 0x48, 0xf5, 0x07, 0x60, 0xdc, 0x73, 0x3c
-
+#ifdef DEVICE_UUID_COMPLETE
+#define SENSEBETXUUID_COMPLETE        {DEVICE_UUID_COMPLETE}
+#else
+#define SENSEBETXUUID_COMPLETE        {0x0a, 0xde, 0xfb, 0x07, 0x74, 0x83, 0x66, 0xb0, 0x0d, 0x48, 0xf5, 0x07, 0x60, 0xdc, 0x73, 0x3c}
+#endif
 /** The 16 bit UUID of the Sense Be service */
-#define SENSEBE_UUID_SERVICE         0xdc60
-
+#ifdef DEVICE_UUID_SERVICE
+#define SENSEBETXUUID_SERVICE         DEVICE_UUID_SERVICE
+#else
+#define SENSEBETXUUID_SERVICE         0xdc60
+#endif
 /** The 16 bit UUID of the read-only System Info characteristic */
-#define SENSEBE_UUID_SYSINFO         0xdc61
+#ifdef DEVICE_UUID_SYSINFO
+#define SENSEBETXUUID_SYSINFO         DEVICE_UUID_SYSINFO
+#else
+#define SENSEBETXUUID_SYSINFO         0xdc61
+#endif
 /** The 16 bit UUID of the read-write Config characteristic */
-#define SENSEBE_UUID_CONFIG          0xdc62
+#ifdef DEVICE_UUID_CONFIG
+#define SENSEBETXUUID_CONFIG         DEVICE_UUID_CONFIG
+#else
+#define SENSEBETXUUID_CONFIG         0xdc62
+#endif
 
 /**< Interval between advertisement packets (0.5 seconds). */
 #define ADVERTISING_INTERVAL       MSEC_TO_UNITS(500, UNIT_0_625_MS)
@@ -63,6 +71,26 @@ const uint8_t device_name[] = { DEVICE_NAME_CHAR };
 #define CONN_SUP_TIMEOUT           MSEC_TO_UNITS(4000, UNIT_10_MS)
 
 
+#define DEVICE_NAME_ADV_LOCATION 9
+#define DEVICE_NAME_LEN 16
+
+#define BATTERY_TYPE_ADV_LOCATION 27
+#define BATTERY_LEN 2
+
+#define UUID_SCAN_RSP_LOCATION 2
+#define UUID_LEN    16
+
+const uint8_t generic_adv_data = {0x02,
+    BLE_GAP_AD_TYPE_FLAGS, BLE_GAP_ADV_FLAGS_LE_ONLY_LIMITED_DISC_MODE,
+    0x03, BLE_GAP_AD_TYPE_16BIT_SERVICE_UUID_MORE_AVAILABLE,
+    0x60, 0xdc, 0x11, BLE_GAP_AD_TYPE_SHORT_LOCAL_NAME,
+    'x','x','x','x','x','x','x','x','x','x','x','x','x','x','x','x',
+    0x05, BLE_GAP_AD_TYPE_MANUFACTURER_SPECIFIC_DATA, 'x','x','x','x'
+};
+
+const uint8_t generic_scn_rsp = {    0x11, 
+BLE_GAP_AD_TYPE_128BIT_SERVICE_UUID_COMPLETE, DEVICE_UUID_COMPLETE };
+
 
 
 /** Handle to specify the advertising state to the soft device */
@@ -72,27 +100,27 @@ uint8_t h_adv;
 uint16_t h_conn;
 
 /** Handle to specify the attribute of the Sense Pi service */
-uint16_t h_sensebe_service;
+uint16_t h_sensebetx_service;
 
 /** Handle to specify the attribute of the characteristic with
- * the system information containing @ref sensebe_dev_info*/
+ * the system information containing @ref sensebetx_dev_info*/
 ble_gatts_char_handles_t h_sysinfo_char;
 
 /** Handle to specify the attribute of the characteristic with the
- * configuration parameters which are specified @ref sensebe_config_t */
+ * configuration parameters which are specified @ref sensebetx_config_t */
 ble_gatts_char_handles_t h_config_char;
 
 /** Handler to pass the BLE SoftDevice events to the application */
-void (* sensebe_ble_sd_evt)(ble_evt_t * evt);
+void (* sensebetx_ble_sd_evt)(ble_evt_t * evt);
 /** Handler to pass the received SenseBe configuration to the application */
-void (* sensebe_config_t_update)(sensebe_config_t * cfg);
+void (* sensebetx_config_t_update)(sensebetx_config_t * cfg);
 
-sensebe_sysinfo curr_sysinfo;
+sensebetx_sysinfo curr_sysinfo;
 
 ///Called everytime the radio is switched off as per the
 /// radio notification by the SoftDevice
 #if ISR_MANAGER == 1
-void sensebe_ble_swi_Handler ()
+void sensebetx_ble_swi_Handler ()
 #else
 void SWI1_IRQHandler(void)
 #endif
@@ -120,9 +148,9 @@ static void ble_evt_handler(ble_evt_t * evt)
         break;
     case BLE_GATTS_EVT_WRITE:
     {
-        sensebe_config_t * config =
-                (sensebe_config_t *) evt->evt.gatts_evt.params.write.data;
-        sensebe_config_t_update(config);
+        sensebetx_config_t * config =
+                (sensebetx_config_t *) evt->evt.gatts_evt.params.write.data;
+        sensebetx_config_t_update(config);
         break;
     }
     case BLE_GATTS_EVT_EXCHANGE_MTU_REQUEST:
@@ -153,7 +181,7 @@ static void ble_evt_handler(ble_evt_t * evt)
     }
     }
 
-    sensebe_ble_sd_evt(evt);
+    sensebetx_ble_sd_evt(evt);
 }
 
 /**
@@ -166,14 +194,14 @@ static void soc_evt_handler(uint32_t evt_id)
     log_printf("soc evt %x\n", evt_id);
 }
 
-void sensebe_ble_init(void (*ble_sd_evt)(ble_evt_t * evt),
-        void (* config_update)(sensebe_config_t * cfg))
+void sensebetx_ble_init(void (*ble_sd_evt)(ble_evt_t * evt),
+        void (* config_update)(sensebetx_config_t * cfg))
 {
-    sensebe_ble_sd_evt = ble_sd_evt;
-    sensebe_config_t_update = config_update;
+    sensebetx_ble_sd_evt = ble_sd_evt;
+    sensebetx_config_t_update = config_update;
 }
 
-void sensebe_ble_disconn(void)
+void sensebetx_ble_disconn(void)
 {
     if(h_conn != BLE_CONN_HANDLE_INVALID)
     {
@@ -184,12 +212,12 @@ void sensebe_ble_disconn(void)
     }
 }
 
-void sensebe_ble_update_sysinfo(sensebe_sysinfo * sysinfo)
+void sensebetx_ble_update_sysinfo(sensebetx_sysinfo * sysinfo)
 {
     uint32_t err_code;
     ble_gatts_value_t val =
     {
-        .len = sizeof(sensebe_sysinfo),
+        .len = sizeof(sensebetx_sysinfo),
         .offset = 0,
         .p_value = (uint8_t *) sysinfo
     };
@@ -198,12 +226,12 @@ void sensebe_ble_update_sysinfo(sensebe_sysinfo * sysinfo)
     APP_ERROR_CHECK(err_code);
 }
 
-void sensebe_ble_update_config(sensebe_config_t * config)
+void sensebetx_ble_update_config(sensebetx_config_t * config)
 {
     uint32_t err_code;
     ble_gatts_value_t val =
     {
-        .len = sizeof(sensebe_config_t),
+        .len = sizeof(sensebetx_config_t),
         .offset = 0,
         .p_value = (uint8_t *) config
     };
@@ -213,7 +241,7 @@ void sensebe_ble_update_config(sensebe_config_t * config)
 }
 
 
-void sensebe_ble_stack_init(void)
+void sensebetx_ble_stack_init(void)
 {
     uint32_t err_code;
     const nrf_clock_lf_cfg_t cfg = BOARD_LFCLKSRC_STRUCT;
@@ -248,22 +276,22 @@ void sensebe_ble_stack_init(void)
     h_conn = BLE_CONN_HANDLE_INVALID;
 }
 
-void sensebe_ble_service_init(void)
+void sensebetx_ble_service_init(void)
 {
     uint32_t   err_code;
     ble_uuid_t ble_uuid;
     uint8_t uuid_type;
 
     /**** Create the Sense Pi service *****/
-    ble_uuid128_t base_uuid = {{SENSEBE_UUID_COMPLETE}};
+    ble_uuid128_t base_uuid = {{SENSEBETXUUID_COMPLETE}};
     err_code = sd_ble_uuid_vs_add(&base_uuid, &uuid_type);
     APP_ERROR_CHECK(err_code);
 
     ble_uuid.type = uuid_type;
-    ble_uuid.uuid = SENSEBE_UUID_SERVICE;
+    ble_uuid.uuid = SENSEBETXUUID_SERVICE;
 
     err_code = sd_ble_gatts_service_add(BLE_GATTS_SRVC_TYPE_PRIMARY,
-            &ble_uuid, &h_sensebe_service);
+            &ble_uuid, &h_sensebetx_service);
     APP_ERROR_CHECK(err_code);
 
     /**** Create the read-only characteristic *****/
@@ -282,7 +310,7 @@ void sensebe_ble_service_init(void)
     char_md.p_sccd_md = NULL;
 
     ble_uuid.type = uuid_type;
-    ble_uuid.uuid = (SENSEBE_UUID_SYSINFO);
+    ble_uuid.uuid = (SENSEBETXUUID_SYSINFO);
 
     memset(&attr_md, 0, sizeof(attr_md));
 
@@ -297,13 +325,13 @@ void sensebe_ble_service_init(void)
 
     attr_char_value.p_uuid = &ble_uuid;
     attr_char_value.p_attr_md = &attr_md;
-    attr_char_value.init_len = sizeof(sensebe_sysinfo);
+    attr_char_value.init_len = sizeof(sensebetx_sysinfo);
     attr_char_value.init_offs = 0;
-    attr_char_value.max_len = sizeof(sensebe_sysinfo);
+    attr_char_value.max_len = sizeof(sensebetx_sysinfo);
     attr_char_value.p_value = NULL;
 
     err_code = sd_ble_gatts_characteristic_add(
-        h_sensebe_service, &char_md, &attr_char_value, &h_sysinfo_char);
+        h_sensebetx_service, &char_md, &attr_char_value, &h_sysinfo_char);
     APP_ERROR_CHECK(err_code);
 
     /**** Create the read-write characterisitc *****/
@@ -318,7 +346,7 @@ void sensebe_ble_service_init(void)
     char_md.p_sccd_md = NULL;
 
     ble_uuid.type = uuid_type;
-    ble_uuid.uuid = (SENSEBE_UUID_CONFIG);
+    ble_uuid.uuid = (SENSEBETXUUID_CONFIG);
 
     memset(&attr_md, 0, sizeof(attr_md));
 
@@ -333,17 +361,17 @@ void sensebe_ble_service_init(void)
 
     attr_char_value.p_uuid = &ble_uuid;
     attr_char_value.p_attr_md = &attr_md;
-    attr_char_value.init_len = sizeof(sensebe_config_t);
+    attr_char_value.init_len = sizeof(sensebetx_config_t);
     attr_char_value.init_offs = 0;
-    attr_char_value.max_len = sizeof(sensebe_config_t);
+    attr_char_value.max_len = sizeof(sensebetx_config_t);
     attr_char_value.p_value = NULL;
 
     err_code = sd_ble_gatts_characteristic_add(
-        h_sensebe_service, &char_md, &attr_char_value,&h_config_char);
+        h_sensebetx_service, &char_md, &attr_char_value,&h_config_char);
     APP_ERROR_CHECK(err_code);
 }
 
-void sensebe_ble_gap_params_init(void)
+void sensebetx_ble_gap_params_init(void)
 {
     uint32_t                err_code;
     ble_gap_conn_params_t   gap_conn_params;
@@ -366,18 +394,18 @@ void sensebe_ble_gap_params_init(void)
     APP_ERROR_CHECK(err_code);
 }
 
-void sensebe_ble_adv_init(sensebe_ble_adv_data_t * sensebe_ble_adv_data)
+void sensebetx_ble_adv_init(sensebetx_ble_adv_data_t * sensebetx_ble_adv_data)
 {
     h_adv = BLE_GAP_ADV_SET_HANDLE_NOT_SET;
     uint32_t err_code;
     
     ble_gap_adv_data_t adv_payload;
 
-    adv_payload.adv_data.p_data = sensebe_ble_adv_data->adv_data;
-    adv_payload.adv_data.len = sensebe_ble_adv_data->adv_len;
+    adv_payload.adv_data.p_data = sensebetx_ble_adv_data->adv_data;
+    adv_payload.adv_data.len = sensebetx_ble_adv_data->adv_len;
 
-    adv_payload.scan_rsp_data.p_data = sensebe_ble_adv_data->scan_rsp_data;
-    adv_payload.scan_rsp_data.len = sensebe_ble_adv_data->scan_rsp_len;
+    adv_payload.scan_rsp_data.p_data = sensebetx_ble_adv_data->scan_rsp_data;
+    adv_payload.scan_rsp_data.len = sensebetx_ble_adv_data->scan_rsp_len;
 
     ble_gap_adv_params_t adv_params;
 
@@ -411,10 +439,21 @@ void sensebe_ble_adv_init(sensebe_ble_adv_data_t * sensebe_ble_adv_data)
     APP_ERROR_CHECK(err_code);
 }
 
-void sensebe_ble_adv_start(void)
+void sensebetx_ble_adv_start(void)
 {
     uint32_t err_code;
     err_code = sd_ble_gap_adv_start(h_adv, BLE_CONN_CFG_TAG_DEFAULT);
     APP_ERROR_CHECK(err_code);
 }
 
+void sensebetx_ble_set_adv_data(sensebetx_ble_adv_data_t * sensebetx_ble_adv_data,
+             uint8_t * device_name, battery_type_t batt_type)
+{
+    memcpy (sensebetx_ble_adv_data->adv_data, generic_adv_data, sizeof(generic_adv_data));
+    memcpy (sensebetx_ble_adv_data->scan_rsp_data, generic_scn_rsp, sizeof(generic_scn_rsp));
+    memcpy (&sensebetx_ble_adv_data->adv_data[DEVICE_NAME_ADV_LOCATION], 
+            device_name, DEVICE_NAME_LEN);
+    sensebetx_ble_adv_data->adv_data[BATTERY_TYPE_ADV_LOCATION] = batt_type;
+    sensebetx_ble_adv_data->adv_len = sizeof(generic_adv_data);
+    sensebetx_ble_adv_data->scan_rsp_len = sizeof(generic_scn_rsp);
+}
