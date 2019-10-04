@@ -387,3 +387,12 @@ uint32_t aux_clk_get_ms (void)
     
     return ms;
 }
+void aux_clk_dis_ppi_ch (uint32_t aux_ppi_channel)
+{
+    hal_ppi_dis_ch (aux_ppi_channel);
+}
+
+void aux_clk_en_ppi_ch (uint32_t aux_ppi_channel)
+{
+    hal_ppi_en_ch (aux_ppi_channel);
+}
