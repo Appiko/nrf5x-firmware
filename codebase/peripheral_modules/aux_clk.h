@@ -227,6 +227,18 @@ void aux_clk_dis_evt (uint8_t events);
 void aux_clk_update_irq_priority (app_irq_priority_t new_priority);
 
 /**
+ * @brief Function to clear Auxiliary clock PPI channel
+ * @param aux_ppi_channel Auxiliary PPI channel which is to be cleared @ref AUX_CLK_PPI_CHANNEL
+ */
+void aux_clk_dis_ppi_ch (uint32_t aux_ppi_channel);
+
+/**
+ * @brief Function to set Auxiliary clock PPI channel
+ * @param aux_ppi_channel Auxiliary PPI channel which is to be set @ref AUX_CLK_PPI_CHANNEL
+ */
+void aux_clk_en_ppi_ch (uint32_t aux_ppi_channel);
+
+/**
  * @}
  * @}
  */
