@@ -38,6 +38,10 @@
 #include "sys_config.h"
 #endif 
 
+#if ISR_MANAGER == 1
+#include "isr_manager.h"
+#endif
+
 #ifndef AUX_CLK_PPI_CHANNELS_USED 
 #define AUX_CLK_PPI_CHANNELS_USED 2
 #endif
