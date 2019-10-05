@@ -68,6 +68,7 @@
 
 #if SYS_CFG_PRESENT == 1
 #include "sys_config.h"
+#include "aux_clk.h"
 #endif 
 #ifndef SAADC_CHANNEL_USED_PIR_SENSE
 #define SAADC_CHANNEL_USED_PIR_SENSE 0
@@ -78,7 +79,7 @@
 #endif
 
 #ifndef PPI_CHANNEL_USED_PIR_SENSE_2
-#define PPI_CHANNEL_USED_PIR_SENSE_2 1
+#define PPI_CHANNEL_USED_PIR_SENSE_2 AUX_CLK_PPI_CHANNEL_0
 #endif
 
 #ifndef PPI_CHANNEL_USED_PIR_SENSE_3
