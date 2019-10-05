@@ -450,10 +450,10 @@ void half_press (cam_trigger_config_t * cam_trigger_config)
             sizeof(out_gen_config_t));
 }
 
-void no_Shot (cam_trigger_config_t * cam_trigger_config)
+void no_shot (cam_trigger_config_t * cam_trigger_config)
 {
     uint32_t local_setup_no = cam_trigger_config->setup_number;
-    uint32_t trigg_duration = MS_TIMER_TICKS_MS(cam_trigger_config_t.trig_duration_100ms * 100);
+    uint32_t trigg_duration = MS_TIMER_TICKS_MS(cam_trigger_config->trig_duration_100ms * 100);
     out_gen_config_t local_out_gen_config = 
     {
         .done_handler = out_gen_done_handler,
