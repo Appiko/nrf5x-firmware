@@ -79,6 +79,32 @@ typedef enum
     CAM_TRIGGER_NO_PRESS,
 }cam_trigger_list_t;
 
+typedef struct {
+    /** Number of shots to be taken in one trigger */
+    uint16_t num_shots; /// 2 to 32 shots
+    /** Time between 2 consecutive shots by given trigger  */
+    uint16_t shot_interval_100ms; /// 0.5s to 100 min
+}cam_trig_multishot_params_t;
+
+typedef struct {
+    /** Video duration without any extensions */
+    uint16_t video_duration_1s; /// 1s to 1000 min
+    /** Extension time which will be added if re-triggered before video ends */
+    uint8_t extension_time; /// 1s to 250 s
+    /** Number of maximum triggers allowed */
+    uint8_t num_extensions; /// 1 to 20
+}cam_trig_video_params_t;
+
+/** Shared memory for mode settings */
+typedef union {
+    /** When trigger mode is long press */
+    uint32_t long_press_param; /// Max of 24 hours
+    /** When trigger mode is multi-shot */
+    cam_trig_multishot_params_t multishot_params;
+    /** when trigger mode is video */
+    cam_trig_video_params_t video_params;
+}mode_settings_t;
+
 /**
  * @brief Structure to store information related to camera trigger.
  * @{
@@ -89,11 +115,8 @@ typedef struct
     /** Mode in which camera will get triggered */
     cam_trigger_list_t trig_mode;
 
-    /** First parameter for camera trigger */
-    uint16_t trig_param1;
-
-    /** Second parameter for camera trigger */
-    uint8_t trig_param2;
+    /** Union of structures to handle different types of parameters */
+    mode_settings_t trig_params;
 
     /** Total operation duration in milliseconds */
     uint32_t trig_duration_100ms;
