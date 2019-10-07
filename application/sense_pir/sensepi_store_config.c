@@ -98,7 +98,7 @@ bool sensepi_store_config_is_memory_empty (void)
     }
 }
 
-void sensepi_store_config_write (sensepi_config_t* latest_config)
+void sensepi_store_config_write (sensepi_ble_config_t* latest_config)
 {
     log_printf("%s\n",__func__);
     uint32_t * p_mem_loc = (uint32_t *) get_next_location();
@@ -107,11 +107,11 @@ void sensepi_store_config_write (sensepi_config_t* latest_config)
         clear_all_config ();
         p_mem_loc = (uint32_t *) get_next_location();
     }
-    hal_nvmc_write_data(p_mem_loc, latest_config, sizeof(sensepi_config_t));
+    hal_nvmc_write_data(p_mem_loc, latest_config, sizeof(sensepi_ble_config_t));
 
 }
 
-sensepi_config_t * sensepi_store_config_get_last_config ()
+sensepi_ble_config_t * sensepi_store_config_get_last_config ()
 {
     log_printf("%s\n",__func__);
     uint32_t * p_mem_loc = (uint32_t*)get_next_location();
@@ -119,7 +119,7 @@ sensepi_config_t * sensepi_store_config_get_last_config ()
     {
         p_mem_loc -= CONFIG_SIZE_TO_POINTER;
     }
-    return (sensepi_config_t*) p_mem_loc;
+    return (sensepi_ble_config_t*) p_mem_loc;
 }
 
 static void clear_all_config (void)
