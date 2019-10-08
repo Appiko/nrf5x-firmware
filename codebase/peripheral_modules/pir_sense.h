@@ -105,6 +105,15 @@ typedef struct {
                                 ///called when motion is detected
 }pir_sense_cfg;
 
+/** List of Clock Sources that can be used to drive this module */
+typedef enum
+{
+    /** Low freq clock : low power mode */
+    pir_sense_lf_clk = AUX_CLK_SRC_LFCLK, 
+    /** High freq clock : high power mode */
+    pir_sense_hf_clk = AUX_CLK_SRC_HFCLK,
+}pir_sense_clk_t;
+
 /**
  *  Initialize and start the PIR Sense module based on the configuration received
  * @param init Initialization configuration pointer
@@ -116,6 +125,18 @@ void pir_sense_start(pir_sense_cfg * init);
  * Deinitializes, stops the PIR Sense module and frees the peripherals used by it
  */
 void pir_sense_stop(void);
+
+/**
+ * @brief Function to update threshold for PIR sensing
+ * @param threshold Updated value for threshold.
+ */
+void pir_sense_update_threshold (uint32_t threshold);
+
+/**
+ * @brief Function to switch to given clock source 
+ * @param clk_src clock source which is to be used
+ */
+void pir_sense_switch_clock (pir_sense_clk_t clk_src);
 
 #endif /* CODEBASE_PERIPHERAL_MODULES_PIR_SENSE_H_ */
 /**

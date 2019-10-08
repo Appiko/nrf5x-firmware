@@ -177,3 +177,18 @@ void pir_sense_stop(void)
     aux_clk_stop ();
     aux_clk_clear ();
 }
+
+void pir_sense_update_threshold (uint32_t threshold)
+{
+
+    NRF_SAADC->CH[SAADC_CHANNEL].LIMIT = (
+                (((-1*((int16_t) threshold)) << SAADC_CH_LIMIT_LOW_Pos) & SAADC_CH_LIMIT_LOW_Msk)
+              | (((uint16_t) threshold << SAADC_CH_LIMIT_HIGH_Pos) & SAADC_CH_LIMIT_HIGH_Msk));
+    
+}
+
+void pir_sense_switch_clock (pir_sense_clk_t clk_src)
+{
+    aux_clk_select_src ((aux_clk_source_t)clk_src);
+}
+
