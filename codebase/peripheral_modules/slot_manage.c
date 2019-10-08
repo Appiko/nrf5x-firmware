@@ -58,7 +58,11 @@ uint8_t slot_manage_check_update ()
     uint32_t light_val = simple_adc_get_value (SIMPLE_ADC_GAIN1_6, light_sense_pin);
     for(uint32_t slot_no = 0; slot_no < SLOT_MANAGE_MAX_SLOTS; slot_no++)
     {
-        if(arr_start_cond[slot_no] == arr_end_cond[slot_no])
+        if(arr_slot_cond[slot_no] == SLOT_MANAGE_ALL_TIME)
+        {
+            active_slots = SET_BIT_VAR(active_slots, slot_no);
+        }
+        else if(arr_start_cond[slot_no] == arr_end_cond[slot_no])
         {
                 active_slots = CLR_BIT_VAR(active_slots, slot_no);
         }

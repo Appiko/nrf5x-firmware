@@ -41,10 +41,12 @@
 /** List of operation conditions which are being managed by the module */
 typedef enum
 {
-    /** Operation Condition : Ambient light cut-off */
-    SLOT_MANAGE_AMBI_LIGHT,
+    /** Operation Condition : All time */
+    SLOT_MANAGE_ALL_TIME,
     /** Operation Condition : Time of day */
     SLOT_MANAGE_TIME_OF_DAY,
+    /** Operation Condition : Ambient light cut-off */
+    SLOT_MANAGE_AMBI_LIGHT,
 }slot_list_t;
 
 /** Structure to store Condition slots information */
