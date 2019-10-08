@@ -90,18 +90,28 @@
 #define RTC_USED_PIR_SENSE 0
 #endif
 
+/** List of Clock Sources that can be used to drive this module */
+typedef enum
+{
+    /** Low freq clock : low power mode */
+    PIR_SENSE_LF_CLK = AUX_CLK_SRC_LFCLK, 
+    /** High freq clock : high power mode */
+    PIR_SENSE_HF_CLK = AUX_CLK_SRC_HFCLK,
+}pir_sense_clk_t;
+
 /**
  * @brief Stucture for passing the configuration for initializing the
  *  PIR Sense module.
  */
 typedef struct {
-  uint32_t sense_interval_ms;   /// The sampling interval in ms
-  uint32_t pir_signal_analog_in;   ///The analog input number of PIR signal
-  uint32_t pir_offset_analog_in;   ///The analog input number of PIR offset
-  uint32_t threshold;           ///The (+/-) threshold to be crossed
+    pir_sense_clk_t clk_src;      ///clk src tp which this module has to be initialized
+    uint32_t sense_interval_ms;   /// The sampling interval in ms
+    uint32_t pir_signal_analog_in;   ///The analog input number of PIR signal
+    uint32_t pir_offset_analog_in;   ///The analog input number of PIR offset
+    uint32_t threshold;           ///The (+/-) threshold to be crossed
                                 ///for the handler to be called
-  uint32_t irq_priority;        ///The interrupt priority for calling the handler
-  void (*handler)(int32_t adc_val); ///The pointer of the handler function to be
+    uint32_t irq_priority;        ///The interrupt priority for calling the handler
+    void (*handler)(int32_t adc_val); ///The pointer of the handler function to be
                                 ///called when motion is detected
 }pir_sense_cfg;
 
@@ -116,6 +126,18 @@ void pir_sense_start(pir_sense_cfg * init);
  * Deinitializes, stops the PIR Sense module and frees the peripherals used by it
  */
 void pir_sense_stop(void);
+
+/**
+ * @brief Function to update threshold for PIR sensing
+ * @param threshold Updated value for threshold.
+ */
+void pir_sense_update_threshold (uint32_t threshold);
+
+/**
+ * @brief Function to switch to given clock source 
+ * @param clk_src clock source which is to be used
+ */
+void pir_sense_switch_clock (pir_sense_clk_t clk_src);
 
 #endif /* CODEBASE_PERIPHERAL_MODULES_PIR_SENSE_H_ */
 /**

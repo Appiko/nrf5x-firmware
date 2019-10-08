@@ -101,15 +101,15 @@ void tssp_detect_init (tssp_detect_config_t * tssp_detect_config)
         is_window_detect_req = true;
         missed_handler = tssp_detect_config->tssp_missed_handler;
 //        TSSP_DETECT_RTC_USED->PRESCALER = ROUNDED_DIV(LFCLK_FREQ, TSSP_DETECT_FREQ) - 1;
-//        TSSP_DETECT_RTC_USED->CC[WINDOW_RTC_CHANNEL] = TSSP_DETECT_TICKS_MS(tssp_detect_config->window_duration_ticks);
+//        TSSP_DETECT_RTC_USED->CC[WINDOW_RTC_CHANNEL] = TSSP_DETECT_TICKS_MS(tssp_detect_config->window_duration_ms);
 //        TSSP_DETECT_RTC_USED->INTENSET |= ENABLE << (WINDOW_RTC_CHANNEL+16);
 //                    
 //        NRF_PPI->CH[PPI_CHANNEL_USED_RTC].EEP = (uint32_t) &NRF_GPIOTE->EVENTS_IN[GPIOTE_CHANNEL_USED];
 //        NRF_PPI->CH[PPI_CHANNEL_USED_RTC].TEP = (uint32_t) &TSSP_DETECT_RTC_USED->TASKS_CLEAR;
         aux_clk_setup_t aux_clk_setup = 
         {
-            .source = AUX_CLK_SRC_HFCLK,
-            .arr_cc_ms[WINDOW_RTC_CHANNEL] = tssp_detect_config->window_duration_ticks,
+            .source = tssp_detect_config->clk_src,
+            .arr_cc_ms[WINDOW_RTC_CHANNEL] = tssp_detect_config->window_duration_ms,
             .arr_ppi_cnf[0].event = (uint32_t) &NRF_GPIOTE->EVENTS_IN[GPIOTE_CHANNEL_USED],
             .arr_ppi_cnf[0].task1 = AUX_CLK_TASKS_CLEAR,
             .events_en = ( 1 << WINDOW_RTC_CHANNEL),
@@ -272,6 +272,16 @@ void tssp_detect_window_sync (uint32_t sync_ms)
     
     aux_clk_en_evt ((1 << SYNC_ON_RTC_CHANNEL) | (1 << SYNC_OFF_RTC_CHANNEL));
     
+}
+
+void tssp_detect_update_window (uint32_t window_duration_ms)
+{
+    aux_clk_update_cc (WINDOW_RTC_CHANNEL, window_duration_ms);
+}
+
+void tssp_detect_switch_clock (tssp_detect_clk_src_t clk_src)
+{
+    aux_clk_select_src ((aux_clk_source_t)clk_src);
 }
 
 #if ISR_MANAGER == 1
