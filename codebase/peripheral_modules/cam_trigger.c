@@ -47,8 +47,6 @@
 #define VIDEO_START_PULSE MS_TIMER_TICKS_MS(250)
 /** Ticks duration of trigger pulse to end a video */
 #define VIDEO_END_PULSE MS_TIMER_TICKS_MS(300)
-/** Number of maximum extensions for Video */
-#define NO_OF_VIDEO_EXTN_ALLOWED 3
 /** Index for end video out_gen_config */
 #define VIDEO_WE_END_INDEX (CAM_TRIGGER_MAX_SETUP_NO - 1)
 /** Index for video extension out_gen_config */
@@ -123,6 +121,8 @@ void (*cam_trigger_handler) (uint32_t active_config);
 static uint32_t active_config;
 volatile state_t state = NON_VIDEO_EXT_IDLE;
 
+static uint32_t arr_no_of_video_extn_allowed[CAM_TRIGGER_MAX_SETUP_NO];
+
 static out_gen_config_t arr_out_gen_config[CAM_TRIGGER_MAX_SETUP_NO];
 
 static struct
@@ -147,7 +147,7 @@ void out_gen_done_handler (uint32_t out_gen_context)
             break;
         case VIDEO_EXT_START :
             state = VIDEO_EXT_END;
-            video_ext_count = NO_OF_VIDEO_EXTN_ALLOWED;
+            video_ext_count = arr_no_of_video_extn_allowed[active_config];
             video_ext_end_config.transitions_durations[0] = 
                 MS_TIMER_TICKS_MS(VIDEO_END_PART);
             out_gen_start (&video_ext_end_config);
@@ -156,12 +156,12 @@ void out_gen_done_handler (uint32_t out_gen_context)
         case VIDEO_EXT_END:
             state = VIDEO_EXT_ITT;
             if( ext[active_config].itt_max_duration >
-                    ((NO_OF_VIDEO_EXTN_ALLOWED-video_ext_count)*
+                    ((arr_no_of_video_extn_allowed[active_config]-video_ext_count)*
                             ext[active_config].extend_duration))
             {
                 video_itt_config.transitions_durations[2] =
                         ext[active_config].itt_max_duration -
-                ((NO_OF_VIDEO_EXTN_ALLOWED-video_ext_count)*
+                ((arr_no_of_video_extn_allowed[active_config]-video_ext_count)*
                         ext[active_config].extend_duration);
             }
             else
@@ -369,11 +369,14 @@ void video_without_extn (cam_trigger_config_t * cam_trigger_config, uint32_t vid
 }
 
 void video_with_extn (cam_trigger_config_t * cam_trigger_config, uint32_t video_len_s,
-                      uint32_t extn_len_s)
+                      uint32_t extn_len_s, uint32_t no_of_extn)
 {
     uint32_t local_setup_no = cam_trigger_config->setup_number;
     uint32_t press_duration = MS_TIMER_TICKS_MS(cam_trigger_config->trig_press_duration_100ms * 100);
     uint32_t pre_focus_time = PRE_FOCUS_OFF_TIME;
+    
+    arr_no_of_video_extn_allowed[local_setup_no] = no_of_extn;
+    
     if(cam_trigger_config->pre_focus_en == true)
     {
         pre_focus_time = MS_TIMER_TICKS_MS(cam_trigger_config->prf_press_duration_100ms*100);
@@ -484,7 +487,7 @@ void cam_trigger_set_trigger (cam_trigger_config_t * cam_trigger_config)
 {
     trig_modes_t mode;
     if((cam_trigger_config->trig_mode == CAM_TRIGGER_VIDEO) &&
-       (cam_trigger_config->trig_param2 != 0))
+       (cam_trigger_config->trig_params.video_params.num_extensions != 0))
     {
         mode = VIDEO_W_EXT;
     }
@@ -499,19 +502,23 @@ void cam_trigger_set_trigger (cam_trigger_config_t * cam_trigger_config)
             single_shot (cam_trigger_config);
             break;
         case MULTI_SHOT:
-            multi_shot (cam_trigger_config, cam_trigger_config->trig_param1,
-                        cam_trigger_config->trig_param2);
+            multi_shot (cam_trigger_config, 
+                        cam_trigger_config->trig_params.multishot_params.shot_interval_100ms,
+                        cam_trigger_config->trig_params.multishot_params.num_shots);
             break;
         case LONG_PRESS :
-            long_press (cam_trigger_config,  (uint32_t)(cam_trigger_config->trig_param1 
-                | (cam_trigger_config->trig_param2 << 16)));
+            long_press (cam_trigger_config,  
+                        cam_trigger_config->trig_params.long_press_param);
             break;
         case VIDEO_WO_EXT:
-            video_without_extn (cam_trigger_config, cam_trigger_config->trig_param1);
+            video_without_extn (cam_trigger_config,
+                                cam_trigger_config->trig_params.video_params.video_duration_1s);
             break;
         case VIDEO_W_EXT:
-            video_with_extn (cam_trigger_config, cam_trigger_config->trig_param1,
-                                    cam_trigger_config->trig_param2);
+            video_with_extn (cam_trigger_config,
+                             cam_trigger_config->trig_params.video_params.video_duration_1s,
+                             cam_trigger_config->trig_params.video_params.extension_time,
+                             cam_trigger_config->trig_params.video_params.num_extensions);
             break;
         case HALF_PRESS :
             half_press (cam_trigger_config);
