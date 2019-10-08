@@ -143,7 +143,7 @@ void pir_sense_start(pir_sense_cfg * init)
         .arr_ppi_cnf[0].event = AUX_CLK_EVT_CC0,
         .arr_ppi_cnf[0].task1 = (uint32_t) &(NRF_SAADC->TASKS_START),
         .arr_ppi_cnf[0].task2 = AUX_CLK_TASKS_CLEAR,
-        .source = AUX_CLK_SRC_LFCLK,
+        .source = init->clk_src,
         .events_en = 0,
         .callback_handler = 0,
     };
