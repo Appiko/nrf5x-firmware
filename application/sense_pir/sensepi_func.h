@@ -22,6 +22,13 @@
 #include "sensepi_ble.h"
 
 
+#if SYS_CFG_PRESENT == 1
+#include "sys_config.h"
+#endif 
+
+#ifndef MS_TIMER_USED_SENSEPI
+#define MS_TIMER_USED_SENSEPI 2
+#endif
 /** Structure to store pin numbers required for mcp4012 driver */
 typedef struct 
 {
@@ -67,16 +74,16 @@ typedef struct
  * clock(Timer 1 or 2). And anyway when SoftDevices are being used core will be
  * on so using HFCLK will not add much in power consumption  */
 
-/** List of possible clock source */
+/** List of possible modes */
 typedef enum
 {
-    /** Low freq clock will be used for sensing functionality */
-    SENSEPI_FUNC_CLK_LF,
+    /** In normal mode, low freq clock will be used for sensing and ble structure will be used */
+    SENSEPI_FUNC_NORMAL_MODE,
 
-    /** High freq clock will be used for sensing functionality */
-    SENSEPI_FUNC_CLK_HF,
+    /** In testing mode, high freq clock will be used for sensing and some default config will be used */
+    SENSEPI_FUNC_TESTING_MODE,
 
-}sensepi_func_clk_t;
+}sensepi_func_modes_t;
 
 /** Structure containing information required to initialize SensePi func module */
 typedef struct 
@@ -89,12 +96,15 @@ typedef struct
 
     /** Structure to store info required for pir sense driver */
     pir_t pir_hw;
+    
+    /** Light sense gpio pin */
+    uint32_t light_sense_hw;
 
     /** Structure to store default BLE configuration */
     sensepi_ble_config_t ble_config;
     
-    /** Default clock source */
-    sensepi_func_clk_t func_clk_src;
+    /** Default mode */
+    sensepi_func_modes_t func_mode;
 
 }sensepi_func_config_t;
 
@@ -112,10 +122,10 @@ void sensepi_func_init (sensepi_func_config_t * sensepi_func_config);
 void sensepi_func_update_settings (sensepi_ble_config_t * ble_settings);
 
 /**
- * @brief Function to switch clock source used for SensePi func module
- * @param clk_src New clock source @ref sensepi_func_clk_t
+ * @brief Function to switch between modes of SensePi
+ * @param mode Mode which is to be set @ref sensepi_func_modes_t
  */
-void sensepi_func_switch_clock (sensepi_func_clk_t clk_src);
+void sensepi_func_switch_mode (sensepi_func_modes_t mode);
 
 /**
  * @brief Function to start the sensing functionality
@@ -128,10 +138,10 @@ void sensepi_func_start ();
 void sensepi_func_stop ();
 
 /**
- * @brief Function to get current clock source being used
- * @return current clock source @ref sensepi_func_clk_t
+ * @brief Function to get current functional mode
+ * @return current functional mode @ref sensepi_func_modes_t
  */
-sensepi_func_clk_t sensepi_func_get_current_clk ();
+sensepi_func_modes_t sensepi_func_get_current_mdoe ();
 
 /**
  * @bierf Function to send ticks since last add_ticks event
