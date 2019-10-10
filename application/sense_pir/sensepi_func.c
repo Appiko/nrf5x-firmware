@@ -31,6 +31,7 @@
 #include "slot_manage.h"
 #include "ms_timer.h"
 #include "hal_pin_analog_input.h"
+#include "log.h"
 
 
 #define FEEDBACK_TIME MS_TIMER_TICKS_MS(300 * 1000)
@@ -84,7 +85,6 @@ static uint32_t g_add_ticks_switch_setting = 0;
 
 static uint32_t g_add_ticks_motion_feedback = 0;
 
-static bool g_is_feedback_on = false;
 /** Array to store state of each trigger : [pir_timer] : {OFF,ON} */
 static mod_state_t g_arr_mod_state[MOTION_AND_TIMER];
 
@@ -318,6 +318,11 @@ void cam_module_handler (uint32_t cam_trigger)
 
 void mod_motion_handler ()
 {
+    if(g_is_feedback_on == 1)
+    {
+        log_printf ("Feedback\n");
+        //LED 
+    }
     if(cam_trigger_is_on () != true)
     {
         cam_trigger (g_motion_current_settings);
@@ -326,6 +331,7 @@ void mod_motion_handler ()
 
 void mod_motion_start (void)
 {
+    g_is_feedback_on = true;
     //start
     g_pir_config.threshold =
         g_arr_motion_sensitivity[g_motion_current_settings].threshold;
@@ -359,7 +365,6 @@ void mod_motion_stop (void)
 {
     //stop everything
     pir_sense_stop ();
-    ms_timer_stop ();
     //reset flag
     g_is_feedback_on = false;
     g_add_ticks_motion_feedback = 0;
@@ -429,7 +434,8 @@ void sensepi_func_init (sensepi_func_config_t * sensepi_func_config)
     
     time_tracker_set_date_time (&today, g_ble_settings.current_time);
     
-    slot_manage_set_light_sense_pin (PIN_TO_ANALOG_INPUT(sensepi_func_config->light_sense_hw));
+    
+    slot_manage_set_light_sense_pin ( sensepi_func_config->light_sense_hw);
     
     //initialize amplifier
     mcp4012_init (sensepi_func_config->amp_hw.cs_pin, sensepi_func_config->amp_hw.ud_pin,
@@ -447,8 +453,8 @@ void sensepi_func_init (sensepi_func_config_t * sensepi_func_config)
     //initialize pir sense module
     {
         g_pir_config.clk_src = PIR_SENSE_LF_CLK;
-        g_pir_config.pir_offset_analog_in = PIN_TO_ANALOG_INPUT(sensepi_func_config->pir_hw.analog_offset_pin);
-        g_pir_config.pir_signal_analog_in = PIN_TO_ANALOG_INPUT(sensepi_func_config->pir_hw.analog_signal_pin);
+        g_pir_config.pir_offset_analog_in = (sensepi_func_config->pir_hw.analog_offset_pin);
+        g_pir_config.pir_signal_analog_in = (sensepi_func_config->pir_hw.analog_signal_pin);
         g_pir_config.sense_interval_ms = PIR_SENSE_FREQ;
         g_pir_config.threshold = DEFAULT_THRESHOLD;
         g_pir_config.irq_priority = APP_IRQ_PRIORITY_HIGHEST;
@@ -538,6 +544,11 @@ void sensepi_func_add_ticks (uint32_t ticks)
         l_new_slots = slot_manage_check_update ();
         switch_setting (l_new_slots);
         g_add_ticks_switch_setting = 0;
+    }
+    g_add_ticks_motion_feedback += ticks;
+    if(g_add_ticks_motion_feedback >= FEEDBACK_TIME )
+    {
+        g_is_feedback_on = false;
     }
     if(g_arr_mod_state[MOTION_ONLY])
     {
