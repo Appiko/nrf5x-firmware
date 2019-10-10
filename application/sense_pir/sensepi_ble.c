@@ -30,6 +30,14 @@
 #include "string.h"
 #include "math.h"
 
+#define SWI_IRQN SWI_IRQN_a(SWI_USED_SENSEPI_BLE)
+#define SWI_IRQN_a(n)  SWI_IRQN_b(n)
+#define SWI_IRQN_b(n)  SWI##n##_IRQn
+
+#define SWI_IRQ_Handler SWI_IRQ_Handler_a(SWI_USED_SENSEPI_BLE)
+#define SWI_IRQ_Handler_a(n) SWI_IRQ_Handler_b(n)
+#define SWI_IRQ_Handler_b(n) SWI##n##_IRQHandler
+
 /**< Name of device, to be included in the advertising data. */
 
 
@@ -66,7 +74,7 @@
  */
 uint8_t ble_gatts_buffer[sizeof(sensepi_ble_config_t) + 74];
 
-uint8_t data_buffer[206];
+uint8_t data_buffer[sizeof(sensepi_ble_config_t)];
 
 sensepi_ble_config_t g_config;
 
@@ -99,9 +107,13 @@ sensebe_sysinfo curr_sysinfo;
 
 ///Called everytime the radio is switched off as per the
 /// radio notification by the SoftDevice
-
-void SWI1_IRQHandler(void) {
-    //    log_printf("radio going down\n");
+#if ISR_MANAGER == 1
+void sensepi_ble_swi_Handler ()
+#else
+void SWI_IRQ_Handler(void)
+#endif
+{
+//    log_printf("radio going down\n");
 }
 
 /**
@@ -259,13 +271,13 @@ void sensepi_ble_stack_init(void) {
     APP_ERROR_CHECK(err_code);
 
     // Initialize Radio Notification software interrupt
-    err_code = sd_nvic_ClearPendingIRQ(SWI1_IRQn);
+    err_code = sd_nvic_ClearPendingIRQ(SWI_IRQN);
     APP_ERROR_CHECK(err_code);
 
-    err_code = sd_nvic_SetPriority(SWI1_IRQn, APP_IRQ_PRIORITY_LOWEST);
+    err_code = sd_nvic_SetPriority(SWI_IRQN, APP_IRQ_PRIORITY_LOWEST);
     APP_ERROR_CHECK(err_code);
 
-    err_code = sd_nvic_EnableIRQ(SWI1_IRQn);
+    err_code = sd_nvic_EnableIRQ(SWI_IRQN);
     APP_ERROR_CHECK(err_code);
 
     h_conn = BLE_CONN_HANDLE_INVALID;

@@ -35,6 +35,15 @@
 #include "ble.h"
 #include "dev_id_fw_ver.h"
 
+
+#if SYS_CFG_PRESENT == 1
+#include "sys_config.h"
+#endif
+
+#if ISR_MANAGER == 1
+#include "isr_manager.h"
+#endif
+
 typedef struct {
     dev_id_t id;
     uint8_t battery_status;
@@ -76,6 +85,10 @@ typedef struct {
 #else
 #define SENSEPI_UUID_CONFIG 0xdc62
 #endif
+
+#ifndef SWI_USED_SENSEPI_BLE
+#define SWI_USED_SENSEPI_BLE 1
+#endif 
 
 typedef struct {
     uint32_t fw_ver_int;
