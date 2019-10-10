@@ -25,7 +25,7 @@
 #include "hal_clocks.h"
 #include "common_util.h"
 
-#define RTC_USED  CONCAT_2(NRF_RTC, AUX_CLK_LFCLK_RTC_USED) 
+#define RTC_USED  CONCAT_2(NRF_RTC, RTC_USED_AUX_CLK) 
 
 
 //#if RTC_USED != NRF_RTC0
@@ -38,20 +38,20 @@
 #define RTC_IRQN_a(n)  RTC_IRQN_b(n)
 #define RTC_IRQN_b(n)  RTC##n##_IRQn
 
-#define RTC_IRQN RTC_IRQN_a(AUX_CLK_LFCLK_RTC_USED)
-#define RTC_IRQ_Handler RTC_IRQ_Handler_a(AUX_CLK_LFCLK_RTC_USED)
+#define RTC_IRQN RTC_IRQN_a(RTC_USED_AUX_CLK)
+#define RTC_IRQ_Handler RTC_IRQ_Handler_a(RTC_USED_AUX_CLK)
 
 #define RTC_TICKS_MS(x) (uint32_t)(ROUNDED_DIV((32768 * x),1000))
 
 
-#define TIMER_USED CONCAT_2(NRF_TIMER, AUX_CLK_HFCLK_TIMER_USED)
+#define TIMER_USED CONCAT_2(NRF_TIMER, TIMER_USED_AUX_CLK)
 
 
-#define TIMER_IRQ_Handler TIMER_IRQ_Handler_a(AUX_CLK_HFCLK_TIMER_USED)
+#define TIMER_IRQ_Handler TIMER_IRQ_Handler_a(TIMER_USED_AUX_CLK)
 #define TIMER_IRQ_Handler_a(n) TIMER_IRQ_Handler_b(n)
 #define TIMER_IRQ_Handler_b(n) TIMER##n##_IRQHandler
 
-#define TIMER_IRQN TIMER_IRQN_a(AUX_CLK_HFCLK_TIMER_USED)
+#define TIMER_IRQN TIMER_IRQN_a(TIMER_USED_AUX_CLK)
 #define TIMER_IRQN_a(n)  TIMER_IRQN_b(n)
 #define TIMER_IRQN_b(n)  TIMER##n##_IRQn
 
@@ -66,7 +66,7 @@ static aux_clk_source_t g_source = AUX_CLK_SRC_LFCLK;
 
 static app_irq_priority_t g_irq_priority;
 
-static aux_clk_ppi_t g_arr_ppi_cnf[AUX_CLK_PPI_CHANNELS_USED];
+static aux_clk_ppi_t g_arr_ppi_cnf[PPI_CHANNELS_USED_AUX_CLK];
 
 #if ISR_MANAGER == 1
 void aux_clk_rtc_handler (void)
@@ -247,9 +247,9 @@ void set_ppi ()
 {
     hal_ppi_setup_t ppi_setup;
     uint8_t ppi_status;
-    for(uint32_t cnt = 0; cnt < AUX_CLK_PPI_CHANNELS_USED; cnt++)
+    for(uint32_t cnt = 0; cnt < PPI_CHANNELS_USED_AUX_CLK; cnt++)
     {
-        ppi_setup.ppi_id = AUX_CLK_PPI_CHANNEL_BASE + cnt;
+        ppi_setup.ppi_id = PPI_CHANNEL_BASE_AUX_CLK + cnt;
         ppi_setup.event = select_event (g_arr_ppi_cnf[cnt].event);
         ppi_setup.task = select_task (g_arr_ppi_cnf[cnt].task1);
         ppi_setup.fork = select_task (g_arr_ppi_cnf[cnt].task2);
@@ -282,7 +282,7 @@ void aux_clk_set (aux_clk_setup_t * aux_clk)
 {
     g_source = aux_clk->source;
     memcpy (g_arr_ppi_cnf, aux_clk->arr_ppi_cnf, 
-            (sizeof(aux_clk_ppi_t) * AUX_CLK_PPI_CHANNELS_USED));
+            (sizeof(aux_clk_ppi_t) * PPI_CHANNELS_USED_AUX_CLK));
     callbac_buffer = aux_clk->callback_handler;
     
     RTC_USED->PRESCALER = 0;
@@ -345,7 +345,7 @@ void aux_clk_dis_evt (uint8_t events)
 
 void aux_clk_update_ppi (uint32_t ppi_channel, aux_clk_ppi_t * new_ppi)
 {
-    memcpy (&g_arr_ppi_cnf[ppi_channel - AUX_CLK_PPI_CHANNEL_BASE],
+    memcpy (&g_arr_ppi_cnf[ppi_channel - PPI_CHANNEL_BASE_AUX_CLK],
             new_ppi, sizeof(aux_clk_ppi_t));
     hal_ppi_setup_t ppi_update = 
     {
