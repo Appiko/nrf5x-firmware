@@ -45,7 +45,7 @@ static sensepi_store_config_t g_sensepi_store_config;
  * @retval 0xFFFFFFFF memory is full and firmware will now clear all the 
  * previously saved configurations. 
  */
-static uint32_t get_next_location (void);
+//static uint32_t get_next_location (void);
 
 /**
  * @brief Function to erase all the previously return configurations.

@@ -158,7 +158,7 @@ typedef struct
      */
     uint8_t events_en;
     /** Array of PPI settings for different PPI channels */
-    aux_clk_ppi_t arr_ppi_cnf[AUX_CLK_PPI_CHANNELS_USED];
+    aux_clk_ppi_t arr_ppi_cnf[PPI_CHANNELS_USED_AUX_CLK];
 }aux_clk_setup_t;
 
 /**
