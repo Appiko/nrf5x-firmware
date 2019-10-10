@@ -357,7 +357,7 @@ void sensepi_ble_init(void (*ble_sd_evt)(ble_evt_t *evt),
  * @brief Updates the characteristic that stores the sysinfo
  * @param sysinfo A pointer to the Sense Pi info for the updation
  */
-void sensepi_ble_update_sysinfo(sensebe_sysinfo *sysinfo);
+void sensepi_ble_update_sysinfo(sensepi_sysinfo *sysinfo);
 
 /**
  * @brief Updates the characteristic that stores the SensePi config
@@ -396,7 +396,7 @@ void sensepi_ble_gap_params_init(void);
  * @param sensebe_ble_adv_data Advaertise data and scan response data along with
  * their respective lengths.
  */
-void sensepi_ble_adv_init(sensepi_ble_adv_data_t *sensebe_ble_adv_data);
+void sensepi_ble_adv_init(sensepi_ble_adv_data_t *sensepi_ble_adv_data);
 
 /**
  * @brief Function to start advertising.
