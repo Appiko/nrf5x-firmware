@@ -35,7 +35,10 @@
 
 #define START_PAGE START_PAGE_SENSEPI_STORE_CONFIG
 
-static sensepi_store_config_t g_sensepi_store_config;
+
+uint32_t g_log_id = LOG_ID;
+sensepi_store_config_t g_sensepi_store_config = {};
+sensepi_store_config_t * p_sensepi_store_config = &g_sensepi_store_config;
 
 /**
  * @brief Function to get the next location where firmware will store latest 
@@ -78,50 +81,67 @@ static void update_fw_ver (void);
 
 void sensepi_store_config_init ()
 {
-    nvm_logger_mod_init ();
     log_config_t config_log = 
     {
-        .log_id = LOG_ID,
+        .log_id = g_log_id,
         .entry_size = sizeof(sensepi_store_config_t),
         .no_of_pages = PAGES_USED,
         .start_page = START_PAGE,
     };
-    nvm_logger_log_init (&config_log);
+    g_log_id = nvm_logger_log_init (&config_log);
+    
+    log_printf ("SensPi config log id : %d\n", g_log_id);
 }
 
 bool sensepi_store_config_is_memory_empty (void)
 {
-    return nvm_logger_is_log_empty (LOG_ID);
+    return nvm_logger_is_log_empty (g_log_id);
 }
 
 void sensepi_store_config_write (sensepi_store_config_t* latest_config)
 {
     log_printf("%s\n",__func__);
-    nvm_logger_feed_data (LOG_ID, latest_config);
+    nvm_logger_feed_data (g_log_id, latest_config);
 
+    nvm_logger_fetch_tail_data (g_log_id, p_sensepi_store_config, NVM_LOGGER_GET_LAST_CONFIG);
 }
 
 sensepi_store_config_t * sensepi_store_config_get_last_config ()
 {
-    log_printf("%s\n",__func__);
-    nvm_logger_fetch_tail_data (LOG_ID, &g_sensepi_store_config, NVM_LOGGER_GET_LAST_CONFIG);
-    return (sensepi_store_config_t*) &g_sensepi_store_config;
+    nvm_logger_fetch_tail_data (g_log_id, p_sensepi_store_config, NVM_LOGGER_GET_LAST_CONFIG);
+    log_printf("%s - config time : %d/%d/%d %d, %d  %d\n", __func__,
+               p_sensepi_store_config->ble_config.current_date.dd,
+               p_sensepi_store_config->ble_config.current_date.mm,
+               p_sensepi_store_config->ble_config.current_date.yy,
+               p_sensepi_store_config->ble_config.current_time,
+               p_sensepi_store_config->fw_ver_int,
+               FW_VER);
+    return (sensepi_store_config_t*) p_sensepi_store_config;
 }
 
 static void clear_all_config (void)
 {
     log_printf("%s\n",__func__);
-    nvm_logger_empty_log (LOG_ID);
+    nvm_logger_empty_log (g_log_id);
 }
 
 void sensepi_store_config_check_fw_ver ()
 {
     log_printf("%s\n",__func__);
-    nvm_logger_fetch_tail_data (LOG_ID, &g_sensepi_store_config, NVM_LOGGER_GET_LAST_CONFIG);
+    p_sensepi_store_config = &g_sensepi_store_config;
+    nvm_logger_fetch_tail_data (g_log_id, p_sensepi_store_config, NVM_LOGGER_GET_LAST_CONFIG);
+    log_printf("%s - config time : %d/%d/%d %d, %d  %d\n", __func__,
+               p_sensepi_store_config->ble_config.current_date.dd,
+               p_sensepi_store_config->ble_config.current_date.mm,
+               p_sensepi_store_config->ble_config.current_date.yy,
+               p_sensepi_store_config->ble_config.current_time,
+               p_sensepi_store_config->fw_ver_int,
+               FW_VER);
     uint32_t local_major_num;
     local_major_num = g_sensepi_store_config.fw_ver_int/10000;
     if(local_major_num != (FW_VER/10000))
     {
+        log_printf("Update FW version\n");
         clear_all_config ();
         update_fw_ver ();
     }
@@ -133,6 +153,6 @@ static void update_fw_ver ()  // make it as hal_nvmc_write
     
     g_sensepi_store_config.fw_ver_int = FW_VER;
     
-    nvm_logger_feed_data (LOG_ID, (void *)&g_sensepi_store_config);
+    nvm_logger_feed_data (g_log_id, p_sensepi_store_config);
     
 }
