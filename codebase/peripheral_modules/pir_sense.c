@@ -144,8 +144,9 @@ void pir_sense_start(pir_sense_cfg * init)
         .arr_ppi_cnf[0].task1 = (uint32_t) &(NRF_SAADC->TASKS_START),
         .arr_ppi_cnf[0].task2 = AUX_CLK_TASKS_CLEAR,
         .source = init->clk_src,
-        .events_en = 0,
+        .events_en = AUX_CLK_EVT_CC0,
         .callback_handler = 0,
+        .irq_priority = init->irq_priority,
     };
     aux_clk_set (&aux_clk_setup);
     aux_clk_start ();
@@ -174,8 +175,8 @@ void pir_sense_stop(void)
     hal_ppi_dis_ch (PPI_CHANNEL_USED_PIR_SENSE_1);
     hal_ppi_dis_ch (PPI_CHANNEL_USED_PIR_SENSE_3);
     aux_clk_dis_ppi_ch (PPI_CHANNEL_USED_PIR_SENSE_2);
-    aux_clk_stop ();
     aux_clk_clear ();
+    aux_clk_stop ();
 }
 
 void pir_sense_update_threshold (uint32_t threshold)
