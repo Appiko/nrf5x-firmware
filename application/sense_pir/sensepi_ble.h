@@ -102,15 +102,10 @@ typedef enum {
     BATTERY_RECHARAGEABLE,
 } battery_type_t;
 
-/** List of all possible device speed. (sampling speed or sys_wakeup time)
-     The interval at which IR pulses are sent from the Tx unit
-     This should be same on the Tx and Rx unit. Reduce this to save power but reduce sensitivity */
-typedef enum {
-    SPEED_LIGHTNING, /// 5 ms
-    SPEED_FAST, /// 25 ms
-    SPEED_NORMAL, /// 100 ms
-    SPEED_SLOW, /// 250 ms
-} device_speed_t;
+typedef union
+{
+    uint32_t unused;
+} device_specific_settings_t;
 
 /** List of all possible trigger combination. */
 typedef enum {
@@ -326,7 +321,7 @@ typedef struct {
     /** Radio control */
     radio_control_t radio_control; //3Bytes
     /** System speed */
-    device_speed_t speed; //1Byte
+    device_specific_settings_t not_used; //1Byte
     /** Battery type */
     battery_type_t battery_type; //1Byte
     /** User device name */
