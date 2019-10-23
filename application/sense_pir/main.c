@@ -60,6 +60,7 @@
 #include "dev_id_fw_ver.h"
 #include "sensepi_store_config.h"
 #include "hal_nvmc.h"
+#include "time_tracker.h"
 
 /* ----- Defines ----- */
 
@@ -70,7 +71,7 @@ const uint8_t app_device_name[] = { APP_DEVICE_NAME_CHAR };
 
 /** Complete 128 bit UUID of the SensePi service
  * 3c73dc50-07f5-480d-b066-837407fbde0a */
-#define APP_UUID_COMPLETE        0x0a, 0xde, 0xfb, 0x07, 0x74, 0x83, 0x66, 0xb0, 0x0d, 0x48, 0xf5, 0x07, 0x50, 0xdc, 0x73, 0x3c
+#define APP_UUID_COMPLETE        0x0a, 0xde, 0xfb, 0x07, 0x74, 0x83, 0x66, 0xb0, 0x0d, 0x48, 0xf5, 0x07, 0x10, 0xdc, 0x73, 0x3c
 
 /** The data to be sent in the advertising payload. It is of the format
  *  of a sequence of {Len, type, data} */
@@ -85,7 +86,7 @@ const uint8_t app_device_name[] = { APP_DEVICE_NAME_CHAR };
 #define APP_SCAN_RSP_DATA  {                                        \
                            0x02, BLE_GAP_AD_TYPE_TX_POWER_LEVEL, 0   ,     \
                            0x11, BLE_GAP_AD_TYPE_SHORT_LOCAL_NAME,  \
-                           'x', 'x','x', 'x', 'x', 'x' , 'x', 'x', 'x', 'x', 'x', 'x', 'x', 'x', 'x', 'x',   \
+                           'S', 'P','0', '5', '0', '0' , '1', '9', '1', '0', '1', '5', '0', '0', '0', '0',   \
                            0x04, BLE_GAP_AD_TYPE_MANUFACTURER_SPECIFIC_DATA, 0 ,  0 , 0 \
                        }
 
@@ -106,7 +107,7 @@ const uint8_t app_device_name[] = { APP_DEVICE_NAME_CHAR };
 /** The fast tick interval in ms in the Sense mode */
 #define SENSE_FAST_TICK_INTERVAL_MS      60
 /** The slow tick interval in ms in the Sense mode */
-#define SENSE_SLOW_TICK_INTERVAL_MS      300000
+#define SENSE_SLOW_TICK_INTERVAL_MS      30000
 
 /** The fast tick interval in ms in the Advertising mode */
 #define ADV_FAST_TICK_INTERVAL_MS  60
@@ -136,17 +137,71 @@ typedef enum
 /** Stores the current state of the device */
 sense_states current_state;
 
+sensepi_func_modes_t current_func_mode = SENSEPI_FUNC_NORMAL_MODE;
 /** To keep track of the amount of time in the connected state */
 static uint32_t conn_count;
 
+static sensepi_store_config_t memcfg;
+static sensepi_store_config_t * p_store_config;
+
 static sensepi_ble_config_t sensepi_ble_default_config = 
 {
-};
+    .battery_type = BATTERY_RECHARAGEABLE,
+    
+//    .not_used = {0},
 
-//static uint32_t out_pin_array[] = {JACK_FOCUS_PIN, JACK_TRIGGER_PIN};
+    .dev_name = {'S', 'e', 'n', 's', 'e', 'P', 'i', ' ', 'T', 'r', 'i', 'a', 'l'},
+
+    .radio_control.radio_channel = CHANNEL0,
+    .radio_control.radio_oper_freq_100us = 2,
+    .radio_control.radio_oper_duration_25ms = 1,
+
+    .trigger_oper_cond_sel = {TIME_OF_DAY, TIME_OF_DAY},
+    
+    .current_date.dd = 15,
+    .current_date.mm = 10,
+    .current_date.yy = 19,
+    .current_time = 12 * 3600,
+//    
+    .generic_settings[SETTINGS0].cam_setting.cam_trigger.mode = SINGLE_SHOT,
+    .generic_settings[SETTINGS0].cam_setting.cam_trigger.mode_setting = {0},
+    .generic_settings[SETTINGS0].cam_setting.cam_trigger.pre_focus_en = 0,
+    .generic_settings[SETTINGS0].cam_setting.cam_trigger.radio_trig_en = 0,
+    .generic_settings[SETTINGS0].cam_setting.cam_trigger.trig_pulse_duration_100ms = 3,
+    
+    .generic_settings[SETTINGS0].cam_setting.oper_cond.time_cond.start_time = 0,
+//    .generic_settings[SETTINGS0].cam_setting.oper_cond.time_cond.end_time = 0xFFFFFFFF,
+    .generic_settings[SETTINGS0].cam_setting.oper_cond.time_cond.end_time = 24*3600,
+//
+    .generic_settings[SETTINGS0].func_setting.detection_func.amplification = 32,
+    .generic_settings[SETTINGS0].func_setting.detection_func.threshold = 800,
+    .generic_settings[SETTINGS0].func_setting.detection_func.inter_trig_time = 50,
+    
+//    .generic_settings[SETTINGS0].func_setting.timer_duration = 5000,
+
+    .generic_settings[SETTINGS0].trig_sel = TIMER_ONLY,   
+    
+
+};
 
 static sensepi_func_config_t sensepi_func_default_config = 
 {
+    .amp_hw.ud_pin = MCP4012T_UD_PIN,
+    .amp_hw.cs_pin = MCP4012T_UD_PIN,
+    .amp_hw.ck_pin = SPI_SCK_PIN,
+    
+    .pir_hw.analog_offset_pin = PIN_TO_ANALOG_INPUT(PIR_AMP_OFFSET_PIN),
+    .pir_hw.analog_signal_pin = PIN_TO_ANALOG_INPUT(PIR_AMP_SIGNAL_PIN),
+    
+    .cam_hw.focus_pin = JACK_FOCUS_PIN,
+    .cam_hw.trigger_pin = JACK_TRIGGER_PIN,
+    
+    .light_sense_hw = PIN_TO_ANALOG_INPUT(LED_LIGHT_SENSE),
+    
+    
+    .func_mode = SENSEPI_FUNC_NORMAL_MODE,
+    
+    
 };
 
 
@@ -160,14 +215,15 @@ void wdt_prior_reset_callback(void){
 
 void prepare_init_ble_adv()
 {
+    log_printf("%s\n", __func__);
     uint8_t app_adv_data[] = APP_ADV_DATA;
     uint8_t app_scan_rsp_data[] = APP_SCAN_RSP_DATA;
 
     //Add in the firmware version
-    memcpy(&app_scan_rsp_data[23], fw_ver_get(), sizeof(fw_ver_t));
+//    memcpy(&app_scan_rsp_data[23], fw_ver_get(), sizeof(fw_ver_t));
 
     //Add the device ID
-    memcpy(&app_scan_rsp_data[5], dev_id_get(), sizeof(dev_id_t));
+//    memcpy(&app_scan_rsp_data[5], dev_id_get(), sizeof(dev_id_t));
     
     sensepi_ble_adv_data_t app_adv_data_struct =
     {
@@ -216,7 +272,10 @@ static void ble_evt_handler(ble_evt_t * evt)
  */
 static void get_sensepi_config_t(sensepi_ble_config_t *config)
 {
+    log_printf("%s\n", __func__);
     sensepi_func_update_settings (config);
+    p_store_config = &memcfg;
+    memcpy (&p_store_config->ble_config, config, sizeof(sensepi_ble_config_t));
 }
 
 /**
@@ -226,7 +285,7 @@ static void get_sensepi_config_t(sensepi_ble_config_t *config)
  */
 void next_interval_handler(uint32_t interval)
 {
-    log_printf("in %d\n", interval);
+//    log_printf("in %d\n", interval);
     button_ui_add_tick(interval);
     switch(current_state)
     {
@@ -281,6 +340,11 @@ void state_change_handler(uint32_t new_state)
 
             led_ui_type_stop_all(LED_UI_LOOP_SEQ);
 
+            p_store_config = sensepi_store_config_get_last_config ();
+            if(memcmp (p_store_config, &memcfg, sizeof(sensepi_store_config_t)))
+            {
+                sensepi_store_config_write (&memcfg);
+            }
             sensepi_func_start();
         }
         break;
@@ -307,16 +371,31 @@ void state_change_handler(uint32_t new_state)
                 sensepi_ble_service_init();
                 prepare_init_ble_adv();
 
-                sensepi_sysinfo sysinfo;
-                memcpy(&sysinfo.dev_id, dev_id_get(), sizeof(dev_id_t));
-                sysinfo.battery_voltage = aa_aaa_battery_status();
-                memcpy(&sysinfo.fw_ver_int, fw_ver_get(), sizeof(fw_ver_t));
+                sensepi_sysinfo sysinfo = 
+                {
+                    .battery_voltage = 0xB2,
+                    .fw_ver_int = 20000,
+                    .dev_id.day = {'1','5'},
+                    .dev_id.month = {'1','0'},
+                    .dev_id.year = {'1','9'},
+                    .dev_id.factory_code = {'0', '0' },
+                    .dev_id.prod_code = {'S','P'},
+                    .dev_id.prod_rev = {'0','5'},
+                    .dev_id.serial_no = {'0', '0', '0', '0'},
+                };
+                
+//                memcpy(&sysinfo.dev_id, dev_id_get(), sizeof(dev_id_t));
+//                sysinfo.battery_voltage = aa_aaa_battery_status();
+//                memcpy(&sysinfo.fw_ver_int, fw_ver_get(), sizeof(fw_ver_t));
                 sensepi_ble_update_sysinfo(&sysinfo);
 
                 ///Get config from sensepi_func and send to the BLE module
-                sensepi_store_config_t * p_store_config =
-                    sensepi_store_config_get_last_config ();
-                sensepi_ble_config_t * config = &p_store_config->ble_config;
+                memcpy (&memcfg, sensepi_store_config_get_last_config (), sizeof(sensepi_store_config_t));
+                sensepi_ble_config_t * config = &memcfg.ble_config;
+                
+                log_printf("Memcfg : %d %d\n", config->trigger_oper_cond_sel[0], config->trigger_oper_cond_sel[1]);
+                
+                log_printf ("Config : 0x%x\n", *config);
                 sensepi_ble_update_config(config);
             }
             sensepi_ble_adv_start();
@@ -327,6 +406,7 @@ void state_change_handler(uint32_t new_state)
         break;
     case CONNECTED:
         {
+            log_printf("Conn\n");
             device_tick_cfg tick_cfg =
             {
                 MS_TIMER_TICKS_MS(CONN_FAST_TICK_INTERVAL_MS),
@@ -473,6 +553,34 @@ void boot_pwr_config(void)
     NRF_POWER->TASKS_LOWPWR = 1;
 }
 
+void genenrate_default_config ()
+{
+    for(uint32_t i = SETTINGS1; i < MAX_SETTINGS; i++)
+    {
+        sensepi_ble_default_config.generic_settings[i].cam_setting.cam_trigger.mode = SINGLE_SHOT;
+//        sensepi_ble_default_config.generic_settings[i].cam_setting.cam_trigger.mode_setting = {0};
+        sensepi_ble_default_config.generic_settings[i].cam_setting.cam_trigger.pre_focus_en = 0;
+        sensepi_ble_default_config.generic_settings[i].cam_setting.cam_trigger.radio_trig_en = 0;
+        sensepi_ble_default_config.generic_settings[i].cam_setting.cam_trigger.trig_pulse_duration_100ms = 3;
+
+        sensepi_ble_default_config.generic_settings[i].cam_setting.oper_cond.time_cond.start_time = 0;
+        sensepi_ble_default_config.generic_settings[i].cam_setting.oper_cond.time_cond.end_time = 0;
+//        sensepi_ble_default_config.generic_settings[i].cam_setting.oper_cond.time_cond.start_time =
+//            (12*3600) + (60*i);
+//        sensepi_ble_default_config.generic_settings[i].cam_setting.oper_cond.time_cond.end_time =
+//            (12*3600) + (60*i) + 60;
+
+//        sensepi_ble_default_config.generic_settings[i].func_setting.detection_func.amplification = 60;
+//        sensepi_ble_default_config.generic_settings[i].func_setting.detection_func.threshold = 250;
+//        sensepi_ble_default_config.generic_settings[i].func_setting.detection_func.inter_trig_time = 10;
+        
+        sensepi_ble_default_config.generic_settings[i].func_setting.timer_duration = 1000 * i;
+
+        sensepi_ble_default_config.generic_settings[i].trig_sel = TIMER_ONLY;   
+    }
+}
+
+
 /**
  * @brief function to load previous sensepi configuration present in flash memory
  */
@@ -480,16 +588,24 @@ void load_last_config()
 {
     if(sensepi_store_config_is_memory_empty())
     {
-        sensepi_store_config_t l_temp_config;
-        memcpy (&l_temp_config.ble_config, &sensepi_ble_default_config,
+        log_printf("Memory is empty\n");
+        memcpy (&memcfg.ble_config, &sensepi_ble_default_config,
                 sizeof(sensepi_ble_config_t));
-        l_temp_config.fw_ver_int = FW_VER;
-        sensepi_store_config_write (&l_temp_config);
+        memcfg.fw_ver_int = FW_VER;
+        p_store_config = &memcfg;
+        sensepi_store_config_write (p_store_config);
+
     }
-    sensepi_store_config_t * p_store_config = 
+    p_store_config = 
         sensepi_store_config_get_last_config ();
-    
-    sensepi_func_update_settings (&p_store_config->ble_config);
+        
+    log_printf("%s - config time : %d/%d/%d %d, %d  %d\n", __func__,
+               p_store_config->ble_config.current_date.dd,
+               p_store_config->ble_config.current_date.mm,
+               p_store_config->ble_config.current_date.yy,
+               p_store_config->ble_config.current_time, p_store_config->fw_ver_int,
+               FW_VER);
+    memcpy (&memcfg, p_store_config, sizeof(sensepi_store_config_t));
 }
 
 /**
@@ -523,11 +639,14 @@ int main(void)
     boot_pwr_config();
 
     lfclk_init(LFCLK_SRC_Xtal);
+//    lfclk_init(LFCLK_SRC_RC);
     ms_timer_init(APP_IRQ_PRIORITY_LOW);
+    nvm_logger_mod_init ();
 #if ENABLE_WDT == 1
     hal_wdt_init(WDT_PERIOD_MS, wdt_prior_reset_callback);
     hal_wdt_start();
 #endif
+
 
     button_ui_init(BUTTON_PIN, APP_IRQ_PRIORITY_LOW,
             button_handler);
@@ -539,13 +658,19 @@ int main(void)
             { next_interval_handler, state_change_handler };
         irq_msg_init(&cb);
     }
+            
+    genenrate_default_config ();
+    sensepi_store_config_init ();
+    load_last_config ();
+    sensepi_store_config_check_fw_ver ();
+    sensepi_ble_init(ble_evt_handler, get_sensepi_config_t);
+
+    p_store_config = sensepi_store_config_get_last_config ();
+    sensepi_func_default_config.ble_config = &p_store_config->ble_config;
     sensepi_func_init(&sensepi_func_default_config);
 
     current_state = ADVERTISING; //So that a state change happens
     irq_msg_push(MSG_STATE_CHANGE, (void *)SENSING);
-    sensepi_ble_init(ble_evt_handler, get_sensepi_config_t);
-    sensepi_store_config_check_fw_ver ();
-    load_last_config ();
     while (true)
     {
 #if ENABLE_WDT == 1

@@ -73,6 +73,9 @@ C_SRC += hal_ppi.c
 C_SRC += time_tracker.c
 C_SRC += slot_manage.c
 C_SRC += radio_trigger.c
+C_SRC += hal_radio.c
+C_SRC += isr_manager.c
+
 
 #Gets the name of the application folder
 APPLN = $(shell basename $(PWD))
