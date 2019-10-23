@@ -68,8 +68,8 @@
 
 #if SYS_CFG_PRESENT == 1
 #include "sys_config.h"
-#include "aux_clk.h"
 #endif 
+#include "aux_clk.h"
 #ifndef SAADC_CHANNEL_USED_PIR_SENSE
 #define SAADC_CHANNEL_USED_PIR_SENSE 0
 #endif

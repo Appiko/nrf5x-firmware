@@ -35,6 +35,7 @@
 #include "stdbool.h"
 #include "nrf.h"
 #include "log.h"
+#include "common_util.h"
 
 #if SYS_CFG_PRESENT == 1
 #include "sys_config.h"
