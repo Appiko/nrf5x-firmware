@@ -101,7 +101,7 @@ typedef struct
     uint32_t light_sense_hw;
 
     /** Structure to store default BLE configuration */
-    sensepi_ble_config_t ble_config;
+    sensepi_ble_config_t * ble_config;
     
     /** Default mode */
     sensepi_func_modes_t func_mode;

@@ -32,6 +32,8 @@
 #include "ms_timer.h"
 #include "hal_pin_analog_input.h"
 #include "log.h"
+#include "led_seq.h"
+#include "led_ui.h"
 
 
 #define FEEDBACK_TIME MS_TIMER_TICKS_MS(300 * 1000)
@@ -42,7 +44,7 @@
 
 #define DEFAULT_THRESHOLD 800
 
-#define SWITCH_SETTING_DURATION MS_TIMER_TICKS_MS(60 * 1000)
+#define SWITCH_SETTING_DURATION MS_TIMER_TICKS_MS(6 * 100)
 
 #define TIMER_USED CONCAT_2(MS_TIMER,MS_TIMER_USED_SENSEPI)
 
@@ -113,7 +115,7 @@ void mod_motion_stop (void);
 
 void mod_motion_switch_mode (sensepi_func_modes_t clk);
 
-void mod_motion_handler ();
+void mod_motion_handler (int32_t reading);
 
 /** Timer related functions */
 void mod_timer_start (void);
@@ -232,11 +234,26 @@ void assign_slots (uint32_t index)
     //in union end time and end light conditions shares the memory
     l_slot.end_cond = 
         g_ble_settings.generic_settings[index].cam_setting.oper_cond.time_cond.end_time;
+//    log_printf("Slot[%d] : %d %d %d %d\n",index, l_slot.slot_no, l_slot.slot_sel,
+//               l_slot.start_cond, l_slot.end_cond);
+    
     slot_manage_set_slot (&l_slot);
+}
+
+void assign_time (void)
+{
+    time_tracker_ddmmyy_t date = 
+    {
+        .dd = g_ble_settings.current_date.dd,
+        .mm = g_ble_settings.current_date.mm,
+        .yy = g_ble_settings.current_date.yy,
+    };
+    time_tracker_set_date_time (&date, g_ble_settings.current_time);
 }
 
 void assign_varaibles ()
 {
+    assign_time ();
     for(uint32_t i = 0; i < MAX_SETTINGS; i++)
     {
         g_arr_radio_trig[i] = g_ble_settings.generic_settings[i].cam_setting.cam_trigger.radio_trig_en;
@@ -252,8 +269,8 @@ void assign_varaibles ()
         }
         else if(g_ble_settings.generic_settings[i].trig_sel == TIMER_ONLY)
         {
-            g_arr_timer_value[i] =
-                g_ble_settings.generic_settings[i].func_setting.timer_duration;
+            g_arr_timer_value[i] = 
+                MS_TIMER_TICKS_MS(g_ble_settings.generic_settings[i].func_setting.timer_duration);
         }
         assign_cam_mode_var (i);
         assign_slots (i);       
@@ -262,6 +279,7 @@ void assign_varaibles ()
 
 void switch_setting (uint8_t setting_flags)
 {
+    log_printf("%s : 0x%x\n", __func__, setting_flags);
     bool l_setting;
     if((setting_flags != SLOT_MANAGE_INVALID_SLOTS) && (setting_flags != prev_setting_flags))
     {
@@ -283,6 +301,7 @@ void switch_setting (uint8_t setting_flags)
                     g_timer_current_settings = i;
                     g_arr_mod_state[TIMER_ONLY] = ENABLE;
                 }
+                log_printf ("[%d] : %d %d\n", i,g_arr_mod_state[0], g_arr_mod_state[1] );
             }
         }
     }
@@ -316,12 +335,15 @@ void cam_module_handler (uint32_t cam_trigger)
 }
 
 
-void mod_motion_handler ()
+void mod_motion_handler (int32_t reading)
 {
+    log_printf("Motion Detected : %d\n", reading);
     if(g_is_feedback_on == 1)
     {
-        log_printf ("Feedback\n");
+        //log_printf ("Feedback\n");
         //LED 
+        led_ui_type_stop_all(LED_UI_LOOP_SEQ);
+        led_ui_single_start (LED_SEQ_PIR_PULSE, LED_UI_HIGH_PRIORITY, true);
     }
     if(cam_trigger_is_on () != true)
     {
@@ -331,8 +353,11 @@ void mod_motion_handler ()
 
 void mod_motion_start (void)
 {
+    log_printf("%s\n", __func__);
+    
     g_is_feedback_on = true;
     //start
+    mcp4012_set_value (g_arr_motion_sensitivity[g_motion_current_settings].amplification);
     g_pir_config.threshold =
         g_arr_motion_sensitivity[g_motion_current_settings].threshold;
     pir_sense_start (&g_pir_config);
@@ -340,6 +365,7 @@ void mod_motion_start (void)
 
 void mod_motion_switch_setting ()
 {
+    log_printf("%s\n", __func__);
     if(g_motion_prev_settings != g_motion_current_settings)
     {
         g_motion_prev_settings = g_motion_current_settings;
@@ -348,12 +374,14 @@ void mod_motion_switch_setting ()
         
         //Update PIR threshold
         pir_sense_update_threshold (g_arr_motion_sensitivity[g_motion_current_settings].threshold);
+        log_printf("Current active setting : %d\n", g_motion_current_settings);
         
     }
 }
 
 void mod_motion_add_ticks (uint32_t ticks)
 {
+    log_printf("%s\n", __func__);
     g_add_ticks_motion_feedback += ticks;
     if(g_add_ticks_motion_feedback >= FEEDBACK_TIME)
     {
@@ -363,6 +391,7 @@ void mod_motion_add_ticks (uint32_t ticks)
 
 void mod_motion_stop (void)
 {
+    log_printf("%s\n", __func__);
     //stop everything
     pir_sense_stop ();
     //reset flag
@@ -386,6 +415,7 @@ void mod_motion_switch_mode (sensepi_func_modes_t mode)
 
 void mod_timer_handler ()
 {
+    log_printf("%s\n", __func__);
     if(cam_trigger_is_on () == false)
     {
         cam_trigger (g_timer_current_settings);
@@ -395,7 +425,9 @@ void mod_timer_handler ()
 void mod_timer_start ()
 {
     //start
-    ms_timer_start (TIMER_USED, MS_REPEATED_CALL, g_arr_timer_value[g_timer_current_settings],
+    log_printf("%s\n", __func__);
+    ms_timer_start (TIMER_USED, MS_REPEATED_CALL,
+                    (g_arr_timer_value[g_timer_current_settings]),
                     mod_timer_handler);
 }
 
@@ -419,21 +451,14 @@ void mod_timer_stop ()
 
 void sensepi_func_init (sensepi_func_config_t * sensepi_func_config)
 {
-    memcpy (&g_ble_settings, &sensepi_func_config->ble_config,
+    memcpy (&g_ble_settings, sensepi_func_config->ble_config,
             sizeof(sensepi_ble_config_t));
     
-    assign_varaibles ();
-    
+    log_printf("%s\n", __func__);
+   
     time_tracker_init (APP_TIME_TRACKER_LOG);
-    time_tracker_ddmmyy_t today = 
-    {
-        .dd = g_ble_settings.current_date.dd,
-        .mm = g_ble_settings.current_date.mm,
-        .yy = g_ble_settings.current_date.yy,
-    };
-    
-    time_tracker_set_date_time (&today, g_ble_settings.current_time);
-    
+
+    assign_varaibles ();
     
     slot_manage_set_light_sense_pin ( sensepi_func_config->light_sense_hw);
     
@@ -476,6 +501,7 @@ void sensepi_func_init (sensepi_func_config_t * sensepi_func_config)
 
 void sensepi_func_update_settings (sensepi_ble_config_t * ble_settings)
 {
+    //log_printf("%s\n", __func__);
     //update ble settings
     memcpy (&g_ble_settings, ble_settings, sizeof(sensepi_ble_config_t));
     
@@ -488,6 +514,7 @@ void sensepi_func_update_settings (sensepi_ble_config_t * ble_settings)
 
 void sensepi_func_switch_mode (sensepi_func_modes_t mode)
 {
+    //log_printf("%s\n", __func__);
     g_current_mode  = mode;
     if(g_arr_mod_state[MOTION_ONLY])
     {
@@ -502,6 +529,7 @@ void sensepi_func_switch_mode (sensepi_func_modes_t mode)
 
 void sensepi_func_start ()
 {
+    //log_printf("%s\n", __func__);
     g_is_feedback_on = true;
     g_add_ticks_motion_feedback = 0;
     g_add_ticks_switch_setting = 0;
@@ -520,26 +548,34 @@ void sensepi_func_start ()
 
 void sensepi_func_stop ()
 {
+    //log_printf("%s\n", __func__);
     //stop pir sense
     mod_motion_stop ();
 
     //stop timer
     mod_timer_stop ();
+    
+    radio_trigger_shut ();
+    
+    cam_trigger_stop ();
 }
 
 sensepi_func_modes_t sensepi_func_get_current_mode ()
 {
+    //log_printf("%s\n", __func__);
     //return current clock source
     return g_current_mode;
 }
 
 void sensepi_func_add_ticks (uint32_t ticks)
 {
+//    log_printf("%s\n", __func__);
     //pass ticks to every sub-modules' individual add tick function 
     time_tracker_update_time (ticks);
     g_add_ticks_switch_setting += ticks;
     if(g_add_ticks_switch_setting >= SWITCH_SETTING_DURATION)
     {
+        log_printf ("Current time : %d\n", time_tracker_get_current_time_s ());
         uint8_t l_new_slots = 0;
         l_new_slots = slot_manage_check_update ();
         switch_setting (l_new_slots);
