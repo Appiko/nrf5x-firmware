@@ -69,7 +69,7 @@
 
 #define MS_TIMER_USED_SENSEPI_RADIO_CONTROL 3
 /** Number of PPI channels used for AUX clock module */
-#define PPI_CHANNELS_USED_AUX_CLK 3
+#define PPI_CHANNELS_USED_AUX_CLK 2
 /** Base number for PPI channels in AUX clock module */
 #define PPI_CHANNEL_BASE_AUX_CLK 0
 /** 1st PPI channel used for AUX clock module */
@@ -95,7 +95,7 @@
 /** 3rd timer channel used for radio trigger module */
 #define TIMER_CHANNEL_USED_RADIO_TRIGGER_2 2
 /** SAADC channel used for Simple ADC module */
-#define SAADC_CHANNEL_USED_SIMPLE_ADC 1
+#define SAADC_CHANNEL_USED_SIMPLE_ADC 2
 /** SAADC channel used for PIR Sense module */
 #define SAADC_CHANNEL_USED_PIR_SENSE 0
 /** SWI peripheral used by application */
@@ -103,6 +103,17 @@
 /** SWI used for Evt SD Handler module */
 #define SWI_USED_EVT_SD_HANDLER 2
 
+
+
+/** NVM Logger section */
+
+#define LOG_ID_SENSEPI_STORE_CONFIG 0
+#define PAGES_USED_SENSEPI_STORE_CONFIG 2
+#define START_PAGE_SENSEPI_STORE_CONFIG 0x27000 
+
+#define TIME_TRACKER_NVM_PAGE_USED_0 0x24000
+#define TIME_TRACKER_NVM_PAGE_USED_1 0x23000
+#define TIME_TRACKER_NVM_NO_PAGES_USED 2
 
 #endif /* SYS_CONFIG_H */
 /**

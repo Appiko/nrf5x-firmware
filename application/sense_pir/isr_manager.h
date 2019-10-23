@@ -50,6 +50,8 @@ void pir_sense_saadc_Handler (void);
 
 void tssp_detect_rtc_Handler (void);
 
+void aux_clk_rtc_handler (void);
+
 void aux_clk_timer_handler (void);
 
 void uart_printf_uart_Handler (void);
