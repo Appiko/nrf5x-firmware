@@ -83,7 +83,7 @@
 #endif
 
 #ifndef AUX_CLK_HFCLK_SOLO_MODULE 
-#define AUX_CLK_HFCLK_SOLO_MODULE 1
+#define AUX_CLK_HFCLK_SOLO_MODULE 0
 #endif
 #define AUX_CLK_NO_IRQ 0xFFFFFFFF
 
@@ -158,7 +158,7 @@ typedef struct
      */
     uint8_t events_en;
     /** Array of PPI settings for different PPI channels */
-    aux_clk_ppi_t arr_ppi_cnf[AUX_CLK_PPI_CHANNELS_USED];
+    aux_clk_ppi_t arr_ppi_cnf[PPI_CHANNELS_USED_AUX_CLK];
 }aux_clk_setup_t;
 
 /**

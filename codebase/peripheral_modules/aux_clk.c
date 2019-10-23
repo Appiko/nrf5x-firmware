@@ -103,7 +103,10 @@ void RTC_IRQ_Handler(void)
         RTC_USED->EVENTS_COMPARE[3] = 0;
 #endif
     }
-    callbac_buffer (events);
+    if(callbac_buffer != NULL)
+    {
+        callbac_buffer (events);
+    }
 }
 
 #if ISR_MANAGER == 1
@@ -141,7 +144,10 @@ void TIMER_IRQ_Handler (void)
         TIMER_USED->EVENTS_COMPARE[3] = 0;
 #endif
     }
-    callbac_buffer (events);
+    if(callbac_buffer != NULL)
+    {
+        callbac_buffer (events);
+    }
 }
 
 void set_timer ()
@@ -163,6 +169,7 @@ void set_rtc ()
 #if AUX_CLK_HFCLK_SOLO_MODULE == 1
     hfclk_xtal_deinit ();
 #endif
+    
     if(g_irq_priority != APP_IRQ_PRIORITY_THREAD)
     {
         NVIC_SetPriority (RTC_IRQN, g_irq_priority);

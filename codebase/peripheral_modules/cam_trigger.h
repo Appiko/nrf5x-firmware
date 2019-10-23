@@ -103,7 +103,7 @@ typedef union {
     cam_trig_multishot_params_t multishot_params;
     /** when trigger mode is video */
     cam_trig_video_params_t video_params;
-}mode_settings_t;
+}cam_trigger_mode_settings_t;
 
 /**
  * @brief Structure to store information related to camera trigger.
@@ -116,7 +116,7 @@ typedef struct
     cam_trigger_list_t trig_mode;
 
     /** Union of structures to handle different types of parameters */
-    mode_settings_t trig_params;
+    cam_trigger_mode_settings_t trig_params;
 
     /** Total operation duration in milliseconds */
     uint32_t trig_duration_100ms;
