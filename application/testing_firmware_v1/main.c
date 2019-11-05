@@ -57,7 +57,7 @@
 #include "log.h"
 
 #include "hw_testing_app.h"
-#include "product_id.h"
+//#include "product_id.h"
 
 #define NO_OF_TESTS 7
 
@@ -81,6 +81,7 @@ int main(void)
     log_init();
     log_printf("\nHARDWARE TEST\n");
     log_printf("START\n");
+    hal_gpio_cfg_output (PIR_VDD, 1);
     mcp4012_init(MCP4012T_CS_PIN,MCP4012T_UD_PIN,SPI_SCK_PIN);
     hal_nop_delay_ms(250);
     flag_rev_pol_pro = power_test();

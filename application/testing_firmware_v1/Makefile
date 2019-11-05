@@ -1,5 +1,5 @@
 
-BOARD           := BOARD_SENSEPI_REV4
+BOARD           := BOARD_SENSEPI_REV5
 SLNO            := 681592281
 NO_NFC_REQD     := CONFIG_NFCT_PINS_AS_GPIOS
 PINRESET_REQD   := CONFIG_GPIO_AS_PINRESET
@@ -34,10 +34,12 @@ C_SRC += ms_timer.c
 C_SRC += hal_clocks.c
 C_SRC += simple_adc.c
 C_SRC += nrf_assert.c
-C_SRC += uart_printf.c
+C_SRC += hal_uart.c
+C_SRC += nrf_util.c
+#C_SRC += uart_printf.c
 C_SRC += tinyprintf.c
 C_SRC += hw_testing_app.c
-C_SRC += product_id.c
+#C_SRC += product_id.c
 
 #Gets the name of the application folder
 APPLN = $(shell basename $(PWD))

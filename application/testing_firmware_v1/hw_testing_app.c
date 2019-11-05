@@ -185,7 +185,7 @@ uint32_t dc_dc_test(void)
 // LED test 
 uint32_t led_test(void)
 {
-    for(uint32_t led_cnt; led_cnt < 15; led_cnt ++)
+    for(uint32_t led_cnt; led_cnt < 5; led_cnt ++)
     {
         hal_gpio_pin_set(LED_GREEN);
         hal_nop_delay_ms(500);
@@ -193,8 +193,8 @@ uint32_t led_test(void)
         hal_gpio_pin_set(LED_RED);
         hal_nop_delay_ms(500);    
         hal_gpio_pin_clear(LED_RED);
-        log_printf("LED_test : 1\n");
     }
+    log_printf("LED_test : 1\n");
     return 1;
 }
 
@@ -287,6 +287,8 @@ void capture_lfclk_test (void)
 uint32_t rc_test(void)
 {
     uint32_t obs_offset = 0, avg_offset = 0, i = 0, temp_sum = 0;
+    hal_gpio_pin_set (PIR_VDD);
+    hal_nop_delay_ms (100);
     mcp4012_set_value(1);
     profiler_timer_init();
     while(read_time_us() < 1200000)
