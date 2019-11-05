@@ -52,6 +52,8 @@
   #include "sensepi_rev3.h"
 #elif defined(BOARD_SENSEPI_REV4)
   #include "sensepi_rev4.h"
+#elif defined(BOARD_SENSEPI_REV5)
+  #include "sensepi_rev5.h"
 #elif defined(BOARD_HACKABLE)
   #include "hackable.h"
 #elif defined(BOARD_CUSTOM)
