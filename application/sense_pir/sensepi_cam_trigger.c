@@ -58,6 +58,7 @@
 
 #include "boards.h"
 #include "sensepi_store_config.h"
+#include "simple_adc.h"
 
 #define DEBUG_PRINT 0
 
@@ -344,10 +345,12 @@ void pir_set_state(bool state)
     log_printf("%s %x\n",__func__, state);
     if(state == true)
     {
+        hal_gpio_pin_set (config.pir_sense_enable);
         pir_sense_start(&config_pir);        
     }
     else
     {
+        hal_gpio_pin_clear (config.pir_sense_enable);
         pir_sense_stop();    
     }
 }
@@ -560,22 +563,30 @@ void out_gen_done_handler (uint32_t out_gen_state)
 void light_sense_init(void)
 {
     log_printf("%s\n",__func__);
-    led_sense_init (config.led_sense_out_pin,
-                    config.led_sense_analog_in_pin,
-                    config.led_sense_off_val);
+//    led_sense_init (config.led_sense_out_pin,
+//                    config.led_sense_analog_in_pin,
+//                    config.led_sense_off_val);
+    
+    hal_gpio_cfg_output (config.led_sense_out_pin, 0);
+    hal_gpio_cfg(config.led_sense_analog_in_pin,
+            GPIO_PIN_CNF_DIR_Input,
+            GPIO_PIN_CNF_INPUT_Disconnect,
+            GPIO_PIN_CNF_PULL_Disabled,
+            GPIO_PIN_CNF_DRIVE_S0S1,
+            GPIO_PIN_CNF_SENSE_Disabled);
 }
 
 void light_sense_set_state(bool state)
 {
     if(state == true)
     {
-        led_sense_cfg_input(true);
+//        led_sense_cfg_input(true);
         //To make sure that the green LED is ready to sense light
-        hal_nop_delay_ms(LED_WAIT_TIME_MS);
+//        hal_nop_delay_ms(LED_WAIT_TIME_MS);
     }
     else
     {
-        led_sense_cfg_input(false);
+//        led_sense_cfg_input(false);
     }
 }
 
@@ -583,12 +594,15 @@ bool light_sense_light_check(oper_time_t oper_time)
 {
     log_printf("%d\n", __func__);
 
+    hal_gpio_pin_set (config.led_sense_out_pin);
     uint8_t light_sense_config = oper_time.day_or_night;
     uint32_t light_threshold =
             (uint32_t)((oper_time.threshold) * LIGHT_THRESHOLD_MULTIPLY_FACTOR);
 
-    uint32_t light_intensity = led_sense_get();
+//    uint32_t light_intensity = led_sense_get();
+    uint32_t light_intensity = simple_adc_get_value (SIMPLE_ADC_GAIN1_6, config.led_sense_analog_in_pin);
     log_printf("Light Intensity : %d\n", light_intensity);
+    hal_gpio_pin_clear (config.led_sense_out_pin);
 
     static bool light_check_flag = 0;
     //Day and its brighter than the threshold

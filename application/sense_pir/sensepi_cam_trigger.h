@@ -57,6 +57,7 @@ extern "C" {
  */
 typedef struct{
     sensepi_config_t * config_sensepi; ///Configuration received from mobile app
+    uint32_t pir_sense_enable; ///Pin number for PIR signal output
     uint32_t pir_sense_signal_input; ///Pin number for PIR signal output
     uint32_t pir_sense_offset_input; ///Pin number for PIR offset output
     uint32_t led_sense_out_pin;      ///Pin number for LED driving pin.

@@ -177,11 +177,12 @@ static uint32_t out_pin_array[] = {JACK_FOCUS_PIN, JACK_TRIGGER_PIN};
 static sensepi_cam_trigger_init_config_t sensepi_cam_trigger_default_config = 
 {
     .config_sensepi = &sensepi_ble_default_config,
-    .led_sense_analog_in_pin = PIN_TO_ANALOG_INPUT(LED_LIGHT_SENSE),
+    .led_sense_analog_in_pin = PIN_TO_ANALOG_INPUT(LDR_SENSE),
     .led_sense_off_val = !(LEDS_ACTIVE_STATE),
-    .led_sense_out_pin = LED_GREEN,
+    .led_sense_out_pin = LDR_SENSE_EN,
     .pir_sense_offset_input = PIN_TO_ANALOG_INPUT(PIR_AMP_OFFSET_PIN),
     .pir_sense_signal_input = PIN_TO_ANALOG_INPUT(PIR_AMP_SIGNAL_PIN),
+    .pir_sense_enable = PIR_VDD,
     .amp_cs_pin = MCP4012T_CS_PIN,
     .amp_ud_pin= MCP4012T_UD_PIN,
     .amp_spi_sck_pin = SPI_SCK_PIN,
@@ -564,8 +565,6 @@ int main(void)
 
     button_ui_init(BUTTON_PIN, APP_IRQ_PRIORITY_LOW,
             button_handler);
-    led_sense_init(LED_GREEN,
-            PIN_TO_ANALOG_INPUT(LED_LIGHT_SENSE), !LEDS_ACTIVE_STATE);
 
     {
         irq_msg_callbacks cb =
