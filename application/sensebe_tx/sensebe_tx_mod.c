@@ -131,7 +131,7 @@ static uint32_t light_check_sense_pin = 0;
 /**Global variable to store pin number of Light sensor control pin*/
 static uint32_t light_check_en_pin = 0;
 
-static uint32_t radio_mod_ticks_freq = 0;
+//static uint32_t radio_mod_ticks_freq = 0;
 
 /***********FUNCTIONS***********/
 /** Timer Module Related Functions. */
@@ -340,15 +340,15 @@ void light_sense_add_ticks (uint32_t interval)
 void radio_module_start ()
 {
     arr_is_mod_on[MOD_RADIO] = 1;
-    radio_trigger_init_t radio_init = 
-    {
-        .comm_direction = RADIO_TRIGGER_Rx,
-        .comm_freq = 95,
-        .irq_priority = APP_IRQ_PRIORITY_HIGH,
-        .radio_trigger_rx_callback = radio_module_trigger_handler,
-        .rx_on_time_ms = 1,
-    };
-    radio_trigger_init (&radio_init);
+//    radio_trigger_init_t radio_init = 
+//    {
+//        .comm_direction = RADIO_TRIGGER_Rx,
+//        .comm_freq = 95,
+//        .irq_priority = APP_IRQ_PRIORITY_HIGH,
+//        .radio_trigger_rx_callback = radio_module_trigger_handler,
+//        .rx_on_time_ms = 1,
+//    };
+//    radio_trigger_init (&radio_init);
     
     cam_trigger_config_t cam_trigg = 
     {
@@ -365,26 +365,26 @@ void radio_module_start ()
 
 void radio_module_add_mod_ticks ()
 {
-    static uint32_t radio_cnt = 0;
-    radio_cnt++;
-    if(radio_cnt >= radio_mod_ticks_freq)
-    {
-        radio_trigger_listen ();
-        radio_cnt = 0;
-    }
+//    static uint32_t radio_cnt = 0;
+//    radio_cnt++;
+//    if(radio_cnt >= radio_mod_ticks_freq)
+//    {
+//        radio_trigger_listen ();
+//        radio_cnt = 0;
+//    }
 }
 
 void radio_module_stop ()
 {
-    arr_is_mod_on[MOD_RADIO] = 0;
-    radio_trigger_shut ();
+//    arr_is_mod_on[MOD_RADIO] = 0;
+//    radio_trigger_shut ();
 }
 
 void radio_module_trigger_handler (void * p_trig, uint32_t len)
 {
-    uint32_t * buff = (uint32_t *)p_trig;
-    log_printf("%s : %d\n", __func__, buff[0]);
-    cam_trigger (buff[0]);
+//    uint32_t * buff = (uint32_t *)p_trig;
+//    log_printf("%s : %d\n", __func__, buff[0]);
+//    cam_trigger (buff[0]);
 }
 
 void timer_module_start ()
@@ -592,8 +592,8 @@ void sensebe_tx_rx_start (void)
         ir_tx_module_stop ();
     }
     
-    radio_mod_ticks_freq = RADIO_ON_FREQ_MS/
-        arr_module_tick_duration[sensebe_config.ir_tx_conf.ir_tx_speed];
+//    radio_mod_ticks_freq = RADIO_ON_FREQ_MS/
+//        arr_module_tick_duration[sensebe_config.ir_tx_conf.ir_tx_speed];
     
     ms_timer_start (SENSEBE_OPERATION_MS_TIMER, MS_REPEATED_CALL,
         MS_TIMER_TICKS_MS(arr_module_tick_duration[sensebe_config.ir_tx_conf.ir_tx_speed])

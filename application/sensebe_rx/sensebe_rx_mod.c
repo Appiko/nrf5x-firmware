@@ -287,7 +287,7 @@ void window_detect_handler ()
     arr_state_change[motion_state] ();
     tssp_detect_pulse_detect ();
     cam_trigger (MOD_MOTION);
-    radio_trigger_yell ();
+//    radio_trigger_yell ();
 }
 
 bool compare_margin(uint32_t data, uint32_t ref, uint32_t margin)
@@ -460,19 +460,19 @@ void motion_module_start ()
         .pre_focus_en = (bool)sensebe_config.cam_trigs[MOTION_ALL].pre_focus,
     };
     cam_trigger_set_trigger (&motion_cam_trig_config);
-    
-    radio_trigger_init_t radio_init = 
-    {
-        .comm_direction = RADIO_TRIGGER_Tx,
-        .comm_freq = 95,
-        .irq_priority = APP_IRQ_PRIORITY_HIGH,
-        .tx_on_freq_us = 500,
-        .tx_on_time_ms = 100,
-    };
-    radio_trigger_init (&radio_init);
-    
-    modules_t radio_payload = MOD_MOTION;
-    radio_trigger_memorize_data (&radio_payload, sizeof(modules_t));
+//    
+//    radio_trigger_init_t radio_init = 
+//    {
+//        .comm_direction = RADIO_TRIGGER_Tx,
+//        .comm_freq = 95,
+//        .irq_priority = APP_IRQ_PRIORITY_HIGH,
+//        .tx_on_freq_us = 500,
+//        .tx_on_time_ms = 100,
+//    };
+//    radio_trigger_init (&radio_init);
+//    
+//    modules_t radio_payload = MOD_MOTION;
+//    radio_trigger_memorize_data (&radio_payload, sizeof(modules_t));
     
 
     tssp_detect_config.window_duration_ticks =
@@ -685,7 +685,7 @@ void sensebe_tx_rx_start (void)
 void sensebe_tx_rx_stop (void)
 {
     log_printf("%s\n", __func__);
-    radio_trigger_shut ();
+//    radio_trigger_shut ();
     cam_trigger_stop ();
     motion_module_stop ();
     timer_module_stop ();

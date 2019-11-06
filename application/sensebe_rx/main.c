@@ -163,8 +163,8 @@ sensebe_tx_rx_config_t default_sensebe_tx_rx_config =
     .rx_detect_config.rx_out_pin = TSSP_RX_OUT,
     .cam_config.focus_pin_no = JACK_FOCUS_PIN,
     .cam_config.trigger_pin_no = JACK_TRIGGER_PIN,
-    .light_sense_config.photodiode_pin = PIN_TO_ANALOG_INPUT(PHOTODIODE_LIGHT_SENSE),
-    .light_sense_config.photodiode_en_pin = PHOTODIODE_LIGHT_SENSE_EN,
+    .light_sense_config.photodiode_pin = PIN_TO_ANALOG_INPUT(LIGHT_SENSE),
+    .light_sense_config.photodiode_en_pin = LIGHT_SENSE_EN,
     
     .sensebe_config = &sensebe_ble_default_config,
     
