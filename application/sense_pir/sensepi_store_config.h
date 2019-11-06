@@ -20,8 +20,8 @@
  * @addtogroup sense_appln
  * @{
  * 
- * @defgroup store_sensepi_config The support code to store sensepi_configs in flash
- * @brief Functions to store and manage sensepi_configs in non volatile memory. 
+ * @defgroup store_sensepi_ble_config The support code to store sensepi_ble_configs in flash
+ * @brief Functions to store and manage sensepi_ble_configs in non volatile memory. 
  * This will enable the firmware to reload the previously written config in case 
  * of power reset or system reset.
  * @{
@@ -30,8 +30,36 @@
 #ifndef SENSEPI_STORE_CONFIG_H
 #define SENSEPI_STORE_CONFIG_H
 
+
+#if SYS_CFG_PRESENT == 1
+#include "sys_config.h"
+#endif 
+
+
 #include "sensepi_ble.h"
 
+
+#ifndef LOG_ID_SENSEPI_STORE_CONFIG 
+#define LOG_ID_SENSEPI_STORE_CONFIG 0
+#endif
+
+#ifndef PAGES_USED_SENSEPI_STORE_CONFIG 
+#define PAGES_USED_SENSEPI_STORE_CONFIG 2
+#endif
+
+#ifndef START_PAGE_SENSEPI_STORE_CONFIG 
+#define START_PAGE_SENSEPI_STORE_CONFIG NVM_LOG_PAGE0
+#endif
+
+typedef struct
+{
+    sensepi_ble_config_t ble_config;
+    uint32_t fw_ver_int;
+}sensepi_store_config_t;
+
+
+void sensepi_store_config_init ();
+        
 /**
  * @breif Function to check if memory where config is to be written is empty.
  * @return Memory status.
@@ -41,26 +69,26 @@
 bool sensepi_store_config_is_memory_empty (void);
 
 /**
- * @brief Function to write the sensepi_config_t at address location received 
+ * @brief Function to write the sensepi_ble_config_t at address location received 
  * from @ref get_next_location().
  * 
  * @note all the previously stored configurations will be erased if return value 
  * of @ref sensepi_store_config_get_next_location() is 0xFFFFFFFF 
- * @param latest_config pointer to sensepi_config_t which is to be stored in memory.
+ * @param latest_config pointer to sensepi_ble_config_t which is to be stored in memory.
  */
-void sensepi_store_config_write (sensepi_config_t * latest_config);
+void sensepi_store_config_write (sensepi_store_config_t * latest_config);
 
 /**
- * @breif Function to get the last sensepi_config_t stored in flash. 
+ * @breif Function to get the last sensepi_ble_config_t stored in flash. 
  * 
  * @Warning This function cannot differentiate between single stored config and \
  * empty flash page. So make sure that there is at least one configuration \
  * stored in memory. Use @ref sensepi_store_config_is_memory_empty() function for 
  * that
  * 
- * @return pointer to last sensepi_config_t stored in flash.
+ * @return pointer to last sensepi_ble_config_t stored in flash.
  */
-sensepi_config_t * sensepi_store_config_get_last_config (void);
+sensepi_store_config_t * sensepi_store_config_get_last_config (void);
 
 /**
  * @brief Function to check the major number of firmware if latest major number \

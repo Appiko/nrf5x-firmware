@@ -6,7 +6,9 @@ PINRESET_REQD   := CONFIG_GPIO_AS_PINRESET
 DEBUGGER        := BMP
 LOGGER          := LOG_UART_PRINTF
 FW_VER_VAL      := 0
-MS_TIMER_FREQ   := 100
+CONFIG_HEADER	:= 1
+SHARED_RESOURCES := 1
+MS_TIMER_FREQ   := 32768
 
 SD_USED         := s112
 SD_VER          := 6.0.0
@@ -60,10 +62,17 @@ C_SRC += hal_pwm.c
 C_SRC += led_ui.c
 C_SRC += led_seq.c
 C_SRC += sensepi_store_config.c
-C_SRC += sensepi_cam_trigger.c
+C_SRC += sensepi_func.c
 C_SRC += out_pattern_gen.c
 C_SRC += mcp4012_x.c
 C_SRC += dev_id_fw_ver.c
+C_SRC += nvm_logger.c
+C_SRC += aux_clk.c
+C_SRC += cam_trigger.c
+C_SRC += hal_ppi.c
+C_SRC += time_tracker.c
+C_SRC += slot_manage.c
+C_SRC += radio_trigger.c
 
 #Gets the name of the application folder
 APPLN = $(shell basename $(PWD))
@@ -74,6 +83,8 @@ CFLAGS_APP += -D$(PINRESET_REQD)
 CFLAGS_APP += -D$(LOGGER)
 CFLAGS_APP += -DFW_VER=$(FW_VER_VAL)
 CFLAGS_APP += -DMS_TIMER_FREQ=$(MS_TIMER_FREQ)
+CFLAGS_APP += -DSYS_CFG_PRESENT=$(CONFIG_HEADER)
+CFLAGS_APP += -DISR_MANAGER=$(SHARED_RESOURCES)
 
 #Lower case of BOARD
 BOARD_HEADER  = $(shell echo $(BOARD) | tr A-Z a-z)

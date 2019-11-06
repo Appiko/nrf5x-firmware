@@ -47,8 +47,8 @@ void hal_nvmc_write_data (void * p_destination, void * p_source, uint32_t size_o
     uint32_t start_address = ((uint32_t)p_destination/4)*4;  // to make it to floor
     uint32_t end_address = (CEIL_DIV(((uint32_t)p_destination + size_of_data), 4))*4; //
     uint32_t no_of_words = (end_address - start_address)/4;
-    log_printf("Start Address : %x, End Address : %x, Size in bytes : %d, No of words : %d\n",
-               start_address, end_address, size_of_data, no_of_words);
+//    log_printf("Start Address : %x, End Address : %x, Size in bytes : %d, No of words : %d\n",
+//               start_address, end_address, size_of_data, no_of_words);
     //To write the first word. Before writing check if data is aligned with Word lengths
     //And if not add proper masking.
     NRF_NVMC->CONFIG = NVMC_CONFIG_WEN_Wen;

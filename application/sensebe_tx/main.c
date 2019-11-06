@@ -151,7 +151,7 @@ static sensebe_config_t sensebe_ble_default_config = {
     .ir_tx_conf.oper_time.threshold = 0b0000000,
     .ir_tx_conf.is_enable = 1,
     .ir_tx_conf.ir_tx_speed = 1,
-    .ir_tx_conf.ir_tx_pwr = 1,
+    .ir_tx_conf.ir_tx_pwr = 2,
     
     .speed = FAST,
 

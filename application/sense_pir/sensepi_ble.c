@@ -28,24 +28,30 @@
 #include "log.h"
 #include "evt_sd_handler.h"
 #include "string.h"
+#include "math.h"
+
+#define SWI_IRQN SWI_IRQN_a(SWI_USED_SENSEPI_BLE)
+#define SWI_IRQN_a(n)  SWI_IRQN_b(n)
+#define SWI_IRQN_b(n)  SWI##n##_IRQn
+
+#define SWI_IRQ_Handler SWI_IRQ_Handler_a(SWI_USED_SENSEPI_BLE)
+#define SWI_IRQ_Handler_a(n) SWI_IRQ_Handler_b(n)
+#define SWI_IRQ_Handler_b(n) SWI##n##_IRQHandler
 
 /**< Name of device, to be included in the advertising data. */
 
-#define DEVICE_NAME_CHAR           'S','e','n','s','e','P','i'
-const uint8_t device_name[] = { DEVICE_NAME_CHAR };
 
-
-/** Complete 128 bit UUID of the SensePi service
- * 3c73dc50-07f5-480d-b066-837407fbde0a */
-#define SENSEPI_UUID_COMPLETE        0x0a, 0xde, 0xfb, 0x07, 0x74, 0x83, 0x66, 0xb0, 0x0d, 0x48, 0xf5, 0x07, 0x50, 0xdc, 0x73, 0x3c
-
-/** The 16 bit UUID of the Sense Pi service */
-#define SENSEPI_UUID_SERVICE         0xdc50
-
-/** The 16 bit UUID of the read-only System Info characteristic */
-#define SENSEPI_UUID_SYSINFO         0xdc51
-/** The 16 bit UUID of the read-write Config characteristic */
-#define SENSEPI_UUID_CONFIG          0xdc52
+///** Complete 128 bit UUID of the sensepi service
+// * 3c73dc60-07f5-480d-b066-837407fbde0a */
+//#define SENSEPI_UUID_COMPLETE        0x0a, 0xde, 0xfb, 0x07, 0x74, 0x83, 0x66, 0xb0, 0x0d, 0x48, 0xf5, 0x07, 0x60, 0xdc, 0x73, 0x3c
+//
+///** The 16 bit UUID of the Sense Be service */
+//#define SENSEPI_UUID_SERVICE         0xdc60
+//
+///** The 16 bit UUID of the read-only System Info characteristic */
+//#define SENSEPI_UUID_SYSINFO         0xdc61
+///** The 16 bit UUID of the read-write Config characteristic */
+//#define SENSEPI_UUID_CONFIG          0xdc62
 
 /**< Interval between advertisement packets (0.5 seconds). */
 #define ADVERTISING_INTERVAL       MSEC_TO_UNITS(500, UNIT_0_625_MS)
@@ -60,6 +66,17 @@ const uint8_t device_name[] = { DEVICE_NAME_CHAR };
 
 
 
+
+/** Buffer for when memory is requested by the client 
+ *  As the long data is sent in packets, it requires headers,
+ *  and hence, add 74 to the buffer.
+ * https://devzone.nordicsemi.com/f/nordic-q-a/18038/allocating-memory-for-queued-writes?ReplySortBy=CreatedDate&ReplySortOrder=Ascending
+ */
+uint8_t ble_gatts_buffer[sizeof(sensepi_ble_config_t) + 74];
+
+uint8_t data_buffer[sizeof(sensepi_ble_config_t)];
+
+sensepi_ble_config_t g_config;
 
 /** Handle to specify the advertising state to the soft device */
 uint8_t h_adv;
@@ -78,16 +95,23 @@ ble_gatts_char_handles_t h_sysinfo_char;
  * configuration parameters which are specified @ref sensepi_config_t */
 ble_gatts_char_handles_t h_config_char;
 
+const uint8_t ble_device_name[] = {DEVICE_NAME_CHAR};
+
+
 /** Handler to pass the BLE SoftDevice events to the application */
 void (* sensepi_ble_sd_evt)(ble_evt_t * evt);
-/** Handler to pass the received SensePi configuration to the application */
-void (* sensepi_config_t_update)(sensepi_config_t * cfg);
+/** Handler to pass the received sensepi configuration to the application */
+void (* sensepi_config_t_update)(sensepi_ble_config_t * cfg);
 
 sensepi_sysinfo curr_sysinfo;
 
 ///Called everytime the radio is switched off as per the
 /// radio notification by the SoftDevice
-void SWI1_IRQHandler(void)
+#if ISR_MANAGER == 1
+void sensepi_ble_swi_Handler ()
+#else
+void SWI_IRQ_Handler(void)
+#endif
 {
 //    log_printf("radio going down\n");
 }
@@ -99,53 +123,80 @@ void SWI1_IRQHandler(void)
  * @param evt The pointer to the buffer containing all the data
  *  related to the event
  */
-static void ble_evt_handler(ble_evt_t * evt)
-{
+static void ble_evt_handler(ble_evt_t * evt) {
     uint32_t err_code;
-    switch(evt->header.evt_id)
-    {
-    case BLE_GAP_EVT_CONNECTED:
-        h_conn = evt->evt.gap_evt.conn_handle;
-        break;
-    case BLE_GAP_EVT_DISCONNECTED:
-        h_conn = BLE_CONN_HANDLE_INVALID;
-        break;
-    case BLE_GATTS_EVT_WRITE:
-    {
-        sensepi_config_t * config =
-                (sensepi_config_t *) evt->evt.gatts_evt.params.write.data;
-        sensepi_config_t_update(config);
-        break;
-    }
-    case BLE_GATTS_EVT_EXCHANGE_MTU_REQUEST:
-    {
-        uint16_t mtu_val = BLE_GATT_ATT_MTU_DEFAULT;
-        err_code = sd_ble_gatts_exchange_mtu_reply(h_conn, mtu_val);
-        APP_ERROR_CHECK(err_code);
-        break;
-    }
-    case BLE_GAP_EVT_PHY_UPDATE_REQUEST:
-    {
-        ble_gap_phys_t const phys = {
-            .rx_phys = BLE_GAP_PHY_AUTO,
-            .tx_phys = BLE_GAP_PHY_AUTO,
-        };
 
-        err_code = sd_ble_gap_phy_update(h_conn, &phys);
-        APP_ERROR_CHECK(err_code);
-        break;
-    }
-    case BLE_GAP_EVT_PHY_UPDATE:
-    {
-        log_printf("Tx_get : %x  Rx_get : %x  Status : %x\n",
-                   evt->evt.gap_evt.params.phy_update.tx_phy, 
-                   evt->evt.gap_evt.params.phy_update.rx_phy,
-                   evt->evt.gap_evt.params.phy_update.status);
-        break;
-    }
-    }
+    switch (evt->header.evt_id) {
+        case BLE_GAP_EVT_CONNECTED:
+            h_conn = evt->evt.gap_evt.conn_handle;
+            break;
+        case BLE_GAP_EVT_DISCONNECTED:
+            h_conn = BLE_CONN_HANDLE_INVALID;
+            break;
+        case BLE_GATTS_EVT_WRITE:
+        {
+            ble_gatts_value_t val = {
+                .len = sizeof (data_buffer),
+                .p_value = data_buffer,
+                .offset = 0,
+            };
+            
+            err_code = sd_ble_gatts_value_get(h_conn, h_config_char.value_handle, &val);
+            APP_ERROR_CHECK(err_code);
 
+            sensepi_config_t_update((sensepi_ble_config_t *) data_buffer);
+            
+            break;
+        }
+        case BLE_GATTS_EVT_EXCHANGE_MTU_REQUEST:
+        {
+            uint16_t mtu_val = BLE_GATT_ATT_MTU_DEFAULT;
+            err_code = sd_ble_gatts_exchange_mtu_reply(h_conn, mtu_val);
+            APP_ERROR_CHECK(err_code);
+            break;
+        }
+        case BLE_GAP_EVT_PHY_UPDATE_REQUEST:
+        {
+            ble_gap_phys_t const phys = {
+                .rx_phys = BLE_GAP_PHY_AUTO,
+                .tx_phys = BLE_GAP_PHY_AUTO,
+            };
+
+            err_code = sd_ble_gap_phy_update(h_conn, &phys);
+            APP_ERROR_CHECK(err_code);
+            
+            break;
+        }
+        case BLE_GAP_EVT_PHY_UPDATE:
+        {
+            log_printf("Tx_get : %x  Rx_get : %x  Status : %x\n",
+                    evt->evt.gap_evt.params.phy_update.tx_phy,
+                    evt->evt.gap_evt.params.phy_update.rx_phy,
+                    evt->evt.gap_evt.params.phy_update.status);
+            break;
+        }
+        case BLE_EVT_USER_MEM_REQUEST:
+        {
+            log_printf("MEM_REQUEST \n");
+            
+            ble_user_mem_block_t mem_block = {
+                .p_mem = ble_gatts_buffer,
+                .len = sizeof(ble_gatts_buffer)
+            };
+            
+            err_code = sd_ble_user_mem_reply(h_conn, &mem_block);
+            APP_ERROR_CHECK(err_code);
+            
+            break;
+        }
+        case BLE_EVT_USER_MEM_RELEASE:
+        {
+            log_printf("mem_release size: %d\n", sizeof (ble_gatts_buffer));
+            break;
+        }
+    }
     sensepi_ble_sd_evt(evt);
+
 }
 
 /**
@@ -153,22 +204,18 @@ static void ble_evt_handler(ble_evt_t * evt)
  *  generated by the SoftdDevice.
  * @param evt_id The ID of the SoC event generated
  */
-static void soc_evt_handler(uint32_t evt_id)
-{
+static void soc_evt_handler(uint32_t evt_id) {
     log_printf("soc evt %x\n", evt_id);
 }
 
 void sensepi_ble_init(void (*ble_sd_evt)(ble_evt_t * evt),
-        void (* config_update)(sensepi_config_t * cfg))
-{
+        void (* config_update)(sensepi_ble_config_t * cfg)) {
     sensepi_ble_sd_evt = ble_sd_evt;
     sensepi_config_t_update = config_update;
 }
 
-void sensepi_ble_disconn(void)
-{
-    if(h_conn != BLE_CONN_HANDLE_INVALID)
-    {
+void sensepi_ble_disconn(void) {
+    if (h_conn != BLE_CONN_HANDLE_INVALID) {
         uint32_t err_code;
         err_code = sd_ble_gap_disconnect(h_conn,
                 BLE_HCI_REMOTE_USER_TERMINATED_CONNECTION);
@@ -176,12 +223,10 @@ void sensepi_ble_disconn(void)
     }
 }
 
-void sensepi_ble_update_sysinfo(sensepi_sysinfo * sysinfo)
-{
+void sensepi_ble_update_sysinfo(sensepi_sysinfo * sysinfo) {
     uint32_t err_code;
-    ble_gatts_value_t val =
-    {
-        .len = sizeof(sensepi_sysinfo),
+    ble_gatts_value_t val = {
+        .len = sizeof (sensepi_sysinfo),
         .offset = 0,
         .p_value = (uint8_t *) sysinfo
     };
@@ -190,23 +235,21 @@ void sensepi_ble_update_sysinfo(sensepi_sysinfo * sysinfo)
     APP_ERROR_CHECK(err_code);
 }
 
-void sensepi_ble_update_config(sensepi_config_t * config)
-{
+void sensepi_ble_update_config(sensepi_ble_config_t * config) {
     uint32_t err_code;
-    ble_gatts_value_t val =
-    {
-        .len = sizeof(sensepi_config_t),
+    ble_gatts_value_t val = {
+        .len = sizeof (sensepi_ble_config_t),
         .offset = 0,
-        .p_value = (uint8_t *) config
+        .p_value = (uint8_t *) config,
+
     };
+
     err_code = sd_ble_gatts_value_set(h_conn,
             h_config_char.value_handle, &val);
     APP_ERROR_CHECK(err_code);
 }
 
-
-void sensepi_ble_stack_init(void)
-{
+void sensepi_ble_stack_init(void) {
     uint32_t err_code;
     const nrf_clock_lf_cfg_t cfg = BOARD_LFCLKSRC_STRUCT;
 
@@ -228,26 +271,27 @@ void sensepi_ble_stack_init(void)
     APP_ERROR_CHECK(err_code);
 
     // Initialize Radio Notification software interrupt
-    err_code = sd_nvic_ClearPendingIRQ(SWI1_IRQn);
+    err_code = sd_nvic_ClearPendingIRQ(SWI_IRQN);
     APP_ERROR_CHECK(err_code);
 
-    err_code = sd_nvic_SetPriority(SWI1_IRQn, APP_IRQ_PRIORITY_LOWEST);
+    err_code = sd_nvic_SetPriority(SWI_IRQN, APP_IRQ_PRIORITY_LOWEST);
     APP_ERROR_CHECK(err_code);
 
-    err_code = sd_nvic_EnableIRQ(SWI1_IRQn);
+    err_code = sd_nvic_EnableIRQ(SWI_IRQN);
     APP_ERROR_CHECK(err_code);
 
     h_conn = BLE_CONN_HANDLE_INVALID;
 }
 
-void sensepi_ble_service_init(void)
-{
-    uint32_t   err_code;
+void sensepi_ble_service_init(void) {
+    uint32_t err_code;
     ble_uuid_t ble_uuid;
     uint8_t uuid_type;
 
     /**** Create the Sense Pi service *****/
-    ble_uuid128_t base_uuid = {{SENSEPI_UUID_COMPLETE}};
+    ble_uuid128_t base_uuid = {
+        SENSEPI_UUID_COMPLETE
+    };
     err_code = sd_ble_uuid_vs_add(&base_uuid, &uuid_type);
     APP_ERROR_CHECK(err_code);
 
@@ -263,7 +307,7 @@ void sensepi_ble_service_init(void)
     ble_gatts_attr_t attr_char_value;
     ble_gatts_attr_md_t attr_md;
 
-    memset(&char_md, 0, sizeof(char_md));
+    memset(&char_md, 0, sizeof (char_md));
 
     char_md.char_props.read = 1;
     char_md.char_props.write = 0;
@@ -276,7 +320,7 @@ void sensepi_ble_service_init(void)
     ble_uuid.type = uuid_type;
     ble_uuid.uuid = (SENSEPI_UUID_SYSINFO);
 
-    memset(&attr_md, 0, sizeof(attr_md));
+    memset(&attr_md, 0, sizeof (attr_md));
 
     BLE_GAP_CONN_SEC_MODE_SET_OPEN(&attr_md.read_perm);
     BLE_GAP_CONN_SEC_MODE_SET_NO_ACCESS(&attr_md.write_perm);
@@ -285,21 +329,21 @@ void sensepi_ble_service_init(void)
     attr_md.wr_auth = 0;
     attr_md.vlen = 0;
 
-    memset(&attr_char_value, 0, sizeof(attr_char_value));
+    memset(&attr_char_value, 0, sizeof (attr_char_value));
 
     attr_char_value.p_uuid = &ble_uuid;
     attr_char_value.p_attr_md = &attr_md;
-    attr_char_value.init_len = sizeof(sensepi_sysinfo);
+    attr_char_value.init_len = sizeof (sensepi_sysinfo);
     attr_char_value.init_offs = 0;
-    attr_char_value.max_len = sizeof(sensepi_sysinfo);
+    attr_char_value.max_len = sizeof (sensepi_sysinfo);
     attr_char_value.p_value = NULL;
 
     err_code = sd_ble_gatts_characteristic_add(
-        h_sensepi_service, &char_md, &attr_char_value, &h_sysinfo_char);
+            h_sensepi_service, &char_md, &attr_char_value, &h_sysinfo_char);
     APP_ERROR_CHECK(err_code);
 
     /**** Create the read-write characterisitc *****/
-    memset(&char_md, 0, sizeof(char_md));
+    memset(&char_md, 0, sizeof (char_md));
 
     char_md.char_props.read = 1;
     char_md.char_props.write = 1;
@@ -312,7 +356,7 @@ void sensepi_ble_service_init(void)
     ble_uuid.type = uuid_type;
     ble_uuid.uuid = (SENSEPI_UUID_CONFIG);
 
-    memset(&attr_md, 0, sizeof(attr_md));
+    memset(&attr_md, 0, sizeof (attr_md));
 
     BLE_GAP_CONN_SEC_MODE_SET_OPEN(&attr_md.read_perm);
     BLE_GAP_CONN_SEC_MODE_SET_OPEN(&attr_md.write_perm);
@@ -321,48 +365,46 @@ void sensepi_ble_service_init(void)
     attr_md.wr_auth = 0;
     attr_md.vlen = 0;
 
-    memset(&attr_char_value, 0, sizeof(attr_char_value));
+    memset(&attr_char_value, 0, sizeof (attr_char_value));
 
     attr_char_value.p_uuid = &ble_uuid;
     attr_char_value.p_attr_md = &attr_md;
-    attr_char_value.init_len = sizeof(sensepi_config_t);
+    attr_char_value.init_len = sizeof (sensepi_ble_config_t);
     attr_char_value.init_offs = 0;
-    attr_char_value.max_len = sizeof(sensepi_config_t);
+    attr_char_value.max_len = sizeof (sensepi_ble_config_t);
     attr_char_value.p_value = NULL;
 
     err_code = sd_ble_gatts_characteristic_add(
-        h_sensepi_service, &char_md, &attr_char_value,&h_config_char);
+            h_sensepi_service, &char_md, &attr_char_value, &h_config_char);
     APP_ERROR_CHECK(err_code);
 }
 
-void sensepi_ble_gap_params_init(void)
-{
-    uint32_t                err_code;
-    ble_gap_conn_params_t   gap_conn_params;
+void sensepi_ble_gap_params_init(void) {
+    uint32_t err_code;
+    ble_gap_conn_params_t gap_conn_params;
     ble_gap_conn_sec_mode_t sec_mode;
 
     BLE_GAP_CONN_SEC_MODE_SET_OPEN(&sec_mode);
 
     err_code = sd_ble_gap_device_name_set(
-        &sec_mode, (const uint8_t *)device_name, sizeof(device_name));
+            &sec_mode, (const uint8_t *) ble_device_name, sizeof (ble_device_name));
     APP_ERROR_CHECK(err_code);
 
-    memset(&gap_conn_params, 0, sizeof(gap_conn_params));
+    memset(&gap_conn_params, 0, sizeof (gap_conn_params));
 
     gap_conn_params.min_conn_interval = MIN_CONN_INTERVAL;
     gap_conn_params.max_conn_interval = MAX_CONN_INTERVAL;
-    gap_conn_params.slave_latency     = SLAVE_LATENCY;
-    gap_conn_params.conn_sup_timeout  = CONN_SUP_TIMEOUT;
+    gap_conn_params.slave_latency = SLAVE_LATENCY;
+    gap_conn_params.conn_sup_timeout = CONN_SUP_TIMEOUT;
 
     err_code = sd_ble_gap_ppcp_set(&gap_conn_params);
     APP_ERROR_CHECK(err_code);
 }
 
-void sensepi_ble_adv_init(sensepi_ble_adv_data_t * sensepi_ble_adv_data)
-{
+void sensepi_ble_adv_init(sensepi_ble_adv_data_t * sensepi_ble_adv_data) {
     h_adv = BLE_GAP_ADV_SET_HANDLE_NOT_SET;
     uint32_t err_code;
-    
+
     ble_gap_adv_data_t adv_payload;
 
     adv_payload.adv_data.p_data = sensepi_ble_adv_data->adv_data;
@@ -373,7 +415,7 @@ void sensepi_ble_adv_init(sensepi_ble_adv_data_t * sensepi_ble_adv_data)
 
     ble_gap_adv_params_t adv_params;
 
-    memset(&adv_params, 0, sizeof(adv_params));
+    memset(&adv_params, 0, sizeof (adv_params));
 
     //Set channel 37, 38 and 39 as advertising channels
     memset(adv_params.channel_mask, 0, 5);
@@ -398,13 +440,12 @@ void sensepi_ble_adv_init(sensepi_ble_adv_data_t * sensepi_ble_adv_data)
     adv_params.scan_req_notification = 0;
 
     err_code = sd_ble_gap_adv_set_configure(&h_adv,
-            (ble_gap_adv_data_t const *)&adv_payload,
+            (ble_gap_adv_data_t const *) &adv_payload,
             (ble_gap_adv_params_t const *) &adv_params);
     APP_ERROR_CHECK(err_code);
 }
 
-void sensepi_ble_adv_start(void)
-{
+void sensepi_ble_adv_start(void) {
     uint32_t err_code;
     err_code = sd_ble_gap_adv_start(h_adv, BLE_CONN_CFG_TAG_DEFAULT);
     APP_ERROR_CHECK(err_code);
