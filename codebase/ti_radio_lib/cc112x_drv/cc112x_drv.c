@@ -368,7 +368,7 @@ const registerSetting_t trial_Settings[]=
  * @return      void
  *
  */
-int radio_init(uint8_t config_select) {
+int radio_init(radio_config_id_t config_select) {
 
 	uint8_t i, writeByte, preferredSettings_length;
 	uint32_t bit_rate;
@@ -398,32 +398,33 @@ int radio_init(uint8_t config_select) {
 	/* give the tranciever time enough to complete reset cycle */
 	hal_nop_delay_us (16000);
 
+
 	switch (config_select) {
-	case 1:
+	case TI_1120_1K2:
 		preferredSettings_length = sizeof(preferredSettings_1200bps)/sizeof(registerSetting_t);
 		preferredSettings = (registerSetting_t *)preferredSettings_1200bps;
 		bit_rate = 12;
 		break;
-	case 2:
+	case TI_1120_38K4:
 		preferredSettings_length = sizeof(preferredSettings_38400bps)/sizeof(registerSetting_t);
 		preferredSettings = (registerSetting_t *)preferredSettings_38400bps;
 		bit_rate = 384;
 		break;
-	case 3:
+	case TI_1120_50K:
 		preferredSettings_length = sizeof(preferredSettings_50kbps)/sizeof(registerSetting_t);
 		preferredSettings = (registerSetting_t *)preferredSettings_50kbps;
 		bit_rate = 500;
 		break;
-	case 4:
+	case APPIKO_1120_0K3:
 		preferredSettings_length = sizeof(trial_Settings)/sizeof(registerSetting_t);
 		preferredSettings = (registerSetting_t *)trial_Settings;
 		bit_rate = 02;
 		break;
-	default:
-		preferredSettings_length = sizeof(preferredSettings_1200bps)/sizeof(registerSetting_t);
-		preferredSettings = (registerSetting_t *)preferredSettings_1200bps;
-		bit_rate = 12;
-		break;
+//	default:
+//		preferredSettings_length = sizeof(preferredSettings_1200bps)/sizeof(registerSetting_t);
+//		preferredSettings = (registerSetting_t *)preferredSettings_1200bps;
+//		bit_rate = 12;
+//		break;
 	}
 
 	/* Write registers to radio */

@@ -38,8 +38,17 @@
 #include "stdint.h"
 
 
+typedef enum 
+{
+    TI_1120_1K2,
+    TI_1120_38K4,
+    TI_1120_50K,
+    APPIKO_1120_0K3,
+            
+}radio_config_id_t;
+
 /* Initialize the radio hardware */
-int radio_init(uint8_t config_select);
+int radio_init(radio_config_id_t config_select);
 
 /* Prepare the radio with a packet to be sent */
 int radio_prepare(uint8_t *payload, uint16_t payload_len);
