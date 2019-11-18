@@ -29,6 +29,7 @@
 #include "common_util.h"
 #include "nvm_logger.h"
 #include "nrf_util.h"
+#include "light_nvm_ble.h"
 
 
 #define SAMPLE_FREQ_MS  1*60*1000
@@ -50,16 +51,48 @@ log_config_t default_log_config1 =
 light_log_t g_light_log;
 uint32_t g_light_sense_analog_pin = PIN_TO_ANALOG_INPUT(LIGHT_SENSE);
 
+static mod_ble_data_t ble_data;
+
+volatile uint8_t is_ble_conn = false;
+
+void HardFault_IRQHandler ()
+{
+    log_printf("%s\n", __func__);
+}
+
 void ms_timer_handler ()
 {
 //    hal_gpio_pin_toggle (LED_RED);
     g_light_log.light_sense = simple_adc_get_value (SIMPLE_ADC_GAIN1_6, g_light_sense_analog_pin);
     g_light_log.time_passed_min++;
-    nvm_logger_feed_data (LOG_ID, &g_light_log);
-    hal_nop_delay_ms (5);
+    if(is_ble_conn == 0)
+    {
+        nvm_logger_feed_data (LOG_ID, &g_light_log);
+        hal_nop_delay_ms (5);
+    }
 //    log_printf("Time :%4d, Value :%4d\n", g_light_log.time_passed_min, g_light_log.light_sense);
 }
+void ms_timer_2s ()
+{
+    log_printf("%s\n",__func__);
+    ble_data.light_val = simple_adc_get_value (SIMPLE_ADC_GAIN1_6, g_light_sense_analog_pin);
+//    light_nvm_ble_update_status_byte (&ble_data);
+    light_nvm_ble_notify (&ble_data);
+}
+void on_connect ()
+{
+    log_printf("%s\n", __func__);
+    is_ble_conn = 1;
+    ms_timer_start (MS_TIMER2, MS_REPEATED_CALL, MS_TIMER_TICKS_MS(2000), ms_timer_2s);
+    
+}
 
+void on_disconnect ()
+{
+    is_ble_conn = 0;
+    log_printf("%s\n", __func__);
+    ms_timer_stop (MS_TIMER2);
+}
 int main()
 {
     log_init();
@@ -75,7 +108,7 @@ int main()
     hal_gpio_pin_write(LED_GREEN, !LEDS_ACTIVE_STATE);
 }
     lfclk_init(LFCLK_SRC_Xtal);
-    ms_timer_init (APP_IRQ_PRIORITY_HIGH);
+    ms_timer_init (APP_IRQ_PRIORITY_LOWEST);
     nvm_logger_mod_init ();
     hal_gpio_cfg_output (LIGHT_SENSE_EN, 1);
     hal_gpio_pin_set (LIGHT_SENSE_EN);
@@ -101,7 +134,15 @@ int main()
     g_light_log.time_passed_min++;
     nvm_logger_feed_data (LOG_ID, &g_light_log);
     hal_nop_delay_ms (5);
-
+    {
+        light_nvm_ble_stack_init ();
+        light_nvm_ble_gap_params_init ();
+        light_nvm_ble_adv_init ();
+        light_nvm_ble_adv_start (on_connect, on_disconnect);
+        light_nvm_ble_service_init ();
+        ble_data.light_val = simple_adc_get_value (SIMPLE_ADC_GAIN1_6, g_light_sense_analog_pin);
+        light_nvm_ble_update_status_byte (&ble_data);
+    }
     while(1)
     {
         __WFI();

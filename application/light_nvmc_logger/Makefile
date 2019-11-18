@@ -38,6 +38,7 @@ C_SRC_DIRS += led_sequences
 
 C_SRC = main.c
 C_SRC += hal_clocks.c ms_timer.c
+C_SRC += nrf_assert.c app_error.c
 ifeq ($(LOGGER), LOG_SEGGER_RTT)
 C_SRC += SEGGER_RTT.c SEGGER_RTT_printf.c
 else ifeq ($(LOGGER), LOG_UART_DMA_PRINTF)
@@ -50,6 +51,11 @@ C_SRC += hal_nvmc.c
 C_SRC += nrf_util.c irq_msg_util.c
 C_SRC += nvm_logger.c
 C_SRC += simple_adc.c
+C_SRC += light_nvm_ble.c
+
+C_SRC += hal_wdt.c
+C_SRC += evt_sd_handler.c
+
 #Gets the name of the application folder
 APPLN = $(shell basename $(PWD))
 
