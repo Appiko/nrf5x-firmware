@@ -162,5 +162,5 @@ void nvm_logger_release_log (uint32_t log_id);
  * @param log_id ID for log from which total number of entries are to be fetched
  * @return Total number of entries from given log
  */
-uint32_t nvm_logger_get_total_entries (uint32_t log_id)
+uint32_t nvm_logger_get_total_entries (uint32_t log_id);
 #endif /* NVM_LOGGER_H */
