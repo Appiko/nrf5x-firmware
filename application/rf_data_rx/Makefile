@@ -1,5 +1,5 @@
 
-BOARD           := BOARD_BLUEY_1V1
+BOARD           := BOARD_SENSEELE_SMA_REV1
 SLNO            := 682073614
 BLE_REQD        := BLE_STACK_SUPPORT_REQD
 PINRESET_REQD   := CONFIG_GPIO_AS_PINRESET
@@ -58,7 +58,8 @@ else ifeq ($(LOGGER), LOG_UART_DMA_PRINTF)
 C_SRC += uart_printf.c tinyprintf.c
 else ifeq ($(LOGGER), LOG_UART_PRINTF)
 C_SRC += hal_uart.c tinyprintf.c
-else
+else ifeq ($(LOGGER), LOG_TEENSY)
+C_SRC += hal_uart.c tinyprintf.c
 endif
 C_SRC += hal_wdt.c
 C_SRC += nrf_util.c 

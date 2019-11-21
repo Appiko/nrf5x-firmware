@@ -27,6 +27,7 @@
 
 #include <stdbool.h>
 #include <stdint.h>
+#include <string.h>
 #include "math.h"
 
 #include "nrf.h"
@@ -49,13 +50,16 @@
 #include "cc1x_utils.h"
 #include "cc112x_def.h"
 
+#ifdef LOG_TEENSY
+#include "hal_uart.h"
+#endif
 
 /**
  * @brief Rx buffer declaration: how to store the received data
  */
 uint8_t vectcRxBuff[128], cRxData;
 
-uint16_t current_pkt_no;
+//uint16_t current_pkt_no;
 
 volatile bool is_timer_on = false;
 
@@ -70,7 +74,9 @@ int32_t rssi_sum = 0;
 */
 #define GPIOTE_CHANNEL_USED 0
 
-#define GPIO_PIN GPIO0
+#define GPIO_PIN CC_GPIO2
+
+#define TESTING_MODE 0
 
 #define TEST_DURATION_S 100
 
@@ -87,6 +93,40 @@ int32_t rssi_sum = 0;
 static mod_ble_data_t ble_data;
 
 static volatile bool is_connected = false;
+
+uint8_t g_arr_mac_addr[6];
+
+typedef struct
+{
+    uint8_t MAC[6];
+    char char_id;
+}lookup_entry_t;
+
+const lookup_entry_t lookup_table[] = 
+{
+    {
+        .MAC = {0xb5, 0x7f, 0x9f, 0x9c, 0x56, 0x4c},
+            .char_id = 'A',
+    },
+    {
+        .MAC = {0xf7, 0xdc, 0xe1, 0x70, 0x3f, 0xcc},
+            .char_id = 'B',
+    },
+    {
+        .MAC = {0xda, 0xcb, 0x3f, 0xcf, 0x5d, 0x32},
+            .char_id = 'C',
+    },
+    {
+        .MAC = {0x9a, 0x7c, 0xdd, 0xd4, 0x34, 0xe4},
+            .char_id = 'D',
+    },
+    {
+        .MAC = {0x1e, 0x99, 0x4c, 0x7b, 0xf0, 0x28},
+            .char_id = 'E',
+    },
+
+};
+
 void ms_timer_handler ()
 {
     log_printf ("Packets dropped in %d sec : %d\n",TEST_DURATION_S, TEST_DURATION_S - pkt_no);
@@ -95,7 +135,7 @@ void ms_timer_handler ()
 //    log_printf ("%d, %d, %d, %d, %d, %d\n", MODULATION_SELECT, DATARATE, FREQ_DEVIATION,
 //                BANDWIDTH, PREAMBLE_LENGTH, SYNC_LENGTH);
     
-    log_printf ("Packet no.s : S %d, C %d\n", start_pkt_no, current_pkt_no);
+//    log_printf ("Packet no.s : S %d, C %d\n", start_pkt_no, current_pkt_no);
     is_timer_on = false;
   
 }
@@ -103,29 +143,29 @@ void ms_timer_handler ()
 /** @brief Configure the RGB LED pins as output and turn off LED */
 static void rgb_led_init(void)
 {
-    hal_gpio_cfg_output(LED_RED, !(LEDS_ACTIVE_STATE));
-    hal_gpio_cfg_output(LED_GREEN, !(LEDS_ACTIVE_STATE));
-    hal_gpio_cfg_output(LED_BLUE, !(LEDS_ACTIVE_STATE));
+//    hal_gpio_cfg_output(LED_RED, !(LEDS_ACTIVE_STATE));
+//    hal_gpio_cfg_output(LED_GREEN, !(LEDS_ACTIVE_STATE));
+//    hal_gpio_cfg_output(LED_BLUE, !(LEDS_ACTIVE_STATE));
 }
 
 /** @brief Configure the RGB LED pins as output and turn off LED */
 static void rgb_led_cycle(void)
 {
-    hal_gpio_pin_write(LED_RED, (LEDS_ACTIVE_STATE));
-    hal_gpio_pin_write(LED_GREEN, !(LEDS_ACTIVE_STATE));
-    hal_gpio_pin_write(LED_BLUE, !(LEDS_ACTIVE_STATE));
-    hal_nop_delay_ms(50);
-    hal_gpio_pin_write(LED_RED, !(LEDS_ACTIVE_STATE));
-    hal_gpio_pin_write(LED_GREEN, (LEDS_ACTIVE_STATE));
-    hal_gpio_pin_write(LED_BLUE, !(LEDS_ACTIVE_STATE));
-    hal_nop_delay_ms(50);
-    hal_gpio_pin_write(LED_RED, !(LEDS_ACTIVE_STATE));
-    hal_gpio_pin_write(LED_GREEN, !(LEDS_ACTIVE_STATE));
-    hal_gpio_pin_write(LED_BLUE, (LEDS_ACTIVE_STATE));
-    hal_nop_delay_ms(50);
-    hal_gpio_pin_write(LED_RED, !(LEDS_ACTIVE_STATE));
-    hal_gpio_pin_write(LED_GREEN, !(LEDS_ACTIVE_STATE));
-    hal_gpio_pin_write(LED_BLUE, !(LEDS_ACTIVE_STATE));
+//    hal_gpio_pin_write(LED_RED, (LEDS_ACTIVE_STATE));
+//    hal_gpio_pin_write(LED_GREEN, !(LEDS_ACTIVE_STATE));
+//    hal_gpio_pin_write(LED_BLUE, !(LEDS_ACTIVE_STATE));
+//    hal_nop_delay_ms(50);
+//    hal_gpio_pin_write(LED_RED, !(LEDS_ACTIVE_STATE));
+//    hal_gpio_pin_write(LED_GREEN, (LEDS_ACTIVE_STATE));
+//    hal_gpio_pin_write(LED_BLUE, !(LEDS_ACTIVE_STATE));
+//    hal_nop_delay_ms(50);
+//    hal_gpio_pin_write(LED_RED, !(LEDS_ACTIVE_STATE));
+//    hal_gpio_pin_write(LED_GREEN, !(LEDS_ACTIVE_STATE));
+//    hal_gpio_pin_write(LED_BLUE, (LEDS_ACTIVE_STATE));
+//    hal_nop_delay_ms(50);
+//    hal_gpio_pin_write(LED_RED, !(LEDS_ACTIVE_STATE));
+//    hal_gpio_pin_write(LED_GREEN, !(LEDS_ACTIVE_STATE));
+//    hal_gpio_pin_write(LED_BLUE, !(LEDS_ACTIVE_STATE));
 }
 
 void ms_timer_10ms (void)
@@ -204,38 +244,55 @@ void GPIOTE_IRQHandler ()
 //            }
 //            rx_started = true;
 
-        hal_gpio_pin_toggle (LED_BLUE);
+//        hal_gpio_pin_toggle (LED_BLUE);
         
         /* Read the RX FIFO */
 //        S2LPSpiReadFifo(cRxData, (uint8_t *)&current_pkt_no);
         
-        cRxData = sizeof(vectcRxBuff);
+        cRxData = sizeof(uint8_t)*ARRAY_SIZE(vectcRxBuff);
         radio_read (vectcRxBuff, (uint8_t *)&cRxData);
+        memcpy (g_arr_mac_addr, vectcRxBuff, 6);
         /* Flush the RX FIFO */
-//        for(uint32_t i =0; i < cRxData; i++)
-//        {
-//            log_printf("%x  ", vectcRxBuff[i]);
-//        }
-//        log_printf("\n");
-
-        current_pkt_no = vectcRxBuff[0] | (vectcRxBuff[1] << 8);
+        log_printf("MAC ");
+        for(uint32_t i =0; i < ARRAY_SIZE(g_arr_mac_addr); i++)
+        {
+            log_printf(": %x  ", g_arr_mac_addr[i]);
+        }
+        log_printf("\n");
+#ifdef LOG_TEENSY        
+        bool l_match_found = false;
+        uint32_t l_lkp_cnt;
+        while(l_match_found == false)
+        {
+            if((memcmp (g_arr_mac_addr, lookup_table[l_lkp_cnt].MAC, 6)) == 0)
+            {
+                l_match_found = true;
+                log_printf("%d : ", l_lkp_cnt);
+                hal_uart_putchar (lookup_table[l_lkp_cnt].char_id);
+                log_printf("\n");
+            }
+            l_lkp_cnt++;
+        }
+#endif
+//        current_pkt_no = vectcRxBuff[0] | (vectcRxBuff[1] << 8);
         pkt_no++;
         if(is_timer_on == false)
         {
+#if (TESTING_MODE==1)
             ms_timer_start (MS_TIMER0, MS_SINGLE_CALL, MS_TIMER_TICKS_MS(TEST_DURATION_MS), ms_timer_handler);
             is_timer_on = true;
             pkt_no = 0;
             rssi_sum = 0;
-            start_pkt_no = current_pkt_no;
+            start_pkt_no = 0;
+#endif
         }
-        log_printf("Test Val : %d, %d\n", current_pkt_no, vectcRxBuff[2]);
-//        S2LPGpioIrqClearStatus();
+        
         log_printf("RSSI : %d\n", (int8_t)radio_get_rssi ());
 //        if(is_connected)
         {
             ble_data.rf_rx_rssi = (uint8_t)radio_get_rssi ();
-            ble_data.pkt_no = current_pkt_no;
-            ble_data.mag_status = vectcRxBuff[2];
+            ble_data.pkt_no = pkt_no;
+            ble_data.mag_status = 0;
             ble_data.CRC_ERR = (uint8_t) radio_check_status_flag (MARC_PKT_DISC_CRC);
             rf_rx_ble_update_status_byte (&ble_data);
         }
@@ -243,9 +300,6 @@ void GPIOTE_IRQHandler ()
     }
     else
     {
-//        uint32_t irqs;
-//        S2LPGpioIrqGetStatus((S2LPIrqs*) &irqs);
-//        S2LPRefreshStatus();
         log_printf ("*** Data not ready.\n");
     }
 
@@ -260,6 +314,10 @@ int main(void)
     /* Initial printf */
     log_init();
     log_printf("Hello World from RF_RX..!!\n");
+
+#ifdef LOG_TEENSY
+    hal_uart_init(HAL_UART_BAUD_115200, NULL);
+#endif
     
 #if DC_DC_CIRCUITRY == true  //Defined in the board header file
     NRF_POWER->DCDCEN = POWER_DCDCEN_DCDCEN_Disabled << POWER_DCDCEN_DCDCEN_Pos;
@@ -267,52 +325,29 @@ int main(void)
     NRF_POWER->TASKS_LOWPWR = 1;
 
     ms_timer_init(APP_IRQ_PRIORITY_LOWEST);
-//    S2LPSpiInit ();
+    
+    hal_gpio_cfg_output (TCXO_EN_PIN, 1);
+    hal_gpio_pin_set (TCXO_EN_PIN);
     rgb_led_init();
     rgb_led_cycle();
-//    hal_gpio_cfg_output (SDN,0);
-//    hal_gpio_pin_set (SDN);
-//    hal_nop_delay_ms (1);
-//    hal_gpio_pin_clear (SDN);
-    radio_init(4);
+    radio_init(APPIKO_1120_0K3);
     radio_set_freq (915000);
-    set_rf_packet_length (3);
+    set_rf_packet_length (6);
 
-    hal_gpio_cfg_output (LNA_EN_PIN, 1);
+//    hal_gpio_cfg_output (LNA_EN_PIN, 1);
     hal_gpio_cfg_input (GPIO_PIN, HAL_GPIO_PULL_DOWN);
     NRF_GPIOTE->CONFIG[GPIOTE_CHANNEL_USED] = ((GPIOTE_CONFIG_MODE_Event << GPIOTE_CONFIG_MODE_Pos) & GPIOTE_CONFIG_MODE_Msk) |
         ((GPIOTE_CONFIG_POLARITY_HiToLo << GPIOTE_CONFIG_POLARITY_Pos)&GPIOTE_CONFIG_POLARITY_Msk) |
         ((GPIO_PIN << GPIOTE_CONFIG_PSEL_Pos) & GPIOTE_CONFIG_PSEL_Msk);
     NRF_GPIOTE->INTENSET = (GPIOTE_INTENSET_IN0_Enabled<<GPIOTE_INTENSET_IN0_Pos)&GPIOTE_INTENSET_IN0_Msk;
 
-//    S2LPGpioInit(&xGpioIRQ);  
-//    S2LPRadioInit(&xRadioInit);
-////    S2LPRadioSetMaxPALevel(S_DISABLE);
-////    S2LPRadioSetPALeveldBm(7,POWER_DBM);
-////    S2LPRadioSetPALevelMaxIndex(7);
-////    S2LPRadioSetMaxPALevel(S_ENABLE);
-//    S2LPPktBasicInit(&xBasicInit);
-//    S2LPGpioIrqDeInit(NULL);
-//    {
-////        S2LPGpioIrqConfig(RX_DATA_DISC,S_ENABLE);
-////        S2LPGpioIrqConfig(RX_DATA_READY,S_ENABLE);
-//
-//        /* payload length config */
-//        S2LPPktBasicSetPayloadLength(2);
-//
-//        /* RX timeout config */
-//    SET_INFINITE_RX_TIMEOUT();
-//    }
-//
-//
-//    S2LPGpioIrqClearStatus();
     
     rf_rx_ble_stack_init ();
     rf_rx_ble_gap_params_init ();
     rf_rx_ble_adv_init ();
     rf_rx_ble_adv_start (on_connect);
     rf_rx_ble_service_init ();
-
+//
     ble_data.rf_rx_rssi = 0;
     rf_rx_ble_update_status_byte (&ble_data);
 

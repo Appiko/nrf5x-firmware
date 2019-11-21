@@ -97,7 +97,7 @@
 
 #define GPIOTE_CHANNEL_USED 0
 
-#define GPIO_PIN GPIO0
+#define GPIO_PIN CC_GPIO2
 
 
 
@@ -124,8 +124,8 @@ void ms_timer_handler ()
     arr_test[1] = (uint8_t) ((test_cnt & 0xFF00) >> 8);
     arr_test[2] = hal_gpio_pin_read (HALL_PIN);
     radio_send (arr_test, (sizeof(uint8_t) * ARRAY_SIZE(arr_test)));
-//    radio_transmit ();
 //    radio_prepare ((unsigned char *)arr_test, (uint16_t)sizeof(arr_test));
+//    radio_transmit ();
     
 //    hal_nop_delay_ms(50);
 //    radio_idle ();
@@ -139,29 +139,29 @@ void ms_timer_handler ()
 /** @brief Configure the RGB LED pins as output and turn off LED */
 static void rgb_led_init(void)
 {
-    hal_gpio_cfg_output(LED_RED, !(LEDS_ACTIVE_STATE));
-    hal_gpio_cfg_output(LED_GREEN, !(LEDS_ACTIVE_STATE));
-    hal_gpio_cfg_output(LED_BLUE, !(LEDS_ACTIVE_STATE));
+//    hal_gpio_cfg_output(LED_RED, !(LEDS_ACTIVE_STATE));
+//    hal_gpio_cfg_output(LED_GREEN, !(LEDS_ACTIVE_STATE));
+//    hal_gpio_cfg_output(LED_BLUE, !(LEDS_ACTIVE_STATE));
 }
 
 /** @brief Configure the RGB LED pins as output and turn off LED */
 static void rgb_led_cycle(void)
 {
-    hal_gpio_pin_write(LED_RED, (LEDS_ACTIVE_STATE));
-    hal_gpio_pin_write(LED_GREEN, !(LEDS_ACTIVE_STATE));
-    hal_gpio_pin_write(LED_BLUE, !(LEDS_ACTIVE_STATE));
-    hal_nop_delay_ms(250);
-    hal_gpio_pin_write(LED_RED, !(LEDS_ACTIVE_STATE));
-    hal_gpio_pin_write(LED_GREEN, (LEDS_ACTIVE_STATE));
-    hal_gpio_pin_write(LED_BLUE, !(LEDS_ACTIVE_STATE));
-    hal_nop_delay_ms(250);
-    hal_gpio_pin_write(LED_RED, !(LEDS_ACTIVE_STATE));
-    hal_gpio_pin_write(LED_GREEN, !(LEDS_ACTIVE_STATE));
-    hal_gpio_pin_write(LED_BLUE, (LEDS_ACTIVE_STATE));
-    hal_nop_delay_ms(250);
-    hal_gpio_pin_write(LED_RED, !(LEDS_ACTIVE_STATE));
-    hal_gpio_pin_write(LED_GREEN, !(LEDS_ACTIVE_STATE));
-    hal_gpio_pin_write(LED_BLUE, !(LEDS_ACTIVE_STATE));
+//    hal_gpio_pin_write(LED_RED, (LEDS_ACTIVE_STATE));
+//    hal_gpio_pin_write(LED_GREEN, !(LEDS_ACTIVE_STATE));
+//    hal_gpio_pin_write(LED_BLUE, !(LEDS_ACTIVE_STATE));
+//    hal_nop_delay_ms(250);
+//    hal_gpio_pin_write(LED_RED, !(LEDS_ACTIVE_STATE));
+//    hal_gpio_pin_write(LED_GREEN, (LEDS_ACTIVE_STATE));
+//    hal_gpio_pin_write(LED_BLUE, !(LEDS_ACTIVE_STATE));
+//    hal_nop_delay_ms(250);
+//    hal_gpio_pin_write(LED_RED, !(LEDS_ACTIVE_STATE));
+//    hal_gpio_pin_write(LED_GREEN, !(LEDS_ACTIVE_STATE));
+//    hal_gpio_pin_write(LED_BLUE, (LEDS_ACTIVE_STATE));
+//    hal_nop_delay_ms(250);
+//    hal_gpio_pin_write(LED_RED, !(LEDS_ACTIVE_STATE));
+//    hal_gpio_pin_write(LED_GREEN, !(LEDS_ACTIVE_STATE));
+//    hal_gpio_pin_write(LED_BLUE, !(LEDS_ACTIVE_STATE));
 }
 
 void ms_timer_10ms (void)
@@ -191,7 +191,7 @@ void GPIOTE_IRQHandler ()
 {
     log_printf("%s\n",__func__);
     NRF_GPIOTE->EVENTS_IN[GPIOTE_CHANNEL_USED] = 0;
-    hal_gpio_pin_toggle (LED_RED);
+//    hal_gpio_pin_toggle (LED_RED);
 //    S2LPGpioInit(&xGpioIRQ);  
     if(radio_check_status_flag (MARC_NO_FAILURE) )
     {
@@ -221,15 +221,17 @@ int main(void)
 //        arr_test[cnt] = cnt+1;
 //    }
     test_cnt = 0;
+    hal_gpio_cfg_output (TCXO_EN_PIN, 1);
+    hal_gpio_pin_set (TCXO_EN_PIN);
 //    S2LPSpiInit ();
 
-    radio_init(4);
-    radio_set_freq (915000);
+    radio_init(APPIKO_1120_0K3);
+    radio_set_freq (866000);
 //    set_rf_packet_length ((unsigned char)sizeof(arr_test));
 //    radio_prepare ((unsigned char *)&test_cnt, (uint16_t)sizeof(test_cnt));
     set_rf_packet_length (sizeof(uint8_t) * ARRAY_SIZE(arr_test));
     log_printf("Here..!!\n");
-    hal_gpio_cfg_output (PA_EN_PIN, 1);
+//    hal_gpio_cfg_output (PA_EN_PIN, 1);
 
     hal_gpio_cfg_input (GPIO_PIN, HAL_GPIO_PULL_DISABLED);
     NRF_GPIOTE->CONFIG[GPIOTE_CHANNEL_USED] = ((GPIOTE_CONFIG_MODE_Event << GPIOTE_CONFIG_MODE_Pos) & GPIOTE_CONFIG_MODE_Msk) |
