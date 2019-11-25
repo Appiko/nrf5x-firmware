@@ -258,16 +258,23 @@ void light_nvm_ble_service_init(void)
     /**** Create the read-only characteristic *****/
     ble_gatts_char_md_t char_md;
     ble_gatts_attr_t attr_char_value;
+    ble_gatts_attr_md_t cccd_md;
     ble_gatts_attr_md_t attr_md;
+
+	memset(&cccd_md, 0, sizeof(cccd_md));
+
+    BLE_GAP_CONN_SEC_MODE_SET_OPEN (&cccd_md.read_perm);
+    BLE_GAP_CONN_SEC_MODE_SET_OPEN (&cccd_md.write_perm);
+    cccd_md.vloc = BLE_GATTS_VLOC_STACK;
 
     memset(&char_md, 0, sizeof(char_md));
 
     char_md.char_props.read = 1;
-    char_md.char_props.write = 0;
+    char_md.char_props.notify = 1;
     char_md.p_char_user_desc = NULL;
     char_md.p_char_pf = NULL;
     char_md.p_user_desc_md = NULL;
-    char_md.p_cccd_md = NULL;
+    char_md.p_cccd_md = &cccd_md;
     char_md.p_sccd_md = NULL;
 
     ble_uuid.type = uuid_type;
@@ -460,6 +467,14 @@ void light_nvm_ble_notify (mod_ble_data_t * p_val)
     APP_ERROR_CHECK(err_code);
     ble_gatts_hvx_params_t hvx_params = 
     {
+        .handle = h_status_byte.value_handle,
+        .p_data = (uint8_t *)p_val,
+        .p_len = (uint16_t *)&data_size,
+        .type = BLE_GATT_HVX_NOTIFICATION,
+        .offset = 0,
+    };
+    ble_gatts_hvx_params_t hvx_params1 = 
+    {
         .handle = h_notify_byte.value_handle,
         .p_data = (uint8_t *)p_val,
         .p_len = (uint16_t *)&data_size,
@@ -467,6 +482,11 @@ void light_nvm_ble_notify (mod_ble_data_t * p_val)
         .offset = 0,
     };
     err_code = sd_ble_gatts_hvx (h_conn, &hvx_params);
+    if(err_code != NRF_ERROR_INVALID_STATE)
+    {
+        APP_ERROR_CHECK(err_code);
+    }
+    err_code = sd_ble_gatts_hvx (h_conn, &hvx_params1);
     if(err_code != NRF_ERROR_INVALID_STATE)
     {
         APP_ERROR_CHECK(err_code);
