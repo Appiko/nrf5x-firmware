@@ -134,10 +134,10 @@ static sensebe_config_t sensebe_ble_default_config = {
     .tssp_conf.oper_time.day_or_night = 1,
     .tssp_conf.oper_time.threshold = 0b0000000,
     .tssp_conf.detect_window = 100,
-    .tssp_conf.intr_trig_timer = 15,
+    .tssp_conf.intr_trig_timer = 30,
 
-    .cam_trigs[MOTION_ALL].mode = CAM_TRIGGER_LONG_PRESS,
-    .cam_trigs[MOTION_ALL].larger_value = 30,
+    .cam_trigs[MOTION_ALL].mode = CAM_TRIGGER_SINGLE_SHOT,
+    .cam_trigs[MOTION_ALL].larger_value = 0,
     .cam_trigs[MOTION_ALL].smaller_value = 0,
     .cam_trigs[MOTION_ALL].pre_focus = 0,
 
