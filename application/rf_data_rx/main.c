@@ -259,21 +259,23 @@ void GPIOTE_IRQHandler ()
             log_printf(": %x  ", g_arr_mac_addr[i]);
         }
         log_printf("\n");
-#ifdef LOG_TEENSY        
+        ble_data.pkt_no = 99;
         bool l_match_found = false;
-        uint32_t l_lkp_cnt;
-        while(l_match_found == false)
+        uint32_t l_lkp_cnt = 0;
+        while((l_match_found == false) && (l_lkp_cnt < 5))
         {
             if((memcmp (g_arr_mac_addr, lookup_table[l_lkp_cnt].MAC, 6)) == 0)
             {
                 l_match_found = true;
+                ble_data.pkt_no = l_lkp_cnt+1;
+#ifdef LOG_TEENSY        
                 log_printf("%d : ", l_lkp_cnt);
                 hal_uart_putchar (lookup_table[l_lkp_cnt].char_id);
                 log_printf("\n");
+#endif
             }
             l_lkp_cnt++;
         }
-#endif
 //        current_pkt_no = vectcRxBuff[0] | (vectcRxBuff[1] << 8);
         pkt_no++;
         if(is_timer_on == false)
@@ -291,7 +293,6 @@ void GPIOTE_IRQHandler ()
 //        if(is_connected)
         {
             ble_data.rf_rx_rssi = (uint8_t)radio_get_rssi ();
-            ble_data.pkt_no = pkt_no;
             ble_data.mag_status = 0;
             ble_data.CRC_ERR = (uint8_t) radio_check_status_flag (MARC_PKT_DISC_CRC);
             rf_rx_ble_update_status_byte (&ble_data);
