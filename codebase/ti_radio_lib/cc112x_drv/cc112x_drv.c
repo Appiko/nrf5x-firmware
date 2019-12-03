@@ -305,7 +305,7 @@ const registerSetting_t preferredSettings_50kbps[]=
 // Performance Mode = High Performance 
 // RX Filter BW = 8.000000 
 // Symbol rate = 0.3 
-// TX Power = 26 
+// TX Power = 15 
 // Whitening = false 
 
 const registerSetting_t trial_Settings[]=
@@ -329,7 +329,6 @@ const registerSetting_t trial_Settings[]=
     {FIFO_CFG,          0x00},
     {FS_CFG,            0x12},
     {PKT_CFG0,          0x20},
-    {PA_CFG2,           0x77},
     {PA_CFG0,           0x7E},
     {PKT_LEN,           0xFF},
     {IF_MIX_CFG,        0x00},
@@ -351,6 +350,7 @@ const registerSetting_t trial_Settings[]=
     {XOSC5,             0x0E},
     {XOSC1,             0x03},
 };
+
 
 
 /******************************************************************************
@@ -385,7 +385,6 @@ int radio_init(radio_config_id_t config_select) {
     hal_nop_delay_ms (1);
     hal_gpio_pin_set (RF_RESET_PIN);
 	trxRfSpiInterfaceInit();
-    log_printf("%s\n", __func__);
     
 //	/* remove the reset from the rf device */
 //	RF_RESET_N_PORT_SEL &= ~RF_RESET_N_PIN;
@@ -444,6 +443,7 @@ int radio_init(radio_config_id_t config_select) {
 #ifdef ENABLE_RANGE_EXTENDER
 	range_extender_init();
 #endif
+    log_printf("%s\n", __func__);
 
 	return bit_rate;
 }
@@ -555,7 +555,7 @@ int radio_send(uint8_t *payload, uint16_t payload_len) {
 	uint8_t pktLen;
 
 	trx16BitRegAccess(RADIO_READ_ACCESS|RADIO_BURST_ACCESS, 0x2F, 0xff & NUM_TXBYTES, &pktLen, 1);
-//    log_printf("Pkt : %d, %d\n", payload_len, pktLen);
+    log_printf("Pkt : %d, %d\n", payload_len, pktLen);
 
 	/* Range extender in TX mode */
 #ifdef ENABLE_RANGE_EXTENDER
@@ -593,7 +593,7 @@ int radio_read(uint8_t *buf, uint8_t *buf_len) {
 	trx16BitRegAccess(RADIO_READ_ACCESS, 0x2F, 0xff & NUM_RXBYTES, &pktLen, 1);
 //	pktLen = pktLen  & NUM_RXBYTES;    
 
-//    log_printf("Pkt :%d, %d\n",*buf_len, pktLen);
+    log_printf("Pkt :%d, %d\n",*buf_len, pktLen);
 	/* make sure the packet size is appropriate, that is 1 -> buffer_size */
 	if ((pktLen > 0) && (pktLen <= *buf_len)) {
 
@@ -614,7 +614,7 @@ int radio_read(uint8_t *buf, uint8_t *buf_len) {
 
 		/* if the length returned by the transciever does not make sense, flush it */
 
-        log_printf("Wrong..!!");
+        log_printf("Wrong..!!\n");
 		*buf_len = 0;                                // Return 0 indicating a failure
 		status = 0;                                  // Return 0 indicating a failure
 		trxSpiCmdStrobe(SFRX);	                     // Flush RXFIFO
@@ -854,6 +854,7 @@ int radio_set_freq(uint64_t freq) {
 	/* write the frequency word to the transciever */
 	trx16BitRegAccess(RADIO_WRITE_ACCESS | RADIO_BURST_ACCESS, 0x2F, (0xFF & FREQ2), freq_regs, 3);
 
+    log_printf("Here\n");
 	return 0;
 }
 

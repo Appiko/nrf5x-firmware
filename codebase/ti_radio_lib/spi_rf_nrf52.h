@@ -32,6 +32,12 @@
 #define RF_CS_PIN   23
 #define RF_RESET_PIN    24
 
+//#define RF_MISO_PIN 4
+//#define RF_MOSI_PIN 6
+//#define RF_SCK_PIN  5
+//#define RF_CS_PIN   2
+//#define RF_RESET_PIN   9
+
 #define LED1
 #define LED2
 #define LED3
