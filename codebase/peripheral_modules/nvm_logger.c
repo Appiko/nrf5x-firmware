@@ -416,4 +416,10 @@ void nvm_logger_release_log (uint32_t log_id)
     }
 }
 
+uint32_t nvm_logger_get_total_entries (uint32_t log_id)
+{
+    return LOGS[log_id].total_entries;
+}
+
+
 

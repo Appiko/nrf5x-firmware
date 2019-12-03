@@ -34,14 +34,28 @@
  * @{*/
 #define SPIM_ID CONCAT_2(NRF_SPIM,SPIM_USED)
 
-#define SPIM_IRQN SPIM_IRQN_a(SPIM_USED)
+
 #define SPIM_IRQ_Handler SPIM_IRQ_Handler_a(SPIM_USED)
-
 #define SPIM_IRQ_Handler_a(n) SPIM_IRQ_Handler_b(n)
+#ifdef NRF52832
 #define SPIM_IRQ_Handler_b(n) SPIM##n##_SPIS##n##_TWIM##n##_TWIS##n##_SPI##n##_TWI##n##_IRQHandler
+#endif
+#ifdef NRF52810
+#define SPIM_IRQ_Handler_b(n) SPIM##n##_SPIS##n##_IRQHandler
+#endif
 
+#define SPIM_IRQN SPIM_IRQN_a(SPIM_USED)
 #define SPIM_IRQN_a(n)  SPIM_IRQN_b(n)
+
+#ifdef NRF52840
 #define SPIM_IRQN_b(n)  SPIM##n##_SPIS##n##_TWIM##n##_TWIS##n##_SPI##n##_TWI##n##_IRQn
+#endif
+#ifdef NRF52810
+#define SPIM_IRQN_b(n)  SPIM##n##_SPIS##n##_IRQn
+#endif
+#ifdef NRF52832
+#define SPIM_IRQN_b(n)  SPIM##n##_SPIS##n##_TWIM##n##_TWIS##n##_SPI##n##_TWI##n##_IRQn
+#endif
 /** @} */
 
 /** variable to store CS Bar pin number */

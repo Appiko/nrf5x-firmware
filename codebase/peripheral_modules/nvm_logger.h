@@ -156,4 +156,6 @@ bool nvm_logger_is_log_empty (uint32_t log_id);
  * @Note Two logs cannot access the same log page.
  */
 void nvm_logger_release_log (uint32_t log_id);
+
+uint32_t nvm_logger_get_total_entries (uint32_t log_id);
 #endif /* NVM_LOGGER_H */

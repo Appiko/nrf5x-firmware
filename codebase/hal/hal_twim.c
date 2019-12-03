@@ -29,7 +29,7 @@ static struct {
     uint32_t sda;
     twim_transfer_t current_transfer;
     void (*handler)(twim_err_t err, twim_transfer_t transfer);
-    bool transfer_finished;
+    volatile bool transfer_finished;
     bool on;
     uint8_t evt_mask;
 }twim_status;
@@ -42,7 +42,17 @@ static struct {
 #define TWIM_IRQ_Handler      TWIM_IRQ_Handler_a(TWIM_USED)
 
 #define TWIM_IRQN_a(n)        TWIM_IRQN_b(n)
+
+#ifdef NRF52840
 #define TWIM_IRQN_b(n)        SPIM##n##_SPIS##n##_TWIM##n##_TWIS##n##_SPI##n##_TWI##n##_IRQn
+#endif
+#ifdef NRF52810
+#define TWIM_IRQN_b(n)        TWIM##n##_TWIS##n##_IRQn
+#endif
+
+#ifdef NRF52832
+#define TWIM_IRQN_b(n)        TWIM##n##_TWIS##n##_IRQn
+#endif
 
 #define TWIM_IRQ_Handler_a(n) TWIM_IRQ_Handler_b(n)
 #define TWIM_IRQ_Handler_b(n) SPIM##n##_SPIS##n##_TWIM##n##_TWIS##n##_SPI##n##_TWI##n##_IRQHandler
@@ -267,6 +277,12 @@ uint32_t hal_twim_get_current_adrs(void)
 {
     return TWIM_ID->ADDRESS;
 }
+
+uint8_t hal_twim_is_working (void)
+{
+    return (uint8_t) initial_txfr_check ();
+}
+
 #if ISR_MANAGER == 1
 void hal_twim_Handler (void)
 #else
