@@ -64,6 +64,10 @@
 
 #define GPIO_PIN CC_GPIO2
 
+#define GPIOTE_CHANNEL_MAG 1
+#define MAG_BUTTON HALL_EFFECT_PIN
+
+
 KXTJ3_g_data_t g_acce_data;
 
 uint8_t g_arr_mac_addr[6] = {};
@@ -193,6 +197,15 @@ void on_disconnect ()
         ((GPIOTE_CONFIG_POLARITY_HiToLo << GPIOTE_CONFIG_POLARITY_Pos)&GPIOTE_CONFIG_POLARITY_Msk) |
         ((GPIO_PIN << GPIOTE_CONFIG_PSEL_Pos) & GPIOTE_CONFIG_PSEL_Msk);
     NRF_GPIOTE->INTENSET = (GPIOTE_INTENSET_IN0_Enabled<<GPIOTE_INTENSET_IN0_Pos)&GPIOTE_INTENSET_IN0_Msk;
+    
+    hal_gpio_cfg_input (MAG_BUTTON, HAL_GPIO_PULL_DISABLED);
+    NRF_GPIOTE->CONFIG[GPIOTE_CHANNEL_MAG] = ((GPIOTE_CONFIG_MODE_Event << GPIOTE_CONFIG_MODE_Pos) & GPIOTE_CONFIG_MODE_Msk) |
+        ((GPIOTE_CONFIG_POLARITY_HiToLo << GPIOTE_CONFIG_POLARITY_Pos)&GPIOTE_CONFIG_POLARITY_Msk) |
+        ((MAG_BUTTON << GPIOTE_CONFIG_PSEL_Pos) & GPIOTE_CONFIG_PSEL_Msk);
+    NRF_GPIOTE->INTENSET |= (GPIOTE_INTENSET_IN1_Enabled<<GPIOTE_INTENSET_IN1_Pos)&GPIOTE_INTENSET_IN1_Msk;
+
+
+    NRF_GPIOTE->EVENTS_IN[GPIOTE_CHANNEL_MAG] = 0;
 
         ms_timer_start (MS_TIMER1, MS_REPEATED_CALL, MS_TIMER_TICKS_MS(1000), ms_timer_handler);
 
@@ -228,16 +241,23 @@ void i2c_busscan ()
 void GPIOTE_IRQHandler ()
 {
     log_printf("%s\n",__func__);
-    NRF_GPIOTE->EVENTS_IN[GPIOTE_CHANNEL_USED] = 0;
-//    hal_gpio_pin_toggle (LED_RED);
 //    S2LPGpioInit(&xGpioIRQ);  
-    if(radio_check_status_flag (MARC_NO_FAILURE) )
+    if(NRF_GPIOTE->EVENTS_IN[GPIOTE_CHANNEL_USED] & 
+       radio_check_status_flag (MARC_NO_FAILURE) )
     {
+        NRF_GPIOTE->EVENTS_IN[GPIOTE_CHANNEL_USED] = 0;
         log_printf("Data sent\n");
+//        hal_gpio_pin_toggle (TEST_LED);
 //        hal_gpio_pin_clear (PA_EN_PIN);
             trxSpiCmdStrobe (SFTX);
 
 //        S2LPGpioIrqClearStatus();
+    }
+    if(NRF_GPIOTE->EVENTS_IN[GPIOTE_CHANNEL_MAG])
+    {
+        NRF_GPIOTE->EVENTS_IN[GPIOTE_CHANNEL_MAG] = 0;
+        log_printf ("Magnet detected\n");
+        hal_gpio_pin_toggle (TEST_LED);
     }
 }
 
@@ -269,7 +289,9 @@ int main(void)
     
     hal_gpio_cfg_output (TCXO_EN_PIN, 1);
     hal_gpio_pin_set (TCXO_EN_PIN);
-
+    hal_gpio_cfg_output (TEST_LED, 0);
+ 
+    
     radio_init (APPIKO_1120_0K3);
     radio_set_freq (915000);
     
