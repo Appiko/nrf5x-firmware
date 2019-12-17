@@ -55,15 +55,12 @@
  */
 //static void trxReadWriteBurstSingle(uint8_t addr,uint8_t *pData,uint16_t len) ;
 
-void trxRfSpiInterfaceInit()
-{
-    log_printf("%s\n", __func__);
-    hal_gpio_cfg_output (RF_CS_PIN, 1);
-    hal_gpio_cfg_output (RF_SCK_PIN, 1);
-    hal_gpio_cfg_input (RF_MISO_PIN, HAL_GPIO_PULL_UP);
-    hal_gpio_cfg_output (RF_MOSI_PIN, 1);
-    hal_spim_init_t default_spim_config = 
-    {
+void trxRfSpiInterfaceInit() {
+    hal_gpio_cfg_output(RF_CS_PIN, 1);
+    hal_gpio_cfg_output(RF_SCK_PIN, 1);
+    hal_gpio_cfg_input(RF_MISO_PIN, HAL_GPIO_PULL_UP);
+    hal_gpio_cfg_output(RF_MOSI_PIN, 1);
+    hal_spim_init_t default_spim_config ={
         .csBar_pin = RF_CS_PIN,
         .miso_pin = RF_MISO_PIN,
         .mosi_pin = RF_MOSI_PIN,
@@ -75,12 +72,11 @@ void trxRfSpiInterfaceInit()
         .irq_priority = APP_IRQ_PRIORITY_HIGHEST,
         .tx_done_handler = NULL,
         .rx_done_handler = NULL,
-        
-    };
-    hal_spim_init (&default_spim_config);
-    
-}
 
+    };
+    hal_spim_init(&default_spim_config);
+
+}
 
 /*******************************************************************************
  * @fn          trx8BitRegAccess
@@ -103,45 +99,41 @@ void trxRfSpiInterfaceInit()
  *
  * @return      chip status
  */
-rfStatus_t trx8BitRegAccess(uint8_t accessType, uint8_t addrByte, uint8_t *pData, uint16_t len)
-{
-	uint8_t readValue;
+rfStatus_t trx8BitRegAccess(uint8_t accessType, uint8_t addrByte, uint8_t *pData, uint16_t len) {
+    uint8_t readValue;
 
-//	/* Pull CS_N low and wait for SO to go low before communication starts */
-//	RF_SPI_BEGIN();
-//	while(RF_PORT_IN & RF_MISO_PIN);
-//	/* send register address byte */
-//	RF_SPI_TX(accessType|addrByte);
-//	RF_SPI_WAIT_DONE();
-//	/* Storing chip status */
-//	readValue = RF_SPI_RX();
-//	trxReadWriteBurstSingle(accessType|addrByte,pData,len);
-//	RF_SPI_END();
-//	/* return the status byte value */
-  uint8_t tx_buff[257];
-  tx_buff[0] = accessType|addrByte;
-  uint8_t rx_buff[257];
-  
-  
-  if((accessType&RADIO_READ_ACCESS) == RADIO_READ_ACCESS)  
-  {
-      memset (&tx_buff[1], 0x00, len);
-      hal_spim_tx_rx (tx_buff, len+1, rx_buff, 1 + len);
-      while(hal_spim_is_busy ());
-      memcpy(pData,rx_buff  + 1, len); 
-  }
-  else if((accessType&RADIO_WRITE_ACCESS) == RADIO_WRITE_ACCESS)
-  {
-      memcpy (&tx_buff[1], pData, len);
-      hal_spim_tx_rx (tx_buff, len+1, rx_buff, 2);
-      while(hal_spim_is_busy ());
-  }
-  
-//  ((uint8_t*)&status)[1]=rx_buff[0];
-//  ((uint8_t*)&status)[0]=rx_buff[1];
-  readValue = rx_buff[0];
-  
-	return(readValue);
+    //	/* Pull CS_N low and wait for SO to go low before communication starts */
+    //	RF_SPI_BEGIN();
+    //	while(RF_PORT_IN & RF_MISO_PIN);
+    //	/* send register address byte */
+    //	RF_SPI_TX(accessType|addrByte);
+    //	RF_SPI_WAIT_DONE();
+    //	/* Storing chip status */
+    //	readValue = RF_SPI_RX();
+    //	trxReadWriteBurstSingle(accessType|addrByte,pData,len);
+    //	RF_SPI_END();
+    //	/* return the status byte value */
+    uint8_t tx_buff[257];
+    tx_buff[0] = accessType | addrByte;
+    uint8_t rx_buff[257];
+
+
+    if ((accessType & RADIO_READ_ACCESS) == RADIO_READ_ACCESS) {
+        memset(&tx_buff[1], 0x00, len);
+        hal_spim_tx_rx(tx_buff, len + 1, rx_buff, 1 + len);
+        while (hal_spim_is_busy());
+        memcpy(pData, rx_buff + 1, len);
+    } else if ((accessType & RADIO_WRITE_ACCESS) == RADIO_WRITE_ACCESS) {
+        memcpy(&tx_buff[1], pData, len);
+        hal_spim_tx_rx(tx_buff, len + 1, rx_buff, 2);
+        while (hal_spim_is_busy());
+    }
+
+    //  ((uint8_t*)&status)[1]=rx_buff[0];
+    //  ((uint8_t*)&status)[0]=rx_buff[1];
+    readValue = rx_buff[0];
+
+    return (readValue);
 }
 
 /******************************************************************************
@@ -165,48 +157,49 @@ rfStatus_t trx8BitRegAccess(uint8_t accessType, uint8_t addrByte, uint8_t *pData
  *
  * @return      rfStatus_t
  */
-rfStatus_t trx16BitRegAccess(uint8_t accessType, uint8_t extAddr, uint8_t regAddr, uint8_t *pData, uint8_t len)
-{
-	uint8_t readValue = 0;
+rfStatus_t trx16BitRegAccess(uint8_t accessType, uint8_t extAddr, uint8_t regAddr, uint8_t *pData, uint8_t len) {
+    uint8_t readValue = 0;
 
-//	RF_SPI_BEGIN();
-//	while(RF_PORT_IN & RF_MISO_PIN);
-//	/* send extended address byte with access type bits set */
-//	RF_SPI_TX(accessType|extAddr);
-//	RF_SPI_WAIT_DONE();
-//	/* Storing chip status */
-//	readValue = RF_SPI_RX();
-//	RF_SPI_TX(regAddr);
-//	RF_SPI_WAIT_DONE();
-//	/* Communicate len number of bytes */
-//	trxReadWriteBurstSingle(accessType|extAddr,pData,len);
-//	RF_SPI_END();
-	/* return the status byte value */
+    //	RF_SPI_BEGIN();
+    //	while(RF_PORT_IN & RF_MISO_PIN);
+    //	/* send extended address byte with access type bits set */
+    //	RF_SPI_TX(accessType|extAddr);
+    //	RF_SPI_WAIT_DONE();
+    //	/* Storing chip status */
+    //	readValue = RF_SPI_RX();
+    //	RF_SPI_TX(regAddr);
+    //	RF_SPI_WAIT_DONE();
+    //	/* Communicate len number of bytes */
+    //	trxReadWriteBurstSingle(accessType|extAddr,pData,len);
+    //	RF_SPI_END();
+    /* return the status byte value */
     uint8_t tx_buff[257];
-    tx_buff[0] = accessType|extAddr;
+    tx_buff[0] = accessType | extAddr;
     tx_buff[1] = regAddr;
     uint8_t rx_buff[257];
 
 
-  if((accessType&RADIO_READ_ACCESS) == RADIO_READ_ACCESS)  
-  {
-      memset (&tx_buff[2], 0x00, len);
-      hal_spim_tx_rx (tx_buff, len+2, rx_buff, len+2);
-      while(hal_spim_is_busy ());
-      memcpy(pData, &rx_buff[2], len);   
-  }
-  else if((accessType&RADIO_WRITE_ACCESS) == RADIO_WRITE_ACCESS)
-  {
-      memcpy (&tx_buff[2], pData, len);
-      hal_spim_tx_rx (tx_buff, len+2, rx_buff, 2);
-      while(hal_spim_is_busy ());
-  }
-  
-//  ((uint8_t*)&status)[1]=rx_buff[0];
-//  ((uint8_t*)&status)[0]=rx_buff[1];
+    if ((accessType & RADIO_READ_ACCESS) == RADIO_READ_ACCESS) {
+        memset(&tx_buff[2], 0x00, len);
+        hal_spim_tx_rx(tx_buff, len + 2, rx_buff, len + 2);
+        int time = 0;
+        while (hal_spim_is_busy() && time < 200) {
+            hal_nop_delay_ms(10);
+            time += 10;
+            break;
+        }
+        memcpy(pData, &rx_buff[2], len);
+    } else if ((accessType & RADIO_WRITE_ACCESS) == RADIO_WRITE_ACCESS) {
+        memcpy(&tx_buff[2], pData, len);
+        hal_spim_tx_rx(tx_buff, len + 2, rx_buff, 2);
+        while (hal_spim_is_busy());
+    }
+
+    //  ((uint8_t*)&status)[1]=rx_buff[0];
+    //  ((uint8_t*)&status)[0]=rx_buff[1];
     readValue = rx_buff[0];
-  
-    return(readValue);
+
+    return (readValue);
 }
 
 /*******************************************************************************
@@ -224,20 +217,19 @@ rfStatus_t trx16BitRegAccess(uint8_t accessType, uint8_t extAddr, uint8_t regAdd
  *
  * @return      status byte
  */
-rfStatus_t trxSpiCmdStrobe(uint8_t cmd)
-{
-	uint8_t rc;
-//	RF_SPI_BEGIN();
-//	while(RF_PORT_IN & RF_MISO_PIN);
-//	RF_SPI_TX(cmd);
-//	RF_SPI_WAIT_DONE();
-//	rc = RF_SPI_RX();
-//	RF_SPI_END();
-    hal_spim_tx_rx (&cmd, 1, NULL, 0);
-    while(hal_spim_is_busy ());
+rfStatus_t trxSpiCmdStrobe(uint8_t cmd) {
+    uint8_t rc;
+    //	RF_SPI_BEGIN();
+    //	while(RF_PORT_IN & RF_MISO_PIN);
+    //	RF_SPI_TX(cmd);
+    //	RF_SPI_WAIT_DONE();
+    //	rc = RF_SPI_RX();
+    //	RF_SPI_END();
+    hal_spim_tx_rx(&cmd, 1, NULL, 0);
+    while (hal_spim_is_busy());
     rc = 0;
 
-    return(rc);
+    return (rc);
 }
 
 /*******************************************************************************

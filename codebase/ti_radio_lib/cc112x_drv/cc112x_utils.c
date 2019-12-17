@@ -213,7 +213,7 @@ uint8_t set_rf_packet_length(uint8_t length) {
     
     regs_uint8_t = 0;
 	trx8BitRegAccess(RADIO_READ_ACCESS , PKT_LEN, &regs_uint8_t, 1);
-    log_printf("Pkt Len set to : %d\n", regs_uint8_t);
+//    log_printf("Pkt Len set to : %d\n", regs_uint8_t);
 
 
 	return (0);

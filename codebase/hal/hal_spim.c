@@ -86,7 +86,6 @@ void hal_spim_init (hal_spim_init_t * spim_init)
     SPIM_ID->INTENSET = spim_init->en_intr | SPIM_INTENSET_END_Msk;
         NVIC_SetPriority (SPIM_IRQN, APP_IRQ_PRIORITY_MID);
         NVIC_EnableIRQ (SPIM_IRQN);
-        log_printf("Intr En : %d\n", intr_enabled);
     if(intr_enabled != 0)
     {
         NVIC_SetPriority (SPIM_IRQN, spim_init->irq_priority);

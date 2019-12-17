@@ -139,7 +139,7 @@ void ms_timer_handler ()
     
     log_printf("mG data : %d %d %d\n", (g_acce_data.xg ),
                (g_acce_data.yg ),(g_acce_data.zg ));
-    
+    log_printf("%d,%d,%d\n",g_acce_data.xg,g_acce_data.yg,g_acce_data.zg);
     if((g_acce_data.xg > -866) && (g_acce_data.xg < 866))
     {
 //        set_rf_packet_length (sizeof(uint8_t) * ARRAY_SIZE(g_arr_mac_addr));

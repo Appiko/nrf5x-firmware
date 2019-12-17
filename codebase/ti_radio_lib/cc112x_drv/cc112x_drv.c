@@ -443,7 +443,7 @@ int radio_init(radio_config_id_t config_select) {
 #ifdef ENABLE_RANGE_EXTENDER
 	range_extender_init();
 #endif
-    log_printf("%s\n", __func__);
+    
 
 	return bit_rate;
 }
@@ -555,7 +555,6 @@ int radio_send(uint8_t *payload, uint16_t payload_len) {
 	uint8_t pktLen;
 
 	trx16BitRegAccess(RADIO_READ_ACCESS|RADIO_BURST_ACCESS, 0x2F, 0xff & NUM_TXBYTES, &pktLen, 1);
-    log_printf("Pkt : %d, %d\n", payload_len, pktLen);
 
 	/* Range extender in TX mode */
 #ifdef ENABLE_RANGE_EXTENDER
@@ -854,7 +853,6 @@ int radio_set_freq(uint64_t freq) {
 	/* write the frequency word to the transciever */
 	trx16BitRegAccess(RADIO_WRITE_ACCESS | RADIO_BURST_ACCESS, 0x2F, (0xFF & FREQ2), freq_regs, 3);
 
-    log_printf("Here\n");
 	return 0;
 }
 
