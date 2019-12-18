@@ -291,8 +291,15 @@ int main(void)
     hal_gpio_pin_set (TCXO_EN_PIN);
     hal_gpio_cfg_output (TEST_LED, 0);
  
-    
-    radio_init (APPIKO_1120_0K3);
+    radio_hw_config_t radio_hw = 
+    {
+        .miso_pin = MISO_PIN,
+        .mosi_pin = MOSI_PIN,
+        .csn_pin = CSN_PIN,
+        .sclk_pin = SCLK_PIN,
+        .reset_pin = CC_RESET_PIN
+    };
+    radio_init (APPIKO_1120_0K3, &radio_hw);
     radio_set_freq (915000);
     
     set_rf_packet_length (sizeof(uint8_t) * ARRAY_SIZE(g_arr_mac_addr));
