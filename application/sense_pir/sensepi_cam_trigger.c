@@ -592,31 +592,37 @@ void light_sense_set_state(bool state)
 
 bool light_sense_light_check(oper_time_t oper_time)
 {
-    log_printf("%d\n", __func__);
-
-    hal_gpio_pin_set (config.led_sense_out_pin);
-    uint8_t light_sense_config = oper_time.day_or_night;
-    uint32_t light_threshold =
-            (uint32_t)((oper_time.threshold) * LIGHT_THRESHOLD_MULTIPLY_FACTOR);
-
-//    uint32_t light_intensity = led_sense_get();
-    uint32_t light_intensity = simple_adc_get_value (SIMPLE_ADC_GAIN1_6, config.led_sense_analog_in_pin);
-    log_printf("Light Intensity : %d\n", light_intensity);
-    hal_gpio_pin_clear (config.led_sense_out_pin);
-
-    static bool light_check_flag = 0;
-    //Day and its brighter than the threshold
-    if(((light_sense_config == 1) && (light_intensity >= light_threshold))
-            ||  //Night and its dimmer than the threshold
-       ((light_sense_config == 0) && (light_intensity <= light_threshold)))
+    log_printf("%ss\n", __func__);
+    if(is_light_sense_on)
     {
-        light_check_flag = 1;
+        hal_gpio_pin_set (config.led_sense_out_pin);
+        uint8_t light_sense_config = oper_time.day_or_night;
+        uint32_t light_threshold =
+                (uint32_t)((oper_time.threshold) * LIGHT_THRESHOLD_MULTIPLY_FACTOR);
+
+    //    uint32_t light_intensity = led_sense_get();
+        uint32_t light_intensity = simple_adc_get_value (SIMPLE_ADC_GAIN1_6, config.led_sense_analog_in_pin);
+        log_printf("Light Intensity : %d\n", light_intensity);
+        hal_gpio_pin_clear (config.led_sense_out_pin);
+
+        static bool light_check_flag = 0;
+        //Day and its brighter than the threshold
+        if(((light_sense_config == 1) && (light_intensity >= light_threshold))
+                ||  //Night and its dimmer than the threshold
+           ((light_sense_config == 0) && (light_intensity <= light_threshold)))
+        {
+            light_check_flag = 1;
+        }
+        else
+        {
+            light_check_flag = 0;
+        }
+        return light_check_flag;
     }
     else
     {
-        light_check_flag = 0;
+        return true;
     }
-    return light_check_flag;
 }
 
 void module_manager_start_check(void)
@@ -1000,6 +1006,7 @@ void sensepi_cam_trigger_start()
     }
     is_light_sense_on = pir_light_flag || timer_light_flag; 
 
+    log_printf("Light Sense : %d\n", is_light_sense_on);
     config_pir.threshold = ((uint32_t) config.config_sensepi->pir_conf.threshold)
             *PIR_THRESHOLD_MULTIPLY_FACTOR;
     config_pir.handler = pir_handler;

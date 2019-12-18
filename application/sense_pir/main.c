@@ -159,8 +159,8 @@ static uint32_t conn_count;
 static sensepi_config_t sensepi_ble_default_config = {
     .pir_conf.oper_time.day_or_night = 1,
     .pir_conf.oper_time.threshold = 0b0000000,
-    .pir_conf.amplification = 20,
-    .pir_conf.threshold = 175,
+    .pir_conf.amplification = 1,
+    .pir_conf.threshold = 250,
     .pir_conf.mode = 0x00000000,
     .pir_conf.intr_trig_timer = 50,
     
@@ -177,9 +177,9 @@ static uint32_t out_pin_array[] = {JACK_FOCUS_PIN, JACK_TRIGGER_PIN};
 static sensepi_cam_trigger_init_config_t sensepi_cam_trigger_default_config = 
 {
     .config_sensepi = &sensepi_ble_default_config,
-    .led_sense_analog_in_pin = PIN_TO_ANALOG_INPUT(LDR_SENSE),
+    .led_sense_analog_in_pin = PIN_TO_ANALOG_INPUT(LIGHT_SENSE),
     .led_sense_off_val = !(LEDS_ACTIVE_STATE),
-    .led_sense_out_pin = LDR_SENSE_EN,
+    .led_sense_out_pin = LIGHT_SENSE_EN,
     .pir_sense_offset_input = PIN_TO_ANALOG_INPUT(PIR_AMP_OFFSET_PIN),
     .pir_sense_signal_input = PIN_TO_ANALOG_INPUT(PIR_AMP_SIGNAL_PIN),
     .pir_sense_enable = PIR_VDD,
