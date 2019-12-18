@@ -47,8 +47,17 @@ typedef enum
             
 }radio_config_id_t;
 
+typedef struct
+{
+    uint32_t mosi_pin;
+    uint32_t miso_pin;
+    uint32_t sclk_pin;
+    uint32_t csn_pin;
+    uint32_t reset_pin;
+}radio_hw_config_t;
+
 /* Initialize the radio hardware */
-int radio_init(radio_config_id_t config_select);
+int radio_init(radio_config_id_t config_select, radio_hw_config_t * hw_config);
 
 /* Prepare the radio with a packet to be sent */
 int radio_prepare(uint8_t *payload, uint16_t payload_len);

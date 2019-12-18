@@ -368,7 +368,7 @@ const registerSetting_t trial_Settings[]=
  * @return      void
  *
  */
-int radio_init(radio_config_id_t config_select) {
+int radio_init(radio_config_id_t config_select, radio_hw_config_t * hw_config) {
 
 	uint8_t i, writeByte, preferredSettings_length;
 	uint32_t bit_rate;
@@ -378,13 +378,13 @@ int radio_init(radio_config_id_t config_select) {
 	/* Instantiate transceiver RF SPI interface to SCLK ~ 4 MHz */
 	/* Input parameter is clockDivider */
 	/* SCLK frequency = SMCLK/clockDivider */
-    hal_gpio_cfg_output (RF_RESET_PIN, 1);
-    hal_gpio_pin_set (RF_RESET_PIN);
+    hal_gpio_cfg_output (hw_config->reset_pin, 1);
+    hal_gpio_pin_set (hw_config->reset_pin);
     hal_nop_delay_ms (1);
-    hal_gpio_pin_clear (RF_RESET_PIN);
+    hal_gpio_pin_clear (hw_config->reset_pin);
     hal_nop_delay_ms (1);
-    hal_gpio_pin_set (RF_RESET_PIN);
-	trxRfSpiInterfaceInit();
+    hal_gpio_pin_set (hw_config->reset_pin);
+	trxRfSpiInterfaceInit((rf_spi_hw_t * )hw_config);
     
 //	/* remove the reset from the rf device */
 //	RF_RESET_N_PORT_SEL &= ~RF_RESET_N_PIN;
