@@ -43,7 +43,7 @@
 
 
 /** The maximum number of transitions that can occur in the generated pattern */
-#define OUT_GEN_MAX_TRANSITIONS 64
+#define OUT_GEN_MAX_TRANSITIONS 128
 
 /** The maximum number of output pins for which pattern can be generated */
 #define OUT_GEN_MAX_NUM_OUT     4

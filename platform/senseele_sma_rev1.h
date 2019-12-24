@@ -32,7 +32,7 @@
 /** @anchor senseele_sma_rev1_serial
  * @name Serial port definitions for SenseEle SMA Rev1
  * @{*/
-#define TEST_LED       22 //original RX
+//#define TEST_LED       22 //original RX
 #define RX_PIN_NUMBER       19
 #define TX_PIN_NUMBER       20
 //#define TX_PIN_NUMBER       06 //bluey

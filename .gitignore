@@ -1,3 +1,6 @@
+# Netbeans
+ngproject
+
 # Object files
 *.o
 *.ko
@@ -46,3 +49,4 @@ application/*/nbproject/*
 /application/sensebe_tx/build/
 /application/sensebe_rx/build/
 /application/KXTJ3_testing/build/
+/application/sense_ele_rf_blt/build/

@@ -88,6 +88,7 @@ void out_gen_init(uint32_t num_out, uint32_t * out_pins, bool * out_init_value)
 
 void out_gen_start(out_gen_config_t * out_gen_config)
 {
+    
     ASSERT((out_gen_config->num_transitions < OUT_GEN_MAX_TRANSITIONS)
             && (out_gen_config->num_transitions > 0));
     memset(context.next_out, 0, sizeof(context.next_out));
@@ -100,6 +101,7 @@ void out_gen_start(out_gen_config_t * out_gen_config)
             out_gen_config->num_transitions*sizeof(uint32_t) );
     for(uint32_t i = 0; i < context.num_out; i++)
     {
+    
         memcpy( (*(context.next_out + i)), (*(out_gen_config->next_out+i)),
                 (1+out_gen_config->num_transitions)*sizeof(bool));
         hal_gpio_pin_write(context.out_pins[i],
@@ -109,9 +111,11 @@ void out_gen_start(out_gen_config_t * out_gen_config)
     context.end_context = out_gen_config->out_gen_state;
     done_handler = out_gen_config->done_handler;
 
+
     ms_timer_start(OUT_GEN_MS_TIMER_USED, MS_SINGLE_CALL,
             out_gen_config->transitions_durations[context.current_transition],timer_handler);
     timer_start_ticks_value = ms_timer_get_current_count();
+    
 }
 
 void out_gen_stop(bool * out_vals)
