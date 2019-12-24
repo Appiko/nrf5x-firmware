@@ -53,11 +53,6 @@ uint32_t (* tests[]) () = {
     hall_effect_test
 };
 
-/**
- * @brief This is Entry point for this application and this function will
- * call for every test funtion.
- */
-
 int main(void) {
     hfclk_xtal_init_blocking();
     log_init();

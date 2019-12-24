@@ -197,7 +197,7 @@ uint32_t accelerometer_test(void) {
     kxtj3_start();
     hal_nop_delay_ms(100);
     memcpy(&g_acce_data, kxtj3_get_acce_value(), sizeof (KXTJ3_g_data_t));
-    if ((g_acce_data.zg > 900 && g_acce_data.zg < 1100) || (g_acce_data.zg < -900 && g_acce_data.zg > -1100) ) {
+    if ((g_acce_data.zg > 900 && g_acce_data.zg < 1100) || (g_acce_data.zg < -900 && g_acce_data.zg > -1100)) {
         log_printf("TEST 4: Accelerometer 1\n");
         return 1;
     }
@@ -206,44 +206,52 @@ uint32_t accelerometer_test(void) {
 }
 
 uint32_t cc1175_clk_test(void) {
-    if(get_device_id() == 10){ //unknown device
-        log_printf("TEST 5: CLOCK OFF 1\n");
+    
+    if (get_device_id() != 10) { //unknown device
+        log_printf("TEST 5: CLOCK TEST 0\n");
+        return 0;
+    }
+    hal_gpio_cfg_output(TCXO_EN_PIN, 0);
+    hal_gpio_pin_set(TCXO_EN_PIN);
+    radio_init(APPIKO_1120_0K3);
+    
+    if (get_device_id() ==  20) { //unknown device
+        log_printf("TEST 5: CLOCK TEST 1\n");
         return 1;
     }
-    log_printf("TEST 5: CLOCK OFF 0\n");
-    hal_gpio_cfg_output(TCXO_EN_PIN,0);
-    hal_gpio_pin_set(TCXO_EN_PIN);
-    log_printf("INFO 5: Turning on clock\n");
+    
+    log_printf("TEST 5: CLOCK END 0\n");
     return 0;
 }
 
-uint32_t cc1175_transmission_test(void){
-    
-    uint8_t data = 1;
-    
-    radio_init (APPIKO_1120_0K3);
-    radio_set_freq (915000);
-    
-    set_rf_packet_length (1);   
-    radio_send(&data, 1);
-    
+uint32_t cc1175_transmission_test(void) {
+    hal_nop_delay_ms(1000);
+    uint8_t data[] = {1};
+
+    radio_set_freq(915000);
+
+    set_rf_packet_length(1);
+    radio_send(data, 1);
     log_printf("TEST 6: Transmitted 1\n");
-        return 1;
+    return 1;
 }
 
 uint32_t hall_effect_test(void) {
+    hal_gpio_cfg_input(HALL_EFFECT_PIN, HAL_GPIO_PULL_DOWN);
     
-    hal_gpio_cfg_input (HALL_EFFECT_PIN, HAL_GPIO_PULL_DOWN);
-    
-    uint32_t val_off= hal_gpio_pin_read(HALL_EFFECT_PIN);
-    hal_nop_delay_ms(50);
-    uint32_t val_on= hal_gpio_pin_read(HALL_EFFECT_PIN);
-    hal_nop_delay_ms(100);
-    uint32_t val_off2= hal_gpio_pin_read(HALL_EFFECT_PIN);
-    bool final = (!val_off && val_on && !val_off2);
-    log_printf("TEST 7: Hall Effect Sensor %d\n", !final);
-    return !final;
-    
+    profiler_timer_init();
+    int states[] = {1,0,1};
+    int checkCount = 0;
+    while(read_time_us() < 3000000 && checkCount < 3) 
+    {
+        if(hal_gpio_pin_read(HALL_EFFECT_PIN) == states[checkCount])
+        {
+            checkCount++;
+        }
+    }
+
+    log_printf("TEST 7: Hall Effect Sensor %d\n", (checkCount == 3));
+    return (checkCount == 3);
 }
 
 
