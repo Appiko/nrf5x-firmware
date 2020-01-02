@@ -1,0 +1,17 @@
+digraph Sense_Pi_app_flow {
+  rankdir = "LR";
+  ratio = "fill";
+  size = "8,8";
+  boot [shape = circle, width = 1.0, label = "Pre-deploy"]
+  sense [ shape = circle, width = 1.0, label = "Sensing"];
+  dply [shape = circle, width = 1.0, label = "Deployment"];
+  mntn [shape = circle, width = 1.0, label = "Maintainance "];
+  boot -> dply [label = "Mobile\n application"]
+  dply -> boot [label = ""]
+  mntn  -> dply[label = "Magnet Proximity"];
+  sense -> dply[label = "Magnet Proximity"];
+  sense   -> mntn [label = "Battery Low,\n Long senses"];
+  dply   -> sense[label = "Timeout,\n Disconnect"];
+ }
+
+                          
