@@ -41,7 +41,13 @@
 /** The 16 bit UUID of the read-only System Info characteristic */
 #define DEVICE_UUID_SYSINFO         0xdc61
 /** The 16 bit UUID of the read-write Config characteristic */
-#define DEVICE_UUID_CONFIG          0xdc62
+#define DEVICE_UUID_PRODUCT_INFO          0xdc62
+/** The 16 bit UUID of the read-write Config characteristic */
+#define DEVICE_UUID_DPLOYMENT_FLAG        0xdc63
+/** The 16 bit UUID of the read-write Config characteristic */
+#define DEVICE_UUID_DFU_FLAG              0xdc64
+/** The 16 bit UUID of the read-write Config characteristic */
+#define DEVICE_UUID_ALIGN_FLAG            0xdc65
 
 /** PWM peripheral used for hal driver */
 #define HAL_PWM_PERIPH_USED 0
@@ -57,7 +63,7 @@
 /** MS_TIMER used for Device Ticks module */
 #define MS_TIMER_USED_DEVICE_TICKS 0
 /** MS_TIMER used for main application */
-#define MS_TIMER_USED_DEVICE_TICKS 0
+#define MS_TIMER_USED_MAIN 1
 
 /** GPIOTE PORT channel used for button_ui */
 #define GPIOTE_CH_USED_BUTTON_UI_PORT 

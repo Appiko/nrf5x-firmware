@@ -33,31 +33,39 @@
 #include "isr_manager.h"
 #endif
 
-/** Complete 128 bit UUID of the SenseBe service
- * 3c73dc60-07f5-480d-b066-837407fbde0a */
-#ifdef DEVICE_UUID_COMPLETE
-#define SENSEBERXUUID_COMPLETE        {DEVICE_UUID_COMPLETE}
-#else
-#define SENSEBERXUUID_COMPLETE        {0x0a, 0xde, 0xfb, 0x07, 0x74, 0x83, 0x66, 0xb0, 0x0d, 0x48, 0xf5, 0x07, 0x60, 0xdc, 0x73, 0x3c}
-#endif
-/** The 16 bit UUID of the Sense Be service */
-#ifdef DEVICE_UUID_SERVICE
-#define SENSEBERXUUID_SERVICE         DEVICE_UUID_SERVICE
-#else
-#define SENSEBERXUUID_SERVICE         0xdc60
-#endif
-/** The 16 bit UUID of the read-only System Info characteristic */
-#ifdef DEVICE_UUID_SYSINFO
-#define SENSEBERXUUID_SYSINFO         DEVICE_UUID_SYSINFO
-#else
-#define SENSEBERXUUID_SYSINFO         0xdc61
-#endif
-/** The 16 bit UUID of the read-write Config characteristic */
-#ifdef DEVICE_UUID_CONFIG
-#define SENSEBERXUUID_CONFIG         DEVICE_UUID_CONFIG
-#else
-#define SENSEBERXUUID_CONFIG         0xdc62
-#endif
+///** Complete 128 bit UUID of the SenseBe service
+// * 3c73dc60-07f5-480d-b066-837407fbde0a */
+//#ifdef DEVICE_UUID_COMPLETE
+//#define SENSEBERXUUID_COMPLETE        {DEVICE_UUID_COMPLETE}
+//#else
+//#define SENSEBERXUUID_COMPLETE        {0x0a, 0xde, 0xfb, 0x07, 0x74, 0x83, 0x66, 0xb0, 0x0d, 0x48, 0xf5, 0x07, 0x60, 0xdc, 0x73, 0x3c}
+//#endif
+///** The 16 bit UUID of the Sense Be service */
+//#ifdef DEVICE_UUID_SERVICE
+//#define SENSEBERXUUID_SERVICE         DEVICE_UUID_SERVICE
+//#else
+//#define SENSEBERXUUID_SERVICE         0xdc60
+//#endif
+///** The 16 bit UUID of the read-only System Info characteristic */
+//#ifdef DEVICE_UUID_SYSINFO
+//#define SENSEBERXUUID_SYSINFO         DEVICE_UUID_SYSINFO
+//#else
+//#define SENSEBERXUUID_SYSINFO         0xdc61
+//#endif
+///** The 16 bit UUID of the read-write Config characteristic */
+//#ifdef DEVICE_UUID_CONFIG
+//#define SENSEBERXUUID_CONFIG         DEVICE_UUID_CONFIG
+//#else
+//#define SENSEBERXUUID_CONFIG         0xdc62
+//#endif
+const uint8_t ble_device_name[] = { DEVICE_NAME_CHAR };
+
+#define COMPLETE_UUID   {LRF_NODE_UUID_COMPLETE}
+#define SERVICE_UUID    LRF_NODE_UUID_SERVICE
+#define SYSINFO_UUID    LRF_NODE_UUID_SYSINFO
+#define PRODINFO_UUID   LRF_NODE_UUID_PRODUCT_INFO
+#define DPLY_FLAG_UUID  LRF_NODE_UUID_DPLY_FLAG
+#define DFU_FLAG_UUID   LRF_NODE_UUID_DFU_FLAG
 
 /**< Interval between advertisement packets (0.5 seconds). */
 #define ADVERTISING_INTERVAL       MSEC_TO_UNITS(500, UNIT_0_625_MS)
@@ -74,22 +82,22 @@
 #define DEVICE_NAME_ADV_LOCATION 9
 #define DEVICE_NAME_LEN 16
 
-#define BATTERY_TYPE_ADV_LOCATION 27
-#define BATTERY_LEN 2
+//#define BATTERY_TYPE_ADV_LOCATION 27
+//#define BATTERY_LEN 2
 
 #define UUID_SCAN_RSP_LOCATION 2
 #define UUID_LEN    16
 
-const uint8_t generic_adv_data = {0x02,
+const uint8_t generic_adv_data[] = {0x02,
     BLE_GAP_AD_TYPE_FLAGS, BLE_GAP_ADV_FLAGS_LE_ONLY_LIMITED_DISC_MODE,
     0x03, BLE_GAP_AD_TYPE_16BIT_SERVICE_UUID_MORE_AVAILABLE,
     0x60, 0xdc, 0x11, BLE_GAP_AD_TYPE_SHORT_LOCAL_NAME,
     'x','x','x','x','x','x','x','x','x','x','x','x','x','x','x','x',
-    0x05, BLE_GAP_AD_TYPE_MANUFACTURER_SPECIFIC_DATA, 'x','x','x','x'
+//    0x05, BLE_GAP_AD_TYPE_MANUFACTURER_SPECIFIC_DATA, 'x','x'
 };
 
-const uint8_t generic_scn_rsp = {    0x11, 
-BLE_GAP_AD_TYPE_128BIT_SERVICE_UUID_COMPLETE, DEVICE_UUID_COMPLETE };
+const uint8_t generic_scn_rsp[] = {    0x11, 
+BLE_GAP_AD_TYPE_128BIT_SERVICE_UUID_COMPLETE, LRF_NODE_UUID_COMPLETE };
 
 /** Handle to specify the advertising state to the soft device */
 uint8_t h_adv;
@@ -106,12 +114,17 @@ ble_gatts_char_handles_t h_sysinfo_char;
 
 /** Handle to specify the attribute of the characteristic with the
  * configuration parameters which are specified @ref lrf_node_config_t */
-ble_gatts_char_handles_t h_config_char;
+ble_gatts_char_handles_t h_product_char;
+ble_gatts_char_handles_t h_dfu_char;
+ble_gatts_char_handles_t h_dply_char;
+ble_gatts_char_handles_t h_align_char;
 
 /** Handler to pass the BLE SoftDevice events to the application */
 void (* lrf_node_ble_sd_evt)(ble_evt_t * evt);
-/** Handler to pass the received SenseBe configuration to the application */
-void (* lrf_node_config_t_update)(lrf_node_config_t * cfg);
+/** Handler to pass the received DFU status flag to the application */
+void (* lrf_node_dfu_update)(uint8_t dfu_flag);
+/** Handler to pass the received Deployment status flag to the application */
+void (* lrf_node_dply_update)(uint8_t dply_flag);
 
 lrf_node_sysinfo curr_sysinfo;
 
@@ -146,9 +159,25 @@ static void ble_evt_handler(ble_evt_t * evt)
         break;
     case BLE_GATTS_EVT_WRITE:
     {
-        lrf_node_config_t * config =
-                (lrf_node_config_t *) evt->evt.gatts_evt.params.write.data;
-        lrf_node_config_t_update(config);
+        log_printf("Written to : 0x%x\n", evt->evt.gatts_evt.params.write.handle);
+        log_printf("Value handles : 0x%x 0x%x\n", h_dply_char.value_handle,
+                   h_dfu_char.value_handle);
+//        lrf_node_config_t * config =
+//                (lrf_node_config_t *) evt->evt.gatts_evt.params.write.data;
+//        lrf_node_config_t_update(config);
+        if (evt->evt.gatts_evt.params.write.handle == h_dply_char.value_handle)
+        {
+            lrf_node_flag_dply_t * p_dply = 
+                (lrf_node_flag_dply_t *) evt->evt.gatts_evt.params.write.data;
+            uint8_t flag = p_dply->deploy_flag;
+            lrf_node_dply_update (flag);
+        }
+
+        if (evt->evt.gatts_evt.params.write.handle == h_dfu_char.value_handle)
+        {
+            uint8_t flag = evt->evt.gatts_evt.params.write.data[0];
+            lrf_node_dfu_update (flag);
+        }
         break;
     }
     case BLE_GATTS_EVT_EXCHANGE_MTU_REQUEST:
@@ -192,11 +221,13 @@ static void soc_evt_handler(uint32_t evt_id)
     log_printf("soc evt %x\n", evt_id);
 }
 
-void lrf_node_ble_init(void (*ble_sd_evt)(ble_evt_t * evt),
-        void (* config_update)(lrf_node_config_t * cfg))
+void lrf_node_ble_init(void (*ble_sd_evt)(ble_evt_t * evt), 
+        void (* dply_flag_update)(uint8_t dply_flag), 
+        void (* dfu_flag_update)(uint8_t dfu_flag))
 {
     lrf_node_ble_sd_evt = ble_sd_evt;
-    lrf_node_config_t_update = config_update;
+    lrf_node_dfu_update = dfu_flag_update;
+    lrf_node_dply_update = dply_flag_update;
 }
 
 void lrf_node_ble_disconn(void)
@@ -224,17 +255,17 @@ void lrf_node_ble_update_sysinfo(lrf_node_sysinfo * sysinfo)
     APP_ERROR_CHECK(err_code);
 }
 
-void lrf_node_ble_update_config(lrf_node_config_t * config)
+void lrf_node_ble_update_prodict_info(lrf_node_prodc_info_t * product_info)
 {
     uint32_t err_code;
     ble_gatts_value_t val =
     {
-        .len = sizeof(lrf_node_config_t),
+        .len = sizeof(lrf_node_prodc_info_t),
         .offset = 0,
-        .p_value = (uint8_t *) config
+        .p_value = (uint8_t *) product_info
     };
     err_code = sd_ble_gatts_value_set(h_conn,
-            h_config_char.value_handle, &val);
+            h_product_char.value_handle, &val);
     APP_ERROR_CHECK(err_code);
 }
 
@@ -281,22 +312,23 @@ void lrf_node_ble_service_init(void)
     uint8_t uuid_type;
 
     /**** Create the Sense Pi service *****/
-    ble_uuid128_t base_uuid = {SENSEBERXUUID_COMPLETE};
+    ble_uuid128_t base_uuid = {COMPLETE_UUID};
     err_code = sd_ble_uuid_vs_add(&base_uuid, &uuid_type);
     APP_ERROR_CHECK(err_code);
 
     ble_uuid.type = uuid_type;
-    ble_uuid.uuid = SENSEBERXUUID_SERVICE;
+    ble_uuid.uuid = SERVICE_UUID;
 
     err_code = sd_ble_gatts_service_add(BLE_GATTS_SRVC_TYPE_PRIMARY,
             &ble_uuid, &h_lrf_node_service);
     APP_ERROR_CHECK(err_code);
 
-    /**** Create the read-only characteristic *****/
+    /**** Create the read-only characteristics *****/
     ble_gatts_char_md_t char_md;
     ble_gatts_attr_t attr_char_value;
     ble_gatts_attr_md_t attr_md;
 
+    /**     1st     */
     memset(&char_md, 0, sizeof(char_md));
 
     char_md.char_props.read = 1;
@@ -308,7 +340,7 @@ void lrf_node_ble_service_init(void)
     char_md.p_sccd_md = NULL;
 
     ble_uuid.type = uuid_type;
-    ble_uuid.uuid = (SENSEBERXUUID_SYSINFO);
+    ble_uuid.uuid = (SYSINFO_UUID);
 
     memset(&attr_md, 0, sizeof(attr_md));
 
@@ -332,11 +364,11 @@ void lrf_node_ble_service_init(void)
         h_lrf_node_service, &char_md, &attr_char_value, &h_sysinfo_char);
     APP_ERROR_CHECK(err_code);
 
-    /**** Create the read-write characterisitc *****/
+    /**     2nd     */
     memset(&char_md, 0, sizeof(char_md));
 
     char_md.char_props.read = 1;
-    char_md.char_props.write = 1;
+    char_md.char_props.write = 0;
     char_md.p_char_user_desc = NULL;
     char_md.p_char_pf = NULL;
     char_md.p_user_desc_md = NULL;
@@ -344,7 +376,50 @@ void lrf_node_ble_service_init(void)
     char_md.p_sccd_md = NULL;
 
     ble_uuid.type = uuid_type;
-    ble_uuid.uuid = (SENSEBERXUUID_CONFIG);
+    ble_uuid.uuid = (PRODINFO_UUID);
+
+    memset(&attr_md, 0, sizeof(attr_md));
+
+    BLE_GAP_CONN_SEC_MODE_SET_OPEN(&attr_md.read_perm);
+    BLE_GAP_CONN_SEC_MODE_SET_NO_ACCESS(&attr_md.write_perm);
+    attr_md.vloc = BLE_GATTS_VLOC_STACK;
+    attr_md.rd_auth = 0;
+    attr_md.wr_auth = 0;
+    attr_md.vlen = 0;
+
+    memset(&attr_char_value, 0, sizeof(attr_char_value));
+
+    attr_char_value.p_uuid = &ble_uuid;
+    attr_char_value.p_attr_md = &attr_md;
+    attr_char_value.init_len = sizeof(lrf_node_prodc_info_t);
+    attr_char_value.init_offs = 0;
+    attr_char_value.max_len = sizeof(lrf_node_prodc_info_t);
+    attr_char_value.p_value = NULL;
+
+    err_code = sd_ble_gatts_characteristic_add(
+        h_lrf_node_service, &char_md, &attr_char_value,&h_product_char);
+    APP_ERROR_CHECK(err_code);
+    
+    /**** Create the read-write characteristic *****/
+    /**     1st     */
+
+    ble_gatts_attr_md_t cccd_md;
+    memset(&cccd_md, 0, sizeof(cccd_md));
+
+    memset(&char_md, 0, sizeof(char_md));
+
+    char_md.char_props.read = 1;
+    char_md.char_props.write = 1;
+//    char_md.char_props.notify = 1;
+    char_md.p_char_user_desc = NULL;
+    char_md.p_char_pf = NULL;
+    char_md.p_user_desc_md = NULL;
+//    char_md.p_cccd_md = &cccd_md;
+    char_md.p_cccd_md = NULL;
+    char_md.p_sccd_md = NULL;
+
+    ble_uuid.type = uuid_type;
+    ble_uuid.uuid = (DPLY_FLAG_UUID);
 
     memset(&attr_md, 0, sizeof(attr_md));
 
@@ -359,14 +434,89 @@ void lrf_node_ble_service_init(void)
 
     attr_char_value.p_uuid = &ble_uuid;
     attr_char_value.p_attr_md = &attr_md;
-    attr_char_value.init_len = sizeof(lrf_node_config_t);
+    attr_char_value.init_len = sizeof(lrf_node_flag_dply_t);
     attr_char_value.init_offs = 0;
-    attr_char_value.max_len = sizeof(lrf_node_config_t);
+    attr_char_value.max_len = sizeof(lrf_node_flag_dply_t);
     attr_char_value.p_value = NULL;
 
     err_code = sd_ble_gatts_characteristic_add(
-        h_lrf_node_service, &char_md, &attr_char_value,&h_config_char);
+        h_lrf_node_service, &char_md, &attr_char_value,&h_dply_char);
     APP_ERROR_CHECK(err_code);
+    
+    /**     2nd     */
+    memset(&char_md, 0, sizeof(char_md));
+
+    char_md.char_props.read = 1;
+    char_md.char_props.write = 1;
+    char_md.p_char_user_desc = NULL;
+    char_md.p_char_pf = NULL;
+    char_md.p_user_desc_md = NULL;
+    char_md.p_cccd_md = NULL;
+    char_md.p_sccd_md = NULL;
+
+    ble_uuid.type = uuid_type;
+    ble_uuid.uuid = (DFU_FLAG_UUID);
+
+    memset(&attr_md, 0, sizeof(attr_md));
+
+    BLE_GAP_CONN_SEC_MODE_SET_OPEN(&attr_md.read_perm);
+    BLE_GAP_CONN_SEC_MODE_SET_OPEN(&attr_md.write_perm);
+    attr_md.vloc = BLE_GATTS_VLOC_STACK;
+    attr_md.rd_auth = 0;
+    attr_md.wr_auth = 0;
+    attr_md.vlen = 0;
+
+    memset(&attr_char_value, 0, sizeof(attr_char_value));
+
+    attr_char_value.p_uuid = &ble_uuid;
+    attr_char_value.p_attr_md = &attr_md;
+    attr_char_value.init_len = sizeof(uint8_t);
+    attr_char_value.init_offs = 0;
+    attr_char_value.max_len = sizeof(uint8_t);
+    attr_char_value.p_value = NULL;
+
+    err_code = sd_ble_gatts_characteristic_add(
+        h_lrf_node_service, &char_md, &attr_char_value,&h_dfu_char);
+    APP_ERROR_CHECK(err_code);
+
+//    /**** Create the notification characteristic *****/
+//   
+//    
+//    memset(&char_md, 0, sizeof(char_md));
+//
+//    char_md.char_props.read = 1;
+//    char_md.char_props.write = 0;
+//    char_md.p_char_user_desc = NULL;
+//    char_md.p_char_pf = NULL;
+//    char_md.p_user_desc_md = NULL;
+//    char_md.p_cccd_md = &cccd_md;
+//    char_md.p_sccd_md = NULL;
+//
+//    ble_uuid.type = uuid_type;
+//    ble_uuid.uuid = (LRF_NODE_UUID_ALIGN_FLAG);
+//
+//    memset(&attr_md, 0, sizeof(attr_md));
+//
+//    BLE_GAP_CONN_SEC_MODE_SET_OPEN(&attr_md.read_perm);
+//    BLE_GAP_CONN_SEC_MODE_SET_NO_ACCESS(&attr_md.write_perm);
+//    attr_md.vloc = BLE_GATTS_VLOC_STACK;
+//    attr_md.rd_auth = 0;
+//    attr_md.wr_auth = 0;
+//    attr_md.vlen = 0;
+//
+//    memset(&attr_char_value, 0, sizeof(attr_char_value));
+//
+//    attr_char_value.p_uuid = &ble_uuid;
+//    attr_char_value.p_attr_md = &attr_md;
+//    attr_char_value.init_len = sizeof(uint8_t);
+//    attr_char_value.init_offs = 0;
+//    attr_char_value.max_len = sizeof(uint8_t);
+//    attr_char_value.p_value = NULL;
+//
+//    err_code = sd_ble_gatts_characteristic_add(
+//        h_lrf_node_service, &char_md, &attr_char_value, &h_align_char);
+//    APP_ERROR_CHECK(err_code);
+//
 }
 
 void lrf_node_ble_gap_params_init(void)
@@ -378,7 +528,7 @@ void lrf_node_ble_gap_params_init(void)
     BLE_GAP_CONN_SEC_MODE_SET_OPEN(&sec_mode);
 
     err_code = sd_ble_gap_device_name_set(
-        &sec_mode, (const uint8_t *)device_name, sizeof(device_name));
+        &sec_mode, (const uint8_t *)ble_device_name, sizeof(ble_device_name));
     APP_ERROR_CHECK(err_code);
 
     memset(&gap_conn_params, 0, sizeof(gap_conn_params));
@@ -405,6 +555,10 @@ void lrf_node_ble_adv_init(lrf_node_ble_adv_data_t * lrf_node_ble_adv_data)
     adv_payload.scan_rsp_data.p_data = lrf_node_ble_adv_data->scan_rsp_data;
     adv_payload.scan_rsp_data.len = lrf_node_ble_adv_data->scan_rsp_len;
 
+//    log_printf ("%s : %d %d %d %d\n", __func__, adv_payload.adv_data.p_data,
+//                adv_payload.adv_data.len,
+//                adv_payload.scan_rsp_data.p_data,
+//                adv_payload.scan_rsp_data.len);
     ble_gap_adv_params_t adv_params;
 
     memset(&adv_params, 0, sizeof(adv_params));
@@ -451,8 +605,28 @@ void lrf_node_ble_set_adv_data(lrf_node_ble_adv_data_t * lrf_node_ble_adv_data,
     memcpy (lrf_node_ble_adv_data->scan_rsp_data, generic_scn_rsp, sizeof(generic_scn_rsp));
     memcpy (&lrf_node_ble_adv_data->adv_data[DEVICE_NAME_ADV_LOCATION], 
             device_name, DEVICE_NAME_LEN);
-    lrf_node_ble_adv_data->adv_data[BATTERY_TYPE_ADV_LOCATION] = 0;
+//    lrf_node_ble_adv_data->adv_data[BATTERY_TYPE_ADV_LOCATION] = 0;
     lrf_node_ble_adv_data->adv_len = sizeof(generic_adv_data);
     lrf_node_ble_adv_data->scan_rsp_len = sizeof(generic_scn_rsp);
 }
 
+void lrf_node_align_notify (lrf_node_flag_dply_t * p_align)
+{
+    uint32_t err_code;
+    uint16_t data_size = sizeof(lrf_node_flag_dply_t); 
+    err_code = sd_ble_gatts_sys_attr_set(h_conn, NULL, 0, 0);
+    APP_ERROR_CHECK(err_code);
+    ble_gatts_hvx_params_t hvx_params = 
+    {
+        .handle = h_dply_char.value_handle,
+        .p_data = (uint8_t *)p_align,
+        .p_len = (uint16_t *)&data_size,
+        .type = BLE_GATT_HVX_NOTIFICATION,
+        .offset = 0,
+    };
+    err_code = sd_ble_gatts_hvx (h_conn, &hvx_params);
+    if(err_code != NRF_ERROR_INVALID_STATE)
+    {
+        APP_ERROR_CHECK(err_code);
+    }
+}

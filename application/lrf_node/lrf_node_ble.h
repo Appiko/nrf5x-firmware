@@ -42,15 +42,14 @@
 /**< Name of device, to be included in the advertising data. */
 
 #define DEVICE_NAME_CHAR           'S','e','n','s','e','E','l','e',' ','N'
-const uint8_t device_name[] = { DEVICE_NAME_CHAR };
 
 
 /** Complete 128 bit UUID of the SenseBe service
  * 3c73dc60-07f5-480d-b066-837407fbde0a */
 #ifdef DEVICE_UUID_COMPLETE
-#define LRF_NODE_UUID_COMPLETE        {DEVICE_UUID_COMPLETE}
+#define LRF_NODE_UUID_COMPLETE        DEVICE_UUID_COMPLETE
 #else
-#define LRF_NODE_UUID_COMPLETE        {0x0a, 0xde, 0xfb, 0x07, 0x74, 0x83, 0x66, 0xb0, 0x0d, 0x48, 0xf5, 0x07, 0x60, 0xdc, 0x73, 0x3c}
+#define LRF_NODE_UUID_COMPLETE        0x0a, 0xde, 0xfb, 0x07, 0x74, 0x83, 0x66, 0xb0, 0x0d, 0x48, 0xf5, 0x07, 0x60, 0xdc, 0x73, 0x3c
 #endif
 /** The 16 bit UUID of the Sense Be service */
 #ifdef DEVICE_UUID_SERVICE
@@ -65,10 +64,28 @@ const uint8_t device_name[] = { DEVICE_NAME_CHAR };
 #define LRF_NODE_UUID_SYSINFO         0xdc61
 #endif
 /** The 16 bit UUID of the read-write Config characteristic */
-#ifdef DEVICE_UUID_CONFIG
-#define LRF_NODE_UUID_CONFIG         DEVICE_UUID_CONFIG
+#ifdef DEVICE_UUID_PRODUCT_INFO
+#define LRF_NODE_UUID_PRODUCT_INFO   DEVICE_UUID_PRODUCT_INFO
 #else
-#define LRF_NODE_UUID_CONFIG         0xdc62
+#define LRF_NODE_UUID_PRODUCT_INFO   0xdc62
+#endif
+/** The 16 bit UUID of the read-write Config characteristic */
+#ifdef DEVICE_UUID_DPLOYMENT_FLAG
+#define LRF_NODE_UUID_DPLY_FLAG       DEVICE_UUID_DPLOYMENT_FLAG
+#else
+#define LRF_NODE_UUID_DPLY_FLAG       0xdc63
+#endif
+/** The 16 bit UUID of the read-write Config characteristic */
+#ifdef DEVICE_UUID_DFU_FLAG
+#define LRF_NODE_UUID_DFU_FLAG        DEVICE_UUID_DFU_FLAG
+#else
+#define LRF_NODE_UUID_DFU_FLAG        0xdc64
+#endif
+/** The 16 bit UUID of the read-write Config characteristic */
+#ifdef DEVICE_UUID_ALIGN_FLAG
+#define LRF_NODE_UUID_ALIGN_FLAG     DEVICE_UUID_ALIGN_FLAG
+#else
+#define LRF_NODE_UUID_ALIGN_FLAG     0xdc65
 #endif
 
 
@@ -79,24 +96,30 @@ typedef struct {
 } __attribute__((packed)) lrf_node_sysinfo;
 
 
-typedef enum
-{
-    NOT_DEPLOYED,
-    DEPLOYED,
-}lrf_node_deploy_sts_t;
 
 typedef struct
 {
-    uint8_t sticker_no[3];
-    lrf_node_deploy_sts_t status;
-    uint8_t calib_results;
-}lrf_node_config_t;
+    uint8_t app_id;
+    uint16_t prod_id;
+}lrf_node_prodc_info_t;
 
 typedef struct
 {
-    uint8_t * adv_data;
+    uint8_t deploy_flag;
+    uint8_t align_flag;
+}lrf_node_flag_dply_t;
+
+
+typedef struct
+{
+    uint8_t dfu_flag;
+}lrf_node_flag_dfu_t;
+
+typedef struct
+{
+    uint8_t adv_data[31];
     uint16_t adv_len;
-    uint8_t * scan_rsp_data;
+    uint8_t scan_rsp_data[31];
     uint16_t scan_rsp_len;
 }lrf_node_ble_adv_data_t;
 
@@ -104,10 +127,12 @@ typedef struct
  * @brief Initialize the handlers to pass the BLE SD events
  *  and the configuration received from the mobile app
  * @param ble_sd_evt Handler to send the BLE events to the application
- * @param config_update Handler to send SensePi config to the application
+ * @param dply_flag_update Handler to send Deployment flag to the application
+ * @param dfu_flag_update Handler to send DFU flag to the application
  */
 void lrf_node_ble_init(void (*ble_sd_evt)(ble_evt_t * evt), 
-        void (* config_update)(lrf_node_config_t * cfg));
+        void (* dply_flag_update)(uint8_t dply_flag), 
+        void (* dfu_flag_update)(uint8_t dfu_flag));
 
 /**
  * @brief Updates the characteristic that stores the sysinfo
@@ -119,7 +144,7 @@ void lrf_node_ble_update_sysinfo(lrf_node_sysinfo * sysinfo);
  * @brief Updates the characteristic that stores the SensePi config
  * @param config A pointer to the new Sense Pi configuration
  */
-void lrf_node_ble_update_config(lrf_node_config_t * config);
+void lrf_node_ble_update_prodict_info(lrf_node_prodc_info_t * product_info);
 
 /**
  * @brief Disconnect the current active connection, if already connected
@@ -166,8 +191,14 @@ void lrf_node_ble_adv_start(void);
  * @param batt_type Battery type @ref battery_type_t
  */
 void lrf_node_ble_set_adv_data(lrf_node_ble_adv_data_t * lrf_node_ble_adv_data,
-             uint8_t * device_name, battery_type_t batt_type);
+             uint8_t * device_name);
 
+
+/**
+ * @brief Function to send the notification
+ * @param p_align
+ */
+void lrf_node_align_notify (lrf_node_flag_dply_t * p_align);
 
 #endif /* APPLICATION_LRF_NODE_BLE_H_ */
 

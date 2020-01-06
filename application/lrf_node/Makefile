@@ -74,7 +74,8 @@ C_SRC += button_ui.c
 C_SRC += nvm_logger.c
 C_SRC += KXTJ3.c
 C_SRC += simple_adc.c
-
+C_SRC += lrf_node_ble.c
+C_SRC += dev_id_fw_ver.c
 #Gets the name of the application folder
 APPLN = $(shell basename $(PWD))
 
