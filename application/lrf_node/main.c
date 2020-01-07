@@ -341,7 +341,12 @@ void ms_timer_handler_maintainence ()
     memcpy (&g_acce_data,kxtj3_get_acce_value (), sizeof(KXTJ3_g_data_t));
     pkt_data[0] = aa_aaa_battery_status ();
     pkt_data[1] = angle_measure (g_acce_data.xg);
-    rf_comm_pkt_send (g_pkt_type, pkt_data, sizeof(pkt_data));
+    for(uint32_t pkt_cnt = 0; pkt_cnt < PKT_PER_DETECT; pkt_cnt++)
+    {
+        g_random_delay = random_num_generate ();
+        hal_nop_delay_ms (PKT_DURATION+g_random_delay);
+        rf_comm_pkt_send (g_pkt_type, pkt_data, sizeof(pkt_data));
+    }
 }
 
 
