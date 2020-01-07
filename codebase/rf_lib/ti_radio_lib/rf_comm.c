@@ -136,10 +136,14 @@ volatile radio_state_t g_current_state;
 
 static rf_comm_hw_t g_comm_hw;
 
+uint8_t g_marc_sts1;
+
 static uint8_t g_arr_pkt[260];
 
 void (* gp_tx_done) (uint32_t size);
 void (* gp_rx_done) (uint32_t size);
+void (* gp_tx_failed) (uint32_t size);
+void (* gp_rx_failed) (uint32_t size);
 
 uint32_t math_log (uint32_t num, uint32_t base)
 {
@@ -147,11 +151,10 @@ uint32_t math_log (uint32_t num, uint32_t base)
 }
 int radio_check_status_flag (uint8_t status_bits)
 {
-    uint8_t marc_sts1 ;
 	trx16BitRegAccess((RADIO_READ_ACCESS | RADIO_BURST_ACCESS), 0x2F,
-                     (0x00FF & MARC_STATUS1), &marc_sts1, 1);
+                     (0x00FF & MARC_STATUS1), &g_marc_sts1, 1);
     
-    if((status_bits & marc_sts1) == status_bits)
+    if((status_bits & g_marc_sts1) == status_bits)
     {
         return 1;
     }
@@ -192,6 +195,16 @@ uint32_t rf_comm_radio_init (rf_comm_radio_t * p_radio_params, rf_comm_hw_t * p_
     if(p_radio_params->rf_rx_done_handler != NULL)
     {
         gp_rx_done = p_radio_params->rf_rx_done_handler;
+    }
+
+    if(p_radio_params->rf_tx_failed_handler != NULL)
+    {
+        gp_tx_failed = p_radio_params->rf_tx_failed_handler;
+    }
+    
+    if(p_radio_params->rf_rx_failed_handler != NULL)
+    {
+        gp_rx_failed = p_radio_params->rf_rx_failed_handler;
     }
 
     hal_gpio_cfg_output (g_comm_hw.rf_reset_pin, 1);
@@ -424,6 +437,7 @@ uint32_t rf_comm_pkt_send (uint8_t pkt_type, uint8_t * p_data, uint8_t len)
     
 	trx8BitRegAccess(RADIO_WRITE_ACCESS|RADIO_BURST_ACCESS, TXFIFO, g_arr_pkt, len+5);
 	trxSpiCmdStrobe(STX);               // Change state to TX, initiating
+    g_current_state = R_TX;
     return 0;
 }
 
@@ -449,6 +463,7 @@ uint32_t rf_comm_pkt_receive (uint8_t * p_rxbuff)
 		/* Return CRC_OK bit */
 		status  = status & CRC_OK;
         trxSpiCmdStrobe(SFRX);	                     // Flush RXFIFO
+        g_current_state = R_RX;
 
 	}
     return status;
@@ -510,11 +525,11 @@ void rf_comm_gpiote_Handler ()
 void GPIOTE_IRQHandler ()
 #endif
 {
-#if ISR_MANAGER == 0
-    NRF_GPIOTE->EVENTS_IN[GPIOTE_USED0] = 0;
-#endif
     if(NRF_GPIOTE->EVENTS_IN[GPIOTE_USED0])
     {
+#if ISR_MANAGER == 0
+        NRF_GPIOTE->EVENTS_IN[GPIOTE_USED0] = 0;
+#endif
         log_printf("%s\n", __func__);
         if(radio_check_status_flag (MARC_NO_FAILURE)) 
         {
@@ -535,6 +550,27 @@ void GPIOTE_IRQHandler ()
                 {
                     uint32_t size = 0;
                     gp_rx_done (size);
+                }
+                g_current_state = R_IDLE;
+            }
+        }
+        else
+        {
+            if(g_current_state == R_TX)
+            {
+                log_printf("Tx Failed\n");
+                if(gp_tx_failed != NULL)
+                {
+                    gp_tx_failed (g_marc_sts1);
+                }
+                g_current_state = R_IDLE;
+            }
+            if(g_current_state == R_RX)
+            {
+                log_printf("Rx Failed\n");
+                if(gp_rx_failed != NULL)
+                {
+                    gp_rx_failed (g_marc_sts1);
                 }
                 g_current_state = R_IDLE;
             }

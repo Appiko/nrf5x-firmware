@@ -104,6 +104,8 @@ typedef struct
     app_irq_priority_t irq_priority;
     void (*rf_tx_done_handler) (uint32_t size);
     void (*rf_rx_done_handler) (uint32_t size);
+    void (*rf_tx_failed_handler) (uint32_t error);
+    void (*rf_rx_failed_handler) (uint32_t error);
 }rf_comm_radio_t;
 /**
  * @}
