@@ -269,6 +269,20 @@ void lrf_node_ble_update_prodict_info(lrf_node_prodc_info_t * product_info)
     APP_ERROR_CHECK(err_code);
 }
 
+void lrf_node_ble_update_dply_alignment(lrf_node_flag_dply_t * p_dply_align)
+{
+    uint32_t err_code;
+    ble_gatts_value_t val =
+    {
+        .len = sizeof(lrf_node_flag_dply_t),
+        .offset = 0,
+        .p_value = (uint8_t *) p_dply_align
+    };
+    err_code = sd_ble_gatts_value_set(h_conn,
+            h_dply_char.value_handle, &val);
+    APP_ERROR_CHECK(err_code);
+}
+
 
 void lrf_node_ble_stack_init(void)
 {

@@ -147,6 +147,12 @@ void lrf_node_ble_update_sysinfo(lrf_node_sysinfo * sysinfo);
 void lrf_node_ble_update_prodict_info(lrf_node_prodc_info_t * product_info);
 
 /**
+ * @brief Function to update Deployment and Alignment data
+ * @param p_dply_align A pointer to data.
+ */
+void lrf_node_ble_update_dply_alignment(lrf_node_flag_dply_t * p_dply_align);
+
+/**
  * @brief Disconnect the current active connection, if already connected
  */
 void lrf_node_ble_disconn(void);

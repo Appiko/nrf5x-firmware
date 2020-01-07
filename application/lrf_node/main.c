@@ -43,6 +43,7 @@
 #include "hal_nop_delay.h"
 #include "lrf_node_ble.h"
 #include "dev_id_fw_ver.h"
+#include "random_num.h"
 
 #if SYS_CFG_PRESENT == 1
 #include "sys_config.h"
@@ -93,6 +94,8 @@
 #define TILT_THRESHOLD_VAL 866
 
 #define PKT_DURATION 500
+
+#define TILT_DETECT_ANGLE 30
 
 uint8_t g_device_name[] = { DEVICE_NAME_CHAR };
 
@@ -203,23 +206,49 @@ static lrf_node_states_t gs_lrf_state = LRF_STATE_PRE_DEPLOYED;
 
 static lrf_node_pkt_type_t g_pkt_type = LRF_ALIVE;
 
+static lrf_node_flag_dply_t g_dply_align;
+
 static uint32_t g_sense_cnt = 0;
 
 //min(Random delay) > PKT_Duation
 //random delay = pkt_dur + random_no*2 ms
-static uint32_t g_random_delay = 1200;
+static uint32_t g_random_delay;
 
-static KXTJ3_g_data_t l_acce_data;
-uint8_t angle_measure ()
+const uint32_t gc_cos_res5d[] = {
+    1000, 996, 984, 965, 939, 906, 866, 819, 766,
+    707, 642, 573, 500, 422, 342, 258, 173, 87, 0
+};
+
+static KXTJ3_g_data_t g_acce_data;
+
+uint8_t  angle_measure (uint32_t acce_comp)
 {
-//    if(acce < 0)
-//    {
-//        if(acce > )
-//    }
-//    else
-//    {
-//    }
-    return 30;
+    acce_comp = acce_comp < 0 ? acce_comp*(-1) : acce_comp;
+    static uint8_t angle_cnt = 0;
+    while((gc_cos_res5d[angle_cnt] > acce_comp) && (angle_cnt < 19))
+    {
+        angle_cnt++;
+    }
+    while((gc_cos_res5d[angle_cnt] <= acce_comp) && (angle_cnt > 0))
+    {
+        angle_cnt--;
+    }
+        
+    return (angle_cnt*5);
+}
+
+bool net_acce_check (uint32_t thrs_mg)
+{
+    uint32_t res = (g_acce_data.xg*g_acce_data.xg) 
+        + (g_acce_data.yg * g_acce_data.yg) + (g_acce_data.zg*g_acce_data.zg);
+    if(res  <= (thrs_mg * thrs_mg))
+    {
+        return 1;
+    }
+    else
+    {
+        return 0;
+    }
 }
 void ms_timer_handler_pre_deployed ();
 void ms_timer_handler_deployment ();
@@ -250,6 +279,7 @@ void ms_timer_handler_pre_deployed ()
 
 void ms_timer_handler_deployment ()
 {
+    lrf_node_ble_disconn ();
     //ble timeout
     check_point ();
 }
@@ -259,9 +289,9 @@ void ms_timer_handler_loop ()
     log_printf("detected\n");
     uint8_t pkt_data[2];
     pkt_data[0] = aa_aaa_battery_status ();
-    pkt_data[1] = angle_measure ();
+    pkt_data[1] = angle_measure (g_acce_data.xg);
     rf_comm_pkt_send (g_pkt_type, pkt_data, sizeof(pkt_data));
-    
+
     static uint32_t l_pkt_cnt = 0;
     l_pkt_cnt++;
     if (l_pkt_cnt < PKT_PER_DETECT)
@@ -277,9 +307,15 @@ void ms_timer_handler_loop ()
 
 void ms_timer_handler_sensing ()
 {
-    log_printf("tilt sense : %d\n", g_sense_cnt);
-    memcpy (&l_acce_data,kxtj3_get_acce_value (), sizeof(KXTJ3_g_data_t));
-    if((l_acce_data.xg > -866) && (l_acce_data.xg < 866))
+    memcpy (&g_acce_data,kxtj3_get_acce_value (), sizeof(KXTJ3_g_data_t));
+
+    bool l_acce_flag = net_acce_check (1200);
+
+//    log_printf("tilt sense : %d\n", g_sense_cnt);
+//    log_printf("Acce : %d\n", net_acce_check(1500));
+//    log_printf("Angle : %d\n",angle_measure (g_acce_data.xg));
+
+    if((l_acce_flag) && (angle_measure (g_acce_data.xg) > TILT_DETECT_ANGLE))
     {
         g_sense_cnt++;
         g_pkt_type = LRF_SENSE;
@@ -302,9 +338,9 @@ void ms_timer_handler_maintainence ()
 {
     log_printf("alive\n");
     uint8_t pkt_data[2];
-    memcpy (&l_acce_data,kxtj3_get_acce_value (), sizeof(KXTJ3_g_data_t));
+    memcpy (&g_acce_data,kxtj3_get_acce_value (), sizeof(KXTJ3_g_data_t));
     pkt_data[0] = aa_aaa_battery_status ();
-    pkt_data[1] = angle_measure ();
+    pkt_data[1] = angle_measure (g_acce_data.xg);
     rf_comm_pkt_send (g_pkt_type, pkt_data, sizeof(pkt_data));
 }
 
@@ -334,6 +370,20 @@ void next_interval_handler (uint32_t ticks)
         g_pkt_type = LRF_ALIVE;
         rf_comm_pkt_send (g_pkt_type, pkt_data, sizeof(pkt_data));
         l_alive_ticks = 0;
+    }
+    if((gs_lrf_state == LRF_STATE_DEPLOYMENT))
+    {
+        memcpy (&g_acce_data,kxtj3_get_acce_value (), sizeof(KXTJ3_g_data_t));
+
+        if(angle_measure (g_acce_data.xg) < TILT_DETECT_ANGLE)
+        {
+            g_dply_align.align_flag = 1;
+        }
+        else
+        {
+            g_dply_align.align_flag = 0;
+        }
+        lrf_node_ble_update_dply_alignment (&g_dply_align);
     }
 }
 
@@ -392,8 +442,9 @@ void state_change_handler (uint32_t next_state)
                             ms_timer_handler_state[next_state]);
             break;
         case LRF_STATE_LOOP :
-//            g_random_delay = random;
-            g_arr_state_durations_ticks[next_state] = PKT_DURATION + g_random_delay;
+            g_random_delay = random_num_generate ();
+            g_arr_state_durations_ticks[next_state] = MS_TIMER_TICKS_MS
+                (PKT_DURATION + g_random_delay);
             ms_timer_start (MS_TIMER_ID, MS_SINGLE_CALL,
                             g_arr_state_durations_ticks[next_state],
                             ms_timer_handler_state[next_state]);
@@ -458,6 +509,7 @@ static void deployment_flag_update (uint8_t dply_flag)
         gf_is_deployed = dply_flag;
         nvm_logger_feed_data (LOG_ID, &gf_is_deployed);
     }
+    g_dply_align.deploy_flag = gf_is_deployed;
 }
 
 static void bootloader_flag_update (uint8_t dfu_flag)
@@ -609,6 +661,7 @@ int main ()
     {
         nvm_logger_fetch_tail_data (LOG_ID, &gf_is_deployed, 1);
         log_printf("Is deployed : %d\n", gf_is_deployed);
+        g_dply_align.deploy_flag = gf_is_deployed;
     }
     
     kxtj3_init (&gc_acce_init);
