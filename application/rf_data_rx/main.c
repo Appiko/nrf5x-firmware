@@ -243,14 +243,14 @@ void rx_done_handler (uint32_t size)
 {
     log_printf("%s : %d\n", __func__, size);
     {
-        
-        rf_comm_pkt_receive (g_arr_mac_addr);
+        uint8_t pkt_len;
+        rf_comm_pkt_receive (g_arr_mac_addr, &pkt_len);
         cRxData = sizeof(uint8_t)*ARRAY_SIZE(vectcRxBuff);
         /* Flush the RX FIFO */
-        log_printf("MAC ");
-        for(uint32_t i =0; i < g_arr_mac_addr[0]; i++)
+        log_printf("Data: ");
+        for(uint32_t i =0; i < pkt_len; i++)
         {
-            log_printf(": %x  ", g_arr_mac_addr[i]);
+            log_printf("%d  ", g_arr_mac_addr[i]);
         }
         log_printf("\n");
         ble_data.pkt_no = 99;
@@ -282,7 +282,6 @@ void rx_done_handler (uint32_t size)
 #endif
         }
         
-        log_printf("RSSI : %d\n", (int8_t)rf_comm_get_rssi ());
 //        if(is_connected)
         {
             ble_data.rf_rx_rssi = (uint8_t)rf_comm_get_rssi ();
@@ -290,6 +289,7 @@ void rx_done_handler (uint32_t size)
             ble_data.CRC_ERR = 0;
             rf_rx_ble_update_status_byte (&ble_data);
         }
+        log_printf("RSSI : %d\n", (int8_t)ble_data.rf_rx_rssi);
         rssi_sum += ble_data.rf_rx_rssi;
     }
     rf_comm_idle ();
