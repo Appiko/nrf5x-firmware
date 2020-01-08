@@ -139,17 +139,14 @@ typedef enum
     LRF_MAINTAIN,
 }lrf_node_pkt_type_t;
 
-void tx_done_handler (uint32_t size);
+void tx_done_handler (uint32_t error);
+void tx_failed_handler (uint32_t error);
 
 void check_point ();
 
 void next_interval_handler (uint32_t ticks);
 
 void state_change_handler (uint32_t next_state);
-
-void tilt_detected ();
-
-void ms_timer_handler (void);
 
 static lrf_node_ble_adv_data_t g_ble_adv_data;
 
@@ -182,6 +179,7 @@ static rf_comm_radio_t gc_radio_params =
     .tx_power = 14,
     .irq_priority = APP_IRQ_PRIORITY_LOW,
     .rf_tx_done_handler = tx_done_handler,
+    .rf_tx_failed_handler = tx_failed_handler,
 };
 
 static KXTJ3_config_t gc_acce_init = 
@@ -607,9 +605,16 @@ void magnet_detect_handler (button_ui_steps step, button_ui_action act)
 }
 
 
-void tx_done_handler (uint32_t size)
+void tx_failed_handler (uint32_t error)
 {
-    log_printf("%s\n", __func__);
+    log_printf("%s : %d\n",__func__, error);
+    rf_comm_idle ();
+}
+
+void tx_done_handler (uint32_t error)
+{
+    log_printf("%s : %d\n", __func__, error);
+    rf_comm_idle ();
 }
 
 int main ()
