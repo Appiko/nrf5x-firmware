@@ -172,9 +172,10 @@ uint32_t rf_comm_pkt_send (uint8_t pkt_type, uint8_t * p_data, uint8_t len);
 /**
  * @brief Function to received store data into buffer.
  * @param p_rxbuff Buffer memory where received data is to be stored.
+ * @param p_len Pointer to variable where length is to be stored
  * @return Status
  */
-uint32_t rf_comm_pkt_receive (uint8_t * p_rxbuff);
+uint32_t rf_comm_pkt_receive (uint8_t * p_rxbuff, uint8_t * p_len);
 
 /**
  * @brief Function to start radio reception.
@@ -198,7 +199,7 @@ uint32_t rf_comm_sleep ();
  * @brief Function to get RSSI value of received pkt
  * @return RSSI value of pkt
  */
-int32_t rf_comm_get_rssi ();
+int8_t rf_comm_get_rssi ();
 
 /**
  * @brief Function to get Product ID of Radio chip which is being used

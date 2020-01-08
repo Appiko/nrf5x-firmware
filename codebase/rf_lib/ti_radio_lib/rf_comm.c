@@ -89,8 +89,9 @@
 const registerSetting_t default_setting[] = 
 {
     {PKT_CFG0,          0x20},
-    {PKT_CFG1,          0x15},
+    {PKT_CFG1,          0x05},
     {PKT_CFG2,          0x04},
+    {PKT_LEN,           0x0F},
     {IOCFG3,            0xB0},
     {IOCFG2,            0x06},
     {IOCFG1,            0x13},
@@ -454,7 +455,7 @@ uint32_t rf_comm_rx_enable ()
 }
 
 
-uint32_t rf_comm_pkt_receive (uint8_t * p_rxbuff)
+uint32_t rf_comm_pkt_receive (uint8_t * p_rxbuff, uint8_t * p_len)
 {
     uint8_t pktLen;
     uint8_t status;
@@ -464,11 +465,12 @@ uint32_t rf_comm_pkt_receive (uint8_t * p_rxbuff)
 //	trx16BitRegAccess(RADIO_READ_ACCESS, 0x2F, 0xff & NUM_RXBYTES, &pktLen, 1);
 
     trx8BitRegAccess(RADIO_READ_ACCESS, RXFIFO, &pktLen, 1);
+    *p_len = pktLen - 1;
     log_printf("Pkt Len : %d\n", pktLen);
 	if (pktLen > 0)
     {
 
-		trx8BitRegAccess(RADIO_READ_ACCESS|RADIO_BURST_ACCESS, RXFIFO, p_rxbuff, 1);
+		trx8BitRegAccess(RADIO_READ_ACCESS|RADIO_BURST_ACCESS, RXFIFO, p_rxbuff, pktLen-1);
 		/* retrieve the FIFO content */
 
 
@@ -511,19 +513,30 @@ uint32_t rf_comm_sleep ()
 	return(0);
 }
 
-int32_t rf_comm_get_rssi ()
+int8_t rf_comm_get_rssi ()
 {
-	int rssi;
-	uint8_t cc_rssi;
+	int8_t rssi;
+	uint8_t cc_rssi[2];
 
-	trx16BitRegAccess(RADIO_READ_ACCESS , 0x2F, (0xFF & RSSI1), &cc_rssi, 1);
+	trx16BitRegAccess(RADIO_READ_ACCESS , 0x2F, (0xFF & RSSI1), cc_rssi, 2);
+    
+    log_printf("rssi_get %d %d\n", cc_rssi[0], cc_rssi[1]);
+    
+    if(cc_rssi[1] & RSSI0_RSSI_VALID)
+    {
 
-	rssi = cc_rssi;
-	if (rssi >= 128) {
-		rssi = rssi - 256;
-	}
-	rssi = rssi - 99;
-    return rssi;
+        rssi = cc_rssi[0];
+        if (rssi >= 128) {
+            rssi = rssi - 256;
+        }
+        rssi = rssi - 99;
+        return rssi;
+    }
+    else
+    {
+        return 0xFF;
+    }
+
 
 }
 
