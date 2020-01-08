@@ -102,8 +102,8 @@ typedef struct
     /** kHz */
     uint32_t rx_bandwidth;
     app_irq_priority_t irq_priority;
-    void (*rf_tx_done_handler) (uint32_t size);
-    void (*rf_rx_done_handler) (uint32_t size);
+    void (*rf_tx_done_handler) (uint32_t error);
+    void (*rf_rx_done_handler) (uint32_t error);
     void (*rf_tx_failed_handler) (uint32_t error);
     void (*rf_rx_failed_handler) (uint32_t error);
 }rf_comm_radio_t;
@@ -170,11 +170,17 @@ uint32_t rf_comm_pkt_config (rf_comm_pkt_t * p_pkt_config);
 uint32_t rf_comm_pkt_send (uint8_t pkt_type, uint8_t * p_data, uint8_t len);
 
 /**
- * @brief Function to start radio reception.
+ * @brief Function to received store data into buffer.
  * @param p_rxbuff Buffer memory where received data is to be stored.
  * @return Status
  */
 uint32_t rf_comm_pkt_receive (uint8_t * p_rxbuff);
+
+/**
+ * @brief Function to start radio reception.
+ * @return 
+ */
+uint32_t rf_comm_rx_enable ();
 
 /**
  * @brief Function to put radio in idle mode

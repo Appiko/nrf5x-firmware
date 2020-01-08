@@ -94,7 +94,7 @@ const registerSetting_t default_setting[] =
     {IOCFG3,            0xB0},
     {IOCFG2,            0x06},
     {IOCFG1,            0x13},
-    {IOCFG0,            0x14},
+    {IOCFG0,            0x06},
     {MODCFG_DEV_E,      0x02}, //fdev testing
 
     {SYNC_CFG1,         0x0B},
@@ -140,10 +140,10 @@ uint8_t g_marc_sts1;
 
 static uint8_t g_arr_pkt[260];
 
-void (* gp_tx_done) (uint32_t size);
-void (* gp_rx_done) (uint32_t size);
-void (* gp_tx_failed) (uint32_t size);
-void (* gp_rx_failed) (uint32_t size);
+void (* gp_tx_done) (uint32_t error);
+void (* gp_rx_done) (uint32_t error);
+void (* gp_tx_failed) (uint32_t error);
+void (* gp_rx_failed) (uint32_t error);
 
 uint32_t math_log (uint32_t num, uint32_t base)
 {
@@ -153,8 +153,11 @@ int radio_check_status_flag (uint8_t status_bits)
 {
 	trx16BitRegAccess((RADIO_READ_ACCESS | RADIO_BURST_ACCESS), 0x2F,
                      (0x00FF & MARC_STATUS1), &g_marc_sts1, 1);
-    
-    if((status_bits & g_marc_sts1) == status_bits)
+    if((status_bits == MARC_NO_FAILURE) && (g_marc_sts1 & 0xFF))
+    {
+        return 0;
+    }
+    else if((status_bits & g_marc_sts1) == status_bits)
     {
         return 1;
     }
@@ -441,6 +444,16 @@ uint32_t rf_comm_pkt_send (uint8_t pkt_type, uint8_t * p_data, uint8_t len)
     return 0;
 }
 
+uint32_t rf_comm_rx_enable ()
+{
+    log_printf("%s\n",__func__);
+    g_current_state = R_RX;
+    trxSpiCmdStrobe (SFRX);
+	trxSpiCmdStrobe(SRX);               // Change state to RX, initiating
+    return 0;
+}
+
+
 uint32_t rf_comm_pkt_receive (uint8_t * p_rxbuff)
 {
     uint8_t pktLen;
@@ -448,13 +461,15 @@ uint32_t rf_comm_pkt_receive (uint8_t * p_rxbuff)
 #ifdef RF_COMM_AMPLIFIRE
     hal_gpio_pin_set (g_comm_hw.rf_lna_pin);
 #endif
-	trx16BitRegAccess(RADIO_READ_ACCESS, 0x2F, 0xff & NUM_RXBYTES, &pktLen, 1);
+//	trx16BitRegAccess(RADIO_READ_ACCESS, 0x2F, 0xff & NUM_RXBYTES, &pktLen, 1);
 
+    trx8BitRegAccess(RADIO_READ_ACCESS, RXFIFO, &pktLen, 1);
+    log_printf("Pkt Len : %d\n", pktLen);
 	if (pktLen > 0)
     {
 
+		trx8BitRegAccess(RADIO_READ_ACCESS|RADIO_BURST_ACCESS, RXFIFO, p_rxbuff, 1);
 		/* retrieve the FIFO content */
-		trx8BitRegAccess(RADIO_READ_ACCESS|RADIO_BURST_ACCESS, RXFIFO, p_rxbuff, pktLen);
 
 
 		/* retrieve the CRC status information */
@@ -463,9 +478,9 @@ uint32_t rf_comm_pkt_receive (uint8_t * p_rxbuff)
 		/* Return CRC_OK bit */
 		status  = status & CRC_OK;
         trxSpiCmdStrobe(SFRX);	                     // Flush RXFIFO
-        g_current_state = R_RX;
 
 	}
+    g_current_state = R_RX;
     return status;
 }
 
@@ -527,31 +542,29 @@ void GPIOTE_IRQHandler ()
 {
     if(NRF_GPIOTE->EVENTS_IN[GPIOTE_USED0])
     {
+        log_printf("%s : %d\n", __func__, g_current_state);
 #if ISR_MANAGER == 0
         NRF_GPIOTE->EVENTS_IN[GPIOTE_USED0] = 0;
 #endif
-        log_printf("%s\n", __func__);
         if(radio_check_status_flag (MARC_NO_FAILURE)) 
         {
             if(g_current_state == R_TX)
             {
                 log_printf("Tx Done\n");
+                g_current_state = R_IDLE;
                 if(gp_tx_done != NULL)
                 {
-                    uint32_t size = 0;
-                    gp_tx_done (size);
+                    gp_tx_done (g_marc_sts1);
                 }
-                g_current_state = R_IDLE;
             }
             if(g_current_state == R_RX)
             {
                 log_printf("Rx Done\n");
+                g_current_state = R_IDLE;
                 if(gp_rx_done != NULL)
                 {
-                    uint32_t size = 0;
-                    gp_rx_done (size);
+                    gp_rx_done (g_marc_sts1);
                 }
-                g_current_state = R_IDLE;
             }
         }
         else
@@ -559,20 +572,20 @@ void GPIOTE_IRQHandler ()
             if(g_current_state == R_TX)
             {
                 log_printf("Tx Failed\n");
+                g_current_state = R_IDLE;
                 if(gp_tx_failed != NULL)
                 {
                     gp_tx_failed (g_marc_sts1);
                 }
-                g_current_state = R_IDLE;
             }
             if(g_current_state == R_RX)
             {
                 log_printf("Rx Failed\n");
+                g_current_state = R_IDLE;
                 if(gp_rx_failed != NULL)
                 {
                     gp_rx_failed (g_marc_sts1);
                 }
-                g_current_state = R_IDLE;
             }
         }
     }
