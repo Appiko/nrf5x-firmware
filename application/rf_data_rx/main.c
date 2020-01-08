@@ -46,9 +46,13 @@
 #include "ble.h"
 #include "nrf_soc.h"
 #include "nrf_sdm.h"
-#include "radio_drv.h"
-#include "cc1x_utils.h"
-#include "cc112x_def.h"
+//#include "radio_drv.h"
+//#include "cc1x_utils.h"
+//#include "cc112x_def.h"
+
+#include "rf_comm.h"
+#include "rf_spi_hw.h"
+
 
 #ifdef LOG_TEENSY
 #include "hal_uart.h"
@@ -94,7 +98,7 @@ static mod_ble_data_t ble_data;
 
 static volatile bool is_connected = false;
 
-uint8_t g_arr_mac_addr[6];
+uint8_t g_arr_mac_addr[255];
 
 typedef struct
 {
@@ -125,6 +129,40 @@ const lookup_entry_t lookup_table[] =
             .char_id = 'E',
     },
 
+};
+void rx_failed_handler (uint32_t error);
+void rx_done_handler (uint32_t size);
+
+static rf_spi_init_t gc_spi_hw= 
+{
+    .csn_pin = 23,
+    .sclk_pin = 22,
+    .miso_pin = 3,
+    .mosi_pin = 4,
+    .irq_priority = APP_IRQ_PRIORITY_HIGHEST,
+};
+
+static rf_comm_hw_t gc_radio_hw = 
+{
+    .rf_gpio0_pin = 26,
+    .rf_gpio2_pin = 20,
+    .rf_gpio3_pin = 21,
+    .rf_reset_pin = 24,
+#ifdef RF_COMM_AMPLIFIRE
+    .rf_lna_pin = CC_LNA_PIN,
+    .rf_pa_pin = CC_PA_PIN,
+#endif
+};
+
+static rf_comm_radio_t gc_radio_params = 
+{
+    .bitrate = 300,
+    .center_freq = 866000,
+    .freq_dev = 2,
+    .rx_bandwidth = 8,
+    .irq_priority = APP_IRQ_PRIORITY_LOW,
+    .rf_rx_done_handler = rx_done_handler,
+    .rf_rx_failed_handler = rx_failed_handler,
 };
 
 void ms_timer_handler ()
@@ -194,67 +232,23 @@ void slumber(void)
     }
 }
 
-void start_rx(void)
+void rx_failed_handler (uint32_t error)
 {
-    bool break_now = false;
-    do{
-//        S2LPGpioInit(&xGpioIRQ);
-//        S2LPCmdStrobeRx();
-
-//        S2LPGpioIrqGetStatus((S2LPIrqs*) &irqs);
-//        log_printf ("Rx? I0x%X S0x%X", irqs, g_xStatus);
-//        if(g_xStatus.MC_STATE == MC_STATE_RX)
-//        if(radio_check_status_flag (MARC_NO_FAILURE))
-        {
-            break_now = true;
-//            log_printf(" Yay\n");
-        }
-        radio_receive_on (); 
-//        else
-//        {
-//            log_printf(" Nay\n");
-//            log_printf("Reset..!!");
-//            uint8_t is_sd_enabled;
-//            sd_softdevice_is_enabled(&is_sd_enabled);
-//            if(is_sd_enabled == 0)
-//            {
-//                sd_nvic_SystemReset();
-//            }
-//            else
-//            {
-//                NVIC_SystemReset ();
-//            }
-//        }
-
-    } while(break_now == false);
+    log_printf("%s : %d\n", __func__, error);
+    rf_comm_idle ();
+    rf_comm_rx_enable();
 }
 
-void GPIOTE_IRQHandler ()
+void rx_done_handler (uint32_t size)
 {
-    NRF_GPIOTE->EVENTS_IN[GPIOTE_CHANNEL_USED] = 0;
-//    log_printf("%s\n",__func__);
-    if(radio_check_status_flag (MARC_NO_FAILURE) )
+    log_printf("%s : %d\n", __func__, size);
     {
-//        hal_nop_delay_ms(100);
-//        rx_started = true;
-//        log_printf("Data Recieved : %d dBm\n", S2LPRadioGetRssidBm ());
-//            if(rx_started == false)
-//            {
-//                ms_timer_start (MS_TIMER1, MS_REPEATED_CALL, MS_TIMER_TICKS_MS(50), ms_timer_handler);
-//            }
-//            rx_started = true;
-
-//        hal_gpio_pin_toggle (LED_BLUE);
         
-        /* Read the RX FIFO */
-//        S2LPSpiReadFifo(cRxData, (uint8_t *)&current_pkt_no);
-        
+        rf_comm_pkt_receive (g_arr_mac_addr);
         cRxData = sizeof(uint8_t)*ARRAY_SIZE(vectcRxBuff);
-        radio_read (vectcRxBuff, (uint8_t *)&cRxData);
-        memcpy (g_arr_mac_addr, vectcRxBuff, 6);
         /* Flush the RX FIFO */
         log_printf("MAC ");
-        for(uint32_t i =0; i < ARRAY_SIZE(g_arr_mac_addr); i++)
+        for(uint32_t i =0; i < g_arr_mac_addr[0]; i++)
         {
             log_printf(": %x  ", g_arr_mac_addr[i]);
         }
@@ -276,7 +270,6 @@ void GPIOTE_IRQHandler ()
             }
             l_lkp_cnt++;
         }
-//        current_pkt_no = vectcRxBuff[0] | (vectcRxBuff[1] << 8);
         pkt_no++;
         if(is_timer_on == false)
         {
@@ -289,22 +282,24 @@ void GPIOTE_IRQHandler ()
 #endif
         }
         
-        log_printf("RSSI : %d\n", (int8_t)radio_get_rssi ());
+        log_printf("RSSI : %d\n", (int8_t)rf_comm_get_rssi ());
 //        if(is_connected)
         {
-            ble_data.rf_rx_rssi = (uint8_t)radio_get_rssi ();
+            ble_data.rf_rx_rssi = (uint8_t)rf_comm_get_rssi ();
             ble_data.mag_status = 0;
-            ble_data.CRC_ERR = (uint8_t) radio_check_status_flag (MARC_PKT_DISC_CRC);
+            ble_data.CRC_ERR = 0;
             rf_rx_ble_update_status_byte (&ble_data);
         }
         rssi_sum += ble_data.rf_rx_rssi;
     }
-    else
-    {
-        log_printf ("*** Data not ready.\n");
-    }
+    rf_comm_idle ();
+    rf_comm_rx_enable();
+//    else
+//    {
+//        log_printf ("*** Data not ready.\n");
+//    }
 
-    start_rx();
+//    start_rx();
 }
 /**
  * @brief Function for application main entry.
@@ -331,16 +326,19 @@ int main(void)
     hal_gpio_pin_set (TCXO_EN_PIN);
     rgb_led_init();
     rgb_led_cycle();
-    radio_init(APPIKO_1120_0K3);
-    radio_set_freq (915000);
-    set_rf_packet_length (6);
+    rf_spi_init (&gc_spi_hw);
+    
+    rf_comm_radio_init (&gc_radio_params, &gc_radio_hw);
+//    radio_init(APPIKO_1120_0K3);
+//    radio_set_freq (915000);
+//    set_rf_packet_length (6);
 
 //    hal_gpio_cfg_output (LNA_EN_PIN, 1);
-    hal_gpio_cfg_input (GPIO_PIN, HAL_GPIO_PULL_DOWN);
-    NRF_GPIOTE->CONFIG[GPIOTE_CHANNEL_USED] = ((GPIOTE_CONFIG_MODE_Event << GPIOTE_CONFIG_MODE_Pos) & GPIOTE_CONFIG_MODE_Msk) |
-        ((GPIOTE_CONFIG_POLARITY_HiToLo << GPIOTE_CONFIG_POLARITY_Pos)&GPIOTE_CONFIG_POLARITY_Msk) |
-        ((GPIO_PIN << GPIOTE_CONFIG_PSEL_Pos) & GPIOTE_CONFIG_PSEL_Msk);
-    NRF_GPIOTE->INTENSET = (GPIOTE_INTENSET_IN0_Enabled<<GPIOTE_INTENSET_IN0_Pos)&GPIOTE_INTENSET_IN0_Msk;
+//    hal_gpio_cfg_input (GPIO_PIN, HAL_GPIO_PULL_DOWN);
+//    NRF_GPIOTE->CONFIG[GPIOTE_CHANNEL_USED] = ((GPIOTE_CONFIG_MODE_Event << GPIOTE_CONFIG_MODE_Pos) & GPIOTE_CONFIG_MODE_Msk) |
+//        ((GPIOTE_CONFIG_POLARITY_HiToLo << GPIOTE_CONFIG_POLARITY_Pos)&GPIOTE_CONFIG_POLARITY_Msk) |
+//        ((GPIO_PIN << GPIOTE_CONFIG_PSEL_Pos) & GPIOTE_CONFIG_PSEL_Msk);
+//    NRF_GPIOTE->INTENSET = (GPIOTE_INTENSET_IN0_Enabled<<GPIOTE_INTENSET_IN0_Pos)&GPIOTE_INTENSET_IN0_Msk;
 
     
     rf_rx_ble_stack_init ();
@@ -351,14 +349,23 @@ int main(void)
 //
     ble_data.rf_rx_rssi = 0;
     rf_rx_ble_update_status_byte (&ble_data);
+    
+    rf_comm_pkt_t pkt_config = 
+    {
+        .max_len = 6,
+    };
+    rf_comm_pkt_config (&pkt_config);
+    rf_comm_idle ();
+    
+    rf_comm_rx_enable();
 
-    start_rx();
+//    start_rx();
 
     log_printf("Here..!!\n");
-    NRF_GPIOTE->EVENTS_IN[GPIOTE_CHANNEL_USED] = 0;
-    NVIC_SetPriority (GPIOTE_IRQn, APP_IRQ_PRIORITY_LOW);
-    NVIC_ClearPendingIRQ (GPIOTE_IRQn);
-    NVIC_EnableIRQ (GPIOTE_IRQn);
+//    NRF_GPIOTE->EVENTS_IN[GPIOTE_CHANNEL_USED] = 0;
+//    NVIC_SetPriority (GPIOTE_IRQn, APP_IRQ_PRIORITY_LOW);
+//    NVIC_ClearPendingIRQ (GPIOTE_IRQn);
+//    NVIC_EnableIRQ (GPIOTE_IRQn);
     while(1)
     {
         slumber ();
