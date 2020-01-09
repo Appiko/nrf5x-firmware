@@ -196,6 +196,18 @@ uint32_t rf_comm_idle ();
 uint32_t rf_comm_sleep ();
 
 /**
+ * @brief Function to exit Sleep state
+ * @return Status
+ */
+uint32_t rf_comm_wake(void);
+
+/**
+ * @biref Function to flush Tx Rx buffers
+ * @return 
+ */
+uint32_t rf_comm_flush(void);
+
+/**
  * @brief Function to get RSSI value of received pkt
  * @return RSSI value of pkt
  */

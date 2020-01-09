@@ -248,6 +248,22 @@ bool net_acce_check (uint32_t thrs_mg)
         return 0;
     }
 }
+
+void radio_enable ()
+{
+    hal_gpio_pin_set (TCXO_EN_PIN);
+    rf_comm_wake();
+    rf_comm_radio_init (&gc_radio_params, &gc_radio_hw);
+
+    rf_comm_idle ();
+
+}
+
+void radio_disable ()
+{
+    rf_comm_sleep ();
+    hal_gpio_pin_clear (TCXO_EN_PIN);
+}
 void ms_timer_handler_pre_deployed ();
 void ms_timer_handler_deployment ();
 void ms_timer_handler_sensing ();
@@ -299,6 +315,7 @@ void ms_timer_handler_loop ()
     else
     {
         l_pkt_cnt = 0;
+        radio_disable ();
         irq_msg_push (MSG_STATE_CHANGE, (void *)LRF_STATE_SENSING);
     }
 }
@@ -319,10 +336,12 @@ void ms_timer_handler_sensing ()
         g_pkt_type = LRF_SENSE;
         if(g_sense_cnt < DETECTS_BEFORE_MAINTAIN)
         {
+            radio_enable ();
             irq_msg_push (MSG_STATE_CHANGE, (void *)LRF_STATE_LOOP);
         }
         else
         {
+            radio_disable ();
             irq_msg_push (MSG_STATE_CHANGE, (void *)LRF_STATE_MAINTAINENCE);
         }
     }
@@ -339,12 +358,14 @@ void ms_timer_handler_maintainence ()
     memcpy (&g_acce_data,kxtj3_get_acce_value (), sizeof(KXTJ3_g_data_t));
     pkt_data[0] = aa_aaa_battery_status ();
     pkt_data[1] = angle_measure (g_acce_data.xg);
+    radio_enable ();
     for(uint32_t pkt_cnt = 0; pkt_cnt < PKT_PER_DETECT; pkt_cnt++)
     {
         g_random_delay = random_num_generate ();
         hal_nop_delay_ms (PKT_DURATION+g_random_delay);
         rf_comm_pkt_send (g_pkt_type, pkt_data, sizeof(pkt_data));
     }
+    radio_disable ();
 }
 
 
@@ -401,6 +422,7 @@ void state_change_handler (uint32_t next_state)
             break;
         case LRF_STATE_DEPLOYMENT :
             {
+                radio_disable ();
                 device_tick_cfg tick_cfg = {
                     DEPLOY_TICKS_FAST,
                     DEPLOY_TICKS_SLOW,
@@ -429,7 +451,6 @@ void state_change_handler (uint32_t next_state)
                     uint8_t * p_temp = (uint8_t * )&NRF_UICR->CUSTOMER[4];
                     memcpy (&l_ble_pkt, p_temp, sizeof(lrf_node_prodc_info_t));
                     lrf_node_ble_update_prodict_info(&l_ble_pkt);
-                    log_printf("Here\n");
                 }
                 lrf_node_ble_adv_start();
 
@@ -508,7 +529,6 @@ static void deployment_flag_update (uint8_t dply_flag)
 {
     if(dply_flag != (gf_is_deployed ))
     {
-        log_printf("dply %d %d\n", dply_flag, gf_is_deployed);
         gf_is_deployed = dply_flag;
         nvm_logger_feed_data (LOG_ID, &gf_is_deployed);
     }
@@ -608,21 +628,27 @@ void magnet_detect_handler (button_ui_steps step, button_ui_action act)
 void tx_failed_handler (uint32_t error)
 {
     log_printf("%s : %d\n",__func__, error);
-    rf_comm_idle ();
+    if(gs_lrf_state != LRF_STATE_SENSING)
+    {
+        rf_comm_flush ();
+    }
 }
 
 void tx_done_handler (uint32_t error)
 {
     log_printf("%s : %d\n", __func__, error);
-    rf_comm_idle ();
+    if(gs_lrf_state != LRF_STATE_SENSING)
+    {
+        rf_comm_flush ();
+    }
 }
 
 int main ()
 {
-    lfclk_init (LFCLK_SRC_Xtal);
     log_init ();
-    ms_timer_init (APP_IRQ_PRIORITY_LOW);
     log_printf("Hello world from LRF Node\n");    
+    lfclk_init (LFCLK_SRC_Xtal);
+    ms_timer_init (APP_IRQ_PRIORITY_LOW);
 
 #if ENABLE_WDT == 1
     hal_wdt_init(WDT_PERIOD_MS, wdt_prior_reset_callback);
@@ -675,9 +701,9 @@ int main ()
     }
     
     kxtj3_init (&gc_acce_init);
-    
-    
-    
+
+    radio_disable ();
+
     rf_comm_pkt_t pkt_config = 
     {
         .max_len = 10,

@@ -506,9 +506,30 @@ uint32_t rf_comm_sleep ()
 #endif
 	/* Force transciever idle state */
 	trxSpiCmdStrobe(SIDLE);
+	trxSpiCmdStrobe(SXOFF);
 
 	/* Enter sleep state on exit */
 	trxSpiCmdStrobe(SPWD);
+
+	return(0);
+}
+
+
+uint32_t rf_comm_flush(void)
+{
+	trxSpiCmdStrobe(SFRX);
+	trxSpiCmdStrobe(SFTX);
+	return(0);
+}
+
+uint32_t rf_comm_wake(void)
+{
+
+	/* Force transciever idle state */
+	trxSpiCmdStrobe(SIDLE);
+
+	/* 1 ms delay for letting RX settle */
+	hal_nop_delay_us (1000);
 
 	return(0);
 }
