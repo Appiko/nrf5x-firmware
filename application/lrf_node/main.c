@@ -74,7 +74,7 @@
 #define WDT_PERIOD_MS              301000
 
 /** Flag to specify if the Watchdog timer is used or not */
-#define ENABLE_WDT                 1
+#define ENABLE_WDT                 0
 
 #define RADIO_ID 0x5A //CC1175
 //#define RADIO_ID 0x58 //CC1125
@@ -222,17 +222,12 @@ static KXTJ3_g_data_t g_acce_data;
 uint8_t  angle_measure (uint32_t acce_comp)
 {
     acce_comp = acce_comp < 0 ? acce_comp*(-1) : acce_comp;
-    static uint8_t angle_cnt = 0;
+    uint8_t angle_cnt = 0;
     while((gc_cos_res5d[angle_cnt] > acce_comp) && (angle_cnt < 19))
     {
         angle_cnt++;
     }
-    while((gc_cos_res5d[angle_cnt] <= acce_comp) && (angle_cnt > 0))
-    {
-        angle_cnt--;
-    }
-        
-    return (angle_cnt*5);
+    return ((angle_cnt)*5);
 }
 
 bool net_acce_check (uint32_t thrs_mg)
@@ -328,6 +323,7 @@ void ms_timer_handler_sensing ()
 
 //    log_printf("tilt sense : %d\n", g_sense_cnt);
 //    log_printf("Acce : %d\n", net_acce_check(1500));
+    log_printf("Acce x: %d\n", g_acce_data.xg);
 //    log_printf("Angle : %d\n",angle_measure (g_acce_data.xg));
 
     if((l_acce_flag) && (angle_measure (g_acce_data.xg) > TILT_DETECT_ANGLE))
@@ -643,9 +639,77 @@ void tx_done_handler (uint32_t error)
     }
 }
 
+void boot_pwr_config(void)
+{
+    log_printf("Reset because of ");
+    if(NRF_POWER->RESETREAS == 0)
+    {
+        log_printf("power on or brownout, ");
+    }
+    if(NRF_POWER->RESETREAS & POWER_RESETREAS_DIF_Msk)
+    {
+        log_printf("entering into debug interface from Sys OFF, ");
+    }
+    if(NRF_POWER->RESETREAS & POWER_RESETREAS_DOG_Msk)
+    {
+        log_printf("watchdog bite, ");
+    }
+    if(NRF_POWER->RESETREAS & POWER_RESETREAS_LOCKUP_Msk)
+    {
+        log_printf("CPU lockup, ");
+    }
+    if(NRF_POWER->RESETREAS & POWER_RESETREAS_OFF_Msk)
+    {
+        log_printf("wake up from SYS OFF by GPIO, ");
+    }
+    if(NRF_POWER->RESETREAS & POWER_RESETREAS_RESETPIN_Msk)
+    {
+        log_printf("pin reset, ");
+    }
+    if(NRF_POWER->RESETREAS & POWER_RESETREAS_SREQ_Msk)
+    {
+        log_printf("software reset, ");
+    }
+    log_printf("\n");
+
+    //Clear the reset reason
+    NRF_POWER->RESETREAS = (POWER_RESETREAS_DIF_Msk |
+                            POWER_RESETREAS_DOG_Msk |
+                            POWER_RESETREAS_LOCKUP_Msk |
+                            POWER_RESETREAS_OFF_Msk |
+                            POWER_RESETREAS_RESETPIN_Msk |
+                            POWER_RESETREAS_SREQ_Msk);
+
+    //Enable the DCDC converter if the board supports it
+#if DC_DC_CIRCUITRY == true  //Defined in the board header file
+    NRF_POWER->DCDCEN = POWER_DCDCEN_DCDCEN_Enabled << POWER_DCDCEN_DCDCEN_Pos;
+#endif
+    NRF_POWER->TASKS_LOWPWR = 1;
+}
+
+/**
+ * Different calls to sleep depending on the status of Softdevice
+ */
+void slumber(void)
+{
+    uint8_t is_sd_enabled;
+    sd_softdevice_is_enabled(&is_sd_enabled);
+    // Would in the SENSING mode
+    if(is_sd_enabled == 0)
+    {
+        __WFI();
+    }
+    else
+    {
+        sd_app_evt_wait();
+    }
+}
+
+
 int main ()
 {
     log_init ();
+    boot_pwr_config ();
     log_printf("Hello world from LRF Node\n");    
     lfclk_init (LFCLK_SRC_Xtal);
     ms_timer_init (APP_IRQ_PRIORITY_LOW);
@@ -719,6 +783,6 @@ int main ()
 #endif
         device_tick_process ();
         irq_msg_process ();
-        __WFI ();
+        slumber ();
     }
 }
