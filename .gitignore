@@ -46,3 +46,4 @@ application/*/nbproject/*
 /application/sensebe_tx/build/
 /application/sensebe_rx/build/
 /application/lrf_node/build/
+/application/lrf_gateway/build/
