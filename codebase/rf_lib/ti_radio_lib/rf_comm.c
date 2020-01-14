@@ -43,48 +43,6 @@
 
 #define RF_LO_DIVIDER          4             /* there is a hardware LO divider CC112x */
 
-//const registerSetting_t default_setting[] = 
-//{
-//    {IOCFG3,            0xB0},
-//    {IOCFG2,            0x06},
-//    {IOCFG1,            0xB0},
-//    {IOCFG0,            0x40},
-//    {SYNC_CFG1,         0x0B},
-//    {MODCFG_DEV_E,      0x02},
-//    {DCFILT_CFG,        0x1C},
-//    {PREAMBLE_CFG1,     0x18},
-//    {IQIC,              0xC6},
-//    {CHAN_BW,           0x19},
-//    {MDMCFG0,           0x05},
-//    {SYMBOL_RATE2,      0x23},
-//    {AGC_REF,           0x20},
-//    {AGC_CS_THR,        0x19},
-//    {AGC_CFG1,          0xA9},
-//    {AGC_CFG0,          0xCF},
-//    {FIFO_CFG,          0x00},
-//    {FS_CFG,            0x12},
-//    {PKT_CFG0,          0x20},
-//    {PA_CFG0,           0x7E},
-//    {PKT_LEN,           0xFF},
-//    {IF_MIX_CFG,        0x00},
-//    {FREQOFF_CFG,       0x22},
-//    {FREQ2,             0x72},
-//    {FREQ1,             0x60},
-//    {FS_DIG1,           0x00},
-//    {FS_DIG0,           0x5F},
-//    {FS_CAL1,           0x40},
-//    {FS_CAL0,           0x0E},
-//    {FS_DIVTWO,         0x03},
-//    {FS_DSM0,           0x33},
-//    {FS_DVC0,           0x17},
-//    {FS_PFD,            0x50},
-//    {FS_PRE,            0x6E},
-//    {FS_REG_DIV_CML,    0x14},
-//    {FS_SPARE,          0xAC},
-//    {FS_VCO0,           0xB4},
-//    {XOSC5,             0x0E},
-//    {XOSC1,             0x03},
-//};
 
 const registerSetting_t default_setting[] = 
 {
@@ -278,7 +236,7 @@ uint32_t rf_comm_set_freq (uint32_t freq)
 
 	/* write the frequency word to the transciever */
 	trx16BitRegAccess(RADIO_WRITE_ACCESS | RADIO_BURST_ACCESS, 0x2F, (0xFF & FREQ2), freq_regs, 3);
-    log_printf("%s : 0x%x\n", __func__,freq_regs_uint32);
+//    log_printf("%s : 0x%x\n", __func__,freq_regs_uint32);
 
     return 0;
 
@@ -300,7 +258,7 @@ uint32_t rf_comm_set_bitrate (uint32_t bitrate)
         trx8BitRegAccess (RADIO_WRITE_ACCESS, (0xFF & SYMBOL_RATE0), arr_reg, 1);
         arr_reg[0] = (srate_e<<4) & 0xF0;
         trx8BitRegAccess (RADIO_WRITE_ACCESS, (0xFF & SYMBOL_RATE2), arr_reg, 1);
-        log_printf("%s : %d %d (8bit)\n", __func__, srate_m, srate_e);
+//        log_printf("%s : %d %d (8bit)\n", __func__, srate_m, srate_e);
     }
     else if(srate_m < (1 << 16))
     {
@@ -309,7 +267,7 @@ uint32_t rf_comm_set_bitrate (uint32_t bitrate)
         trx8BitRegAccess (RADIO_WRITE_ACCESS | RADIO_BURST_ACCESS, (0xFF & SYMBOL_RATE1), arr_reg, 2);
         arr_reg[0] = (srate_e << 4) & 0xF0;
         trx8BitRegAccess (RADIO_WRITE_ACCESS, (0xFF & SYMBOL_RATE2), arr_reg, 1);
-        log_printf("%s : %d %d (16bit)\n", __func__, srate_m, srate_e);
+//        log_printf("%s : %d %d (16bit)\n", __func__, srate_m, srate_e);
     }
     else if (srate_m == (1<< 20))
     {
@@ -317,7 +275,7 @@ uint32_t rf_comm_set_bitrate (uint32_t bitrate)
         trx8BitRegAccess (RADIO_WRITE_ACCESS, (0xFF & SYMBOL_RATE0), arr_reg, 1);
         arr_reg[0] = ((srate_e + 1) << 4)& 0xF0;
         trx8BitRegAccess (RADIO_WRITE_ACCESS, (0xFF & SYMBOL_RATE2), arr_reg, 1);
-        log_printf("%s : %d %d (20bit-0bit)\n", __func__, srate_m, srate_e);        
+//        log_printf("%s : %d %d (20bit-0bit)\n", __func__, srate_m, srate_e);        
     }
     else 
     {
@@ -326,7 +284,7 @@ uint32_t rf_comm_set_bitrate (uint32_t bitrate)
         arr_reg[2] = (srate_m & 0xFF);
         trx8BitRegAccess (RADIO_WRITE_ACCESS | RADIO_BURST_ACCESS,
                           (0xFF & SYMBOL_RATE2), arr_reg, 3);
-        log_printf("%s : %d %d (20bit)\n", __func__, srate_m, srate_e);
+//        log_printf("%s : %d %d (20bit)\n", __func__, srate_m, srate_e);
     }
 //    trx8BitRegAccess (RADIO_READ_ACCESS | RADIO_BURST_ACCESS, (0xFF & SYMBOL_RATE2), arr_reg, 3);
 //    log_printf(" %d %d\n", (arr_reg[0]&0xF0)>>4,
@@ -363,7 +321,7 @@ uint32_t rf_comm_set_fdev (uint32_t fdev)
     
     reg = (uint8_t)(0xFF & manti);
     trx8BitRegAccess (RADIO_WRITE_ACCESS, (0xFF & DEVIATION_M), &reg, 1);
-    log_printf("%s : %d %d\n", __func__, manti, exp);
+//    log_printf("%s : %d %d\n", __func__, manti, exp);
     trx8BitRegAccess (RADIO_WRITE_ACCESS, (0xFF & DEVIATION_M), &reg, 1);
     uint8_t arr_reg[2];
     trx8BitRegAccess (RADIO_READ_ACCESS|RADIO_BURST_ACCESS,
@@ -435,7 +393,7 @@ uint32_t rf_comm_pkt_send (uint8_t pkt_type, uint8_t * p_data, uint8_t len)
 #ifdef RF_COMM_AMPLIFIRE
     hal_gpio_pin_set (g_comm_hw.rf_pa_pin);
 #endif
-    g_arr_pkt[0] = 5+len;  //Change this values
+    g_arr_pkt[0] = 4+len;  //Change this values
     g_arr_pkt[4] = pkt_type;
     memcpy (&g_arr_pkt[5], p_data, len);
     
@@ -447,7 +405,6 @@ uint32_t rf_comm_pkt_send (uint8_t pkt_type, uint8_t * p_data, uint8_t len)
 
 uint32_t rf_comm_rx_enable ()
 {
-    log_printf("%s\n",__func__);
     g_current_state = R_RX;
     trxSpiCmdStrobe (SFRX);
 	trxSpiCmdStrobe(SRX);               // Change state to RX, initiating
@@ -465,12 +422,12 @@ uint32_t rf_comm_pkt_receive (uint8_t * p_rxbuff, uint8_t * p_len)
 //	trx16BitRegAccess(RADIO_READ_ACCESS, 0x2F, 0xff & NUM_RXBYTES, &pktLen, 1);
 
     trx8BitRegAccess(RADIO_READ_ACCESS, RXFIFO, &pktLen, 1);
-    *p_len = pktLen - 1;
+    *p_len = pktLen;
     log_printf("Pkt Len : %d\n", pktLen);
 	if (pktLen > 0)
     {
 
-		trx8BitRegAccess(RADIO_READ_ACCESS|RADIO_BURST_ACCESS, RXFIFO, p_rxbuff, pktLen-1);
+		trx8BitRegAccess(RADIO_READ_ACCESS|RADIO_BURST_ACCESS, RXFIFO, p_rxbuff, pktLen);
 		/* retrieve the FIFO content */
 
 
@@ -541,7 +498,6 @@ int8_t rf_comm_get_rssi ()
 
 	trx16BitRegAccess(RADIO_READ_ACCESS , 0x2F, (0xFF & RSSI1), cc_rssi, 2);
     
-    log_printf("rssi_get %d %d\n", cc_rssi[0], cc_rssi[1]);
     
     if(cc_rssi[1] & RSSI0_RSSI_VALID)
     {
@@ -576,7 +532,7 @@ void GPIOTE_IRQHandler ()
 {
     if(NRF_GPIOTE->EVENTS_IN[GPIOTE_USED0])
     {
-        log_printf("%s : %d\n", __func__, g_current_state);
+//        log_printf("%s : %d\n", __func__, g_current_state);
 #if ISR_MANAGER == 0
         NRF_GPIOTE->EVENTS_IN[GPIOTE_USED0] = 0;
 #endif
@@ -584,7 +540,7 @@ void GPIOTE_IRQHandler ()
         {
             if(g_current_state == R_TX)
             {
-                log_printf("Tx Done\n");
+//                log_printf("Tx Done\n");
                 g_current_state = R_IDLE;
                 if(gp_tx_done != NULL)
                 {
@@ -593,7 +549,7 @@ void GPIOTE_IRQHandler ()
             }
             if(g_current_state == R_RX)
             {
-                log_printf("Rx Done\n");
+//                log_printf("Rx Done\n");
                 g_current_state = R_IDLE;
                 if(gp_rx_done != NULL)
                 {
@@ -601,11 +557,36 @@ void GPIOTE_IRQHandler ()
                 }
             }
         }
+        else if(radio_check_status_flag (MARC_TX_SUCCESSFUL)) 
+        {
+            if(g_current_state == R_TX)
+            {
+//                log_printf("Tx Done\n");
+                g_current_state = R_IDLE;
+                if(gp_tx_done != NULL)
+                {
+                    gp_tx_done (g_marc_sts1);
+                }
+            }
+        }
+        else if(radio_check_status_flag (MARC_RX_SUCCESSFUL)) 
+        {
+            if(g_current_state == R_RX)
+            {
+//                log_printf("Tx Done\n");
+                g_current_state = R_IDLE;
+                if(gp_rx_done != NULL)
+                {
+                    gp_rx_done (g_marc_sts1);
+                }
+            }
+        }
+
         else
         {
             if(g_current_state == R_TX)
             {
-                log_printf("Tx Failed\n");
+//                log_printf("Tx Failed\n");
                 g_current_state = R_IDLE;
                 if(gp_tx_failed != NULL)
                 {
@@ -614,7 +595,7 @@ void GPIOTE_IRQHandler ()
             }
             if(g_current_state == R_RX)
             {
-                log_printf("Rx Failed\n");
+//                log_printf("Rx Failed\n");
                 g_current_state = R_IDLE;
                 if(gp_rx_failed != NULL)
                 {
