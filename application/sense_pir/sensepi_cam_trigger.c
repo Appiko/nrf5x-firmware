@@ -345,12 +345,14 @@ void pir_set_state(bool state)
     log_printf("%s %x\n",__func__, state);
     if(state == true)
     {
-        hal_gpio_pin_set (config.pir_sense_enable);
+//        hal_gpio_pin_set (config.pir_sense_enable);
+//        hal_nop_delay_ms (5);
         pir_sense_start(&config_pir);        
     }
     else
     {
-        hal_gpio_pin_clear (config.pir_sense_enable);
+//        hal_gpio_pin_clear (config.pir_sense_enable);
+//        hal_nop_delay_ms (5);
         pir_sense_stop();    
     }
 }
@@ -567,7 +569,6 @@ void light_sense_init(void)
 //                    config.led_sense_analog_in_pin,
 //                    config.led_sense_off_val);
     
-    hal_gpio_cfg_output (config.led_sense_out_pin, 0);
     hal_gpio_cfg(config.led_sense_analog_in_pin,
             GPIO_PIN_CNF_DIR_Input,
             GPIO_PIN_CNF_INPUT_Disconnect,
@@ -592,7 +593,7 @@ void light_sense_set_state(bool state)
 
 bool light_sense_light_check(oper_time_t oper_time)
 {
-    log_printf("%ss\n", __func__);
+    log_printf("%s\n", __func__);
     if(is_light_sense_on)
     {
         hal_gpio_pin_set (config.led_sense_out_pin);
@@ -635,6 +636,7 @@ void module_manager_start_check(void)
     {
         case PIR_ONLY : 
         {
+            hal_gpio_pin_set (config.pir_sense_enable);
             light_flag = light_sense_light_check(config.config_sensepi->pir_conf.oper_time);
             pir_on_flag = light_flag;
             pir_set_state(light_flag);
@@ -650,6 +652,7 @@ void module_manager_start_check(void)
         }
         case PIR_AND_TIMER :
         {
+            hal_gpio_pin_set (config.pir_sense_enable);
             light_flag = light_sense_light_check(config.config_sensepi->pir_conf.oper_time);
             pir_on_flag = light_flag;
 
@@ -949,6 +952,7 @@ void sensepi_cam_trigger_init(sensepi_cam_trigger_init_config_t * config_sensepi
     memcpy(&config_pir, &local_config_pir, sizeof(pir_sense_cfg));
     out_gen_init(NUM_PIN_OUT, config.signal_out_pin_array, 
                  (bool *) out_gen_end_all_on);
+    hal_gpio_cfg_output (config.pir_sense_enable, 1);
 }
 
 void sensepi_cam_trigger_update(sensepi_config_t * update_config)
