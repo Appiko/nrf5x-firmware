@@ -101,13 +101,13 @@ typedef struct
 {
     uint8_t app_id;
     uint16_t prod_id;
-}lrf_node_prodc_info_t;
+}__attribute__((packed)) lrf_node_prodc_info_t;
 
 typedef struct
 {
     uint8_t deploy_flag;
     uint8_t align_flag;
-}lrf_node_flag_dply_t;
+}__attribute__((packed)) lrf_node_flag_dply_t;
 
 
 typedef struct
@@ -121,7 +121,7 @@ typedef struct
     uint16_t adv_len;
     uint8_t scan_rsp_data[31];
     uint16_t scan_rsp_len;
-}lrf_node_ble_adv_data_t;
+}__attribute__((packed)) lrf_node_ble_adv_data_t;
 
 /**
  * @brief Initialize the handlers to pass the BLE SD events
@@ -132,7 +132,8 @@ typedef struct
  */
 void lrf_node_ble_init(void (*ble_sd_evt)(ble_evt_t * evt), 
         void (* dply_flag_update)(uint8_t dply_flag), 
-        void (* dfu_flag_update)(uint8_t dfu_flag));
+        void (* dfu_flag_update)(uint8_t dfu_flag),
+        void (* product_info_update)(lrf_node_prodc_info_t * product_info));
 
 /**
  * @brief Updates the characteristic that stores the sysinfo
@@ -144,7 +145,7 @@ void lrf_node_ble_update_sysinfo(lrf_node_sysinfo * sysinfo);
  * @brief Updates the characteristic that stores the SensePi config
  * @param config A pointer to the new Sense Pi configuration
  */
-void lrf_node_ble_update_prodict_info(lrf_node_prodc_info_t * product_info);
+void lrf_node_ble_update_product_info(lrf_node_prodc_info_t * product_info);
 
 /**
  * @brief Function to update Deployment and Alignment data

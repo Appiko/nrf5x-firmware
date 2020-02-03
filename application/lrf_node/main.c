@@ -190,15 +190,22 @@ static KXTJ3_config_t gc_acce_init =
     .resolution = KXTJ_RES_8Bit,
 };
 
+
+static struct nvm_data_t 
+{
+    lrf_node_prodc_info_t production_data;
+    bool gf_is_deployed;
+}nvm_data;
+
 static log_config_t gc_flag_log = 
 {
     .log_id = LOG_ID,
-    .entry_size = sizeof(bool),
+    .entry_size = sizeof(nvm_data),
     .start_page = NVM_LOGGER_START_PAGE,
     .no_of_pages = NVM_LOGGER_PAGES_USED_MAIN
 };
 
-bool gf_is_deployed = false;
+
 
 static lrf_node_states_t gs_lrf_state = LRF_STATE_PRE_DEPLOYED;
 
@@ -367,7 +374,7 @@ void ms_timer_handler_maintainence ()
 
 void check_point ()
 {
-    if(gf_is_deployed)
+    if(nvm_data.gf_is_deployed)
     {
         irq_msg_push (MSG_STATE_CHANGE,(void *) LRF_STATE_SENSING);
     }
@@ -441,12 +448,9 @@ void state_change_handler (uint32_t next_state)
                     sysinfo.battery_status = aa_aaa_battery_status();
                     memcpy(&sysinfo.fw_ver, fw_ver_get(), sizeof(fw_ver_t));
                     lrf_node_ble_update_sysinfo(&sysinfo);
-
-                    lrf_node_prodc_info_t l_ble_pkt;
-
-                    uint8_t * p_temp = (uint8_t * )&NRF_UICR->CUSTOMER[4];
-                    memcpy (&l_ble_pkt, p_temp, sizeof(lrf_node_prodc_info_t));
-                    lrf_node_ble_update_prodict_info(&l_ble_pkt);
+                    log_printf("Here\n");
+                    nvm_logger_fetch_tail_data (gc_flag_log.log_id, &nvm_data, 1);
+                    lrf_node_ble_update_product_info(&nvm_data.production_data);
                 }
                 lrf_node_ble_adv_start();
 
@@ -523,14 +527,21 @@ static void ble_evt_handler(ble_evt_t * evt)
 
 static void deployment_flag_update (uint8_t dply_flag)
 {
-    if(dply_flag != (gf_is_deployed ))
+    if(dply_flag != (nvm_data.gf_is_deployed ))
     {
-        gf_is_deployed = dply_flag;
-        nvm_logger_feed_data (LOG_ID, &gf_is_deployed);
+        nvm_data.gf_is_deployed = dply_flag;
+        nvm_logger_feed_data (gc_flag_log.log_id, &nvm_data);
     }
-    g_dply_align.deploy_flag = gf_is_deployed;
+    g_dply_align.deploy_flag = nvm_data.gf_is_deployed;
 }
 
+
+static void production_info_update (lrf_node_prodc_info_t * new_info)
+{
+    nvm_data.production_data.app_id = new_info->app_id;
+    nvm_data.production_data.prod_id = new_info->prod_id;
+    nvm_logger_feed_data (gc_flag_log.log_id, &nvm_data);
+}
 static void bootloader_flag_update (uint8_t dfu_flag)
 {
     if(dfu_flag == true)
@@ -737,13 +748,13 @@ int main ()
     button_ui_init(HALL_EFFECT_PIN, APP_IRQ_PRIORITY_LOW,
             magnet_detect_handler);
 
-    
+    log_printf("Data size %d\n", gc_flag_log.entry_size);
     nvm_logger_log_init (&gc_flag_log);
     hal_gpio_cfg_output (TCXO_EN_PIN, 0);
     hal_gpio_pin_set (TCXO_EN_PIN);
  
     lrf_node_ble_init(ble_evt_handler, deployment_flag_update,
-                      bootloader_flag_update);
+                      bootloader_flag_update, production_info_update);
     lrf_node_ble_set_adv_data (&g_ble_adv_data, g_device_name);
     
     rf_spi_init (&gc_spi_hw);
@@ -759,9 +770,16 @@ int main ()
     
     if (nvm_logger_is_log_empty (LOG_ID) == false)
     {
-        nvm_logger_fetch_tail_data (LOG_ID, &gf_is_deployed, 1);
-        log_printf("Is deployed : %d\n", gf_is_deployed);
-        g_dply_align.deploy_flag = gf_is_deployed;
+        nvm_logger_fetch_tail_data (LOG_ID, &nvm_data, 1);
+        log_printf("Is deployed : %d\n", nvm_data.gf_is_deployed);
+        g_dply_align.deploy_flag = nvm_data.gf_is_deployed;
+    }
+    else
+    {
+        nvm_data.production_data.app_id = 0xFF;
+        nvm_data.production_data.prod_id = 0xFFFF;
+        nvm_data.gf_is_deployed = 0;
+        nvm_logger_feed_data (gc_flag_log.log_id, &nvm_data);
     }
     
     kxtj3_init (&gc_acce_init);

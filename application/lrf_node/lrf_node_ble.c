@@ -125,6 +125,8 @@ void (* lrf_node_ble_sd_evt)(ble_evt_t * evt);
 void (* lrf_node_dfu_update)(uint8_t dfu_flag);
 /** Handler to pass the received Deployment status flag to the application */
 void (* lrf_node_dply_update)(uint8_t dply_flag);
+/** Handler to pass the received deployment information to the application */
+void (* lrf_node_product_info_update)(lrf_node_prodc_info_t * product_info);
 
 lrf_node_sysinfo curr_sysinfo;
 
@@ -173,6 +175,12 @@ static void ble_evt_handler(ble_evt_t * evt)
             lrf_node_dply_update (flag);
         }
 
+        if (evt->evt.gatts_evt.params.write.handle == h_product_char.value_handle)
+        {
+            lrf_node_prodc_info_t * p_prod_info = 
+                (lrf_node_prodc_info_t * ) evt->evt.gatts_evt.params.write.data;
+            lrf_node_product_info_update (p_prod_info);
+        }
         if (evt->evt.gatts_evt.params.write.handle == h_dfu_char.value_handle)
         {
             uint8_t flag = evt->evt.gatts_evt.params.write.data[0];
@@ -223,11 +231,13 @@ static void soc_evt_handler(uint32_t evt_id)
 
 void lrf_node_ble_init(void (*ble_sd_evt)(ble_evt_t * evt), 
         void (* dply_flag_update)(uint8_t dply_flag), 
-        void (* dfu_flag_update)(uint8_t dfu_flag))
+        void (* dfu_flag_update)(uint8_t dfu_flag),
+        void (* product_info_update)(lrf_node_prodc_info_t * product_info))
 {
     lrf_node_ble_sd_evt = ble_sd_evt;
     lrf_node_dfu_update = dfu_flag_update;
     lrf_node_dply_update = dply_flag_update;
+    lrf_node_product_info_update = product_info_update;
 }
 
 void lrf_node_ble_disconn(void)
@@ -255,7 +265,7 @@ void lrf_node_ble_update_sysinfo(lrf_node_sysinfo * sysinfo)
     APP_ERROR_CHECK(err_code);
 }
 
-void lrf_node_ble_update_prodict_info(lrf_node_prodc_info_t * product_info)
+void lrf_node_ble_update_product_info(lrf_node_prodc_info_t * product_info)
 {
     uint32_t err_code;
     ble_gatts_value_t val =
@@ -377,42 +387,6 @@ void lrf_node_ble_service_init(void)
     err_code = sd_ble_gatts_characteristic_add(
         h_lrf_node_service, &char_md, &attr_char_value, &h_sysinfo_char);
     APP_ERROR_CHECK(err_code);
-
-    /**     2nd     */
-    memset(&char_md, 0, sizeof(char_md));
-
-    char_md.char_props.read = 1;
-    char_md.char_props.write = 0;
-    char_md.p_char_user_desc = NULL;
-    char_md.p_char_pf = NULL;
-    char_md.p_user_desc_md = NULL;
-    char_md.p_cccd_md = NULL;
-    char_md.p_sccd_md = NULL;
-
-    ble_uuid.type = uuid_type;
-    ble_uuid.uuid = (PRODINFO_UUID);
-
-    memset(&attr_md, 0, sizeof(attr_md));
-
-    BLE_GAP_CONN_SEC_MODE_SET_OPEN(&attr_md.read_perm);
-    BLE_GAP_CONN_SEC_MODE_SET_NO_ACCESS(&attr_md.write_perm);
-    attr_md.vloc = BLE_GATTS_VLOC_STACK;
-    attr_md.rd_auth = 0;
-    attr_md.wr_auth = 0;
-    attr_md.vlen = 0;
-
-    memset(&attr_char_value, 0, sizeof(attr_char_value));
-
-    attr_char_value.p_uuid = &ble_uuid;
-    attr_char_value.p_attr_md = &attr_md;
-    attr_char_value.init_len = sizeof(lrf_node_prodc_info_t);
-    attr_char_value.init_offs = 0;
-    attr_char_value.max_len = sizeof(lrf_node_prodc_info_t);
-    attr_char_value.p_value = NULL;
-
-    err_code = sd_ble_gatts_characteristic_add(
-        h_lrf_node_service, &char_md, &attr_char_value,&h_product_char);
-    APP_ERROR_CHECK(err_code);
     
     /**** Create the read-write characteristic *****/
     /**     1st     */
@@ -458,6 +432,42 @@ void lrf_node_ble_service_init(void)
     APP_ERROR_CHECK(err_code);
     
     /**     2nd     */
+    memset(&char_md, 0, sizeof(char_md));
+
+    char_md.char_props.read = 1;
+    char_md.char_props.write = 1;
+    char_md.p_char_user_desc = NULL;
+    char_md.p_char_pf = NULL;
+    char_md.p_user_desc_md = NULL;
+    char_md.p_cccd_md = NULL;
+    char_md.p_sccd_md = NULL;
+
+    ble_uuid.type = uuid_type;
+    ble_uuid.uuid = (PRODINFO_UUID);
+
+    memset(&attr_md, 0, sizeof(attr_md));
+
+    BLE_GAP_CONN_SEC_MODE_SET_OPEN(&attr_md.read_perm);
+    BLE_GAP_CONN_SEC_MODE_SET_OPEN(&attr_md.write_perm);
+    attr_md.vloc = BLE_GATTS_VLOC_STACK;
+    attr_md.rd_auth = 0;
+    attr_md.wr_auth = 0;
+    attr_md.vlen = 0;
+
+    memset(&attr_char_value, 0, sizeof(attr_char_value));
+
+    attr_char_value.p_uuid = &ble_uuid;
+    attr_char_value.p_attr_md = &attr_md;
+    attr_char_value.init_len = sizeof(lrf_node_prodc_info_t);
+    attr_char_value.init_offs = 0;
+    attr_char_value.max_len = sizeof(lrf_node_prodc_info_t);
+    attr_char_value.p_value = NULL;
+
+    err_code = sd_ble_gatts_characteristic_add(
+        h_lrf_node_service, &char_md, &attr_char_value,&h_product_char);
+    APP_ERROR_CHECK(err_code);
+
+    /**     3rd     */
     memset(&char_md, 0, sizeof(char_md));
 
     char_md.char_props.read = 1;
