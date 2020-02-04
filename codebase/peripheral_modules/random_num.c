@@ -19,15 +19,23 @@
 #include "random_num.h"
 #include "nrf52.h"
 #include "nrf52810_bitfields.h"
+#include "nrf_assert.h"
 
-uint8_t random_num_generate ()
+uint32_t random_num_generate (uint32_t min, uint32_t max)
 {
-    uint8_t ret_rand;
+    ASSERT(min < max)
+    uint32_t ret_rand, range;
+    range = (max - min);
+    uint32_t hw_rand;
+    
     NRF_RNG->CONFIG = RNG_CONFIG_DERCEN_Enabled;
+    NRF_RNG->EVENTS_VALRDY = 0;
     NRF_RNG->TASKS_START = 1;
-    while(NRF_RNG->EVENTS_VALRDY);
-    ret_rand = NRF_RNG->VALUE;
+    while(NRF_RNG->EVENTS_VALRDY == 0);
     NRF_RNG->TASKS_STOP = 1;
+    hw_rand = (uint32_t)NRF_RNG->VALUE;
     NRF_RNG->CONFIG = RNG_CONFIG_DERCEN_Disabled;
+    ret_rand = (min + (hw_rand * range)/256);
+    
     return ret_rand;
 }

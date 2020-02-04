@@ -22,7 +22,14 @@
 
 #include "stdint.h"
 
-uint8_t random_num_generate ();
+/**
+ * @brief Function to generate random number with RNG hw peripheral in given range.
+ * @param min Minimum value of range
+ * @param max Maximum value of range
+ * @return Random number
+ * @note Random number generated is in the form of steps of (max - min)/256
+ */
+uint32_t random_num_generate (uint32_t min, uint32_t max);
 
 
 #endif /* RANDOM_NUM_H */
