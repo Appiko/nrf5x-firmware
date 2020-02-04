@@ -77,6 +77,7 @@ C_SRC += simple_adc.c
 C_SRC += random_num.c
 C_SRC += lrf_node_ble.c
 C_SRC += dev_id_fw_ver.c
+C_SRC += lrf_node_rf.c
 #Gets the name of the application folder
 APPLN = $(shell basename $(PWD))
 
