@@ -202,7 +202,7 @@ uint32_t rf_comm_radio_init (rf_comm_radio_t * p_radio_params, rf_comm_hw_t * p_
         
     NRF_GPIOTE->CONFIG[GPIOTE_USED0] = 
         (GPIOTE_CONFIG_MODE_Event << GPIOTE_CONFIG_MODE_Pos)
-        | (g_comm_hw.rf_gpio0_pin << GPIOTE_CONFIG_PSEL_Pos)
+        | (g_comm_hw.rf_gpio2_pin << GPIOTE_CONFIG_PSEL_Pos)
         | (GPIOTE_CONFIG_POLARITY_HiToLo << GPIOTE_CONFIG_POLARITY_Pos);
     NRF_GPIOTE->INTENSET = 1 << GPIOTE_USED0;
 
@@ -536,7 +536,31 @@ void GPIOTE_IRQHandler ()
 #if ISR_MANAGER == 0
         NRF_GPIOTE->EVENTS_IN[GPIOTE_USED0] = 0;
 #endif
-        if(radio_check_status_flag (MARC_NO_FAILURE)) 
+        
+//        if(radio_check_status_flag (MARC_NO_FAILURE)) 
+//        {
+//            if(g_current_state == R_TX)
+//            {
+//                log_printf("Tx Done\n");
+//                g_current_state = R_IDLE;
+//                if(gp_tx_done != NULL)
+//                {
+//                    gp_tx_done (g_marc_sts1);
+//                }
+//            }
+//            if(g_current_state == R_RX)
+//            {
+////                log_printf("Rx Done\n");
+//                g_current_state = R_IDLE;
+//                if(gp_rx_done != NULL)
+//                {
+//                    gp_rx_done (g_marc_sts1);
+//                }
+//            }
+//        }
+    	trx16BitRegAccess((RADIO_READ_ACCESS | RADIO_BURST_ACCESS), 0x2F,
+                     (0x00FF & MARC_STATUS1), &g_marc_sts1, 1);
+        if((g_marc_sts1 & MARC_TX_SUCCESSFUL) == MARC_TX_SUCCESSFUL) 
         {
             if(g_current_state == R_TX)
             {
@@ -547,29 +571,8 @@ void GPIOTE_IRQHandler ()
                     gp_tx_done (g_marc_sts1);
                 }
             }
-            if(g_current_state == R_RX)
-            {
-//                log_printf("Rx Done\n");
-                g_current_state = R_IDLE;
-                if(gp_rx_done != NULL)
-                {
-                    gp_rx_done (g_marc_sts1);
-                }
-            }
         }
-        else if(radio_check_status_flag (MARC_TX_SUCCESSFUL)) 
-        {
-            if(g_current_state == R_TX)
-            {
-//                log_printf("Tx Done\n");
-                g_current_state = R_IDLE;
-                if(gp_tx_done != NULL)
-                {
-                    gp_tx_done (g_marc_sts1);
-                }
-            }
-        }
-        else if(radio_check_status_flag (MARC_RX_SUCCESSFUL)) 
+        else if((g_marc_sts1 & MARC_RX_SUCCESSFUL) == MARC_RX_SUCCESSFUL) 
         {
             if(g_current_state == R_RX)
             {
