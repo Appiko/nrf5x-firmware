@@ -61,6 +61,8 @@
   #include "senseele_pcb_rev1.h"
 #elif defined(BOARD_SENSEELE_PCB_REV2)
   #include "senseele_pcb_rev2.h"
+#elif defined(BOARD_SENSEBLE_REV1)
+  #include "senseble_rev1.h"
 #elif defined(BOARD_CUSTOM)
   #include "custom_board.h"
 #else
