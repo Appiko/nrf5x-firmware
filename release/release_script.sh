@@ -70,6 +70,9 @@ then
 elif [ "$board_name" = "SENSEBE" ] || [ "$board_name" = "SENSEBERX" ] || [ "$board_name" = "SENSEBETX" ]
 then 
     fw_ver="$(git tag --list "SenseBe_"[00-99]"."[00-99]"."[00-99] | sort | tail -n1)"
+else
+    fw_ver=$1
+
 fi
 echo "FW_VER = "$fw_ver
 fw_ver="$(echo $fw_ver | tr '_' ' ' | awk '{print $NF}')"
@@ -86,7 +89,7 @@ hw_ver_major=` expr $hw_ver_major \* 100 `
 hw_ver_int=`expr $hw_ver_major + $hw_ver_minor`
 echo "HW_VER_INT = "$hw_ver_int
 
-hex_sel="$(awk '/BOARD /{print $3}' Makefile | tr 'A-Z' 'a-z' | tr '_' ' ' |awk '{print $2"_"$3}' )"
+hex_sel="$(awk '/BOARD /{print $3}' Makefile | tr 'A-Z' 'a-z' | tr '_' ' ' |awk '{print $2"_"$3"_"$4}' )"
 
 
 sd_used="$(awk '/SD_USED /{print $3}' Makefile)"
@@ -108,10 +111,13 @@ echo $make_release
 
 mkdir ../../release/${pwd}
 
+echo "Generating Settings"
 nrfutil_settings_gen="$(nrfutil settings generate --family NRF52810 --application ./build/${pwd}.hex --application-version $fw_ver_int --application-version-string "${fw_ver}" --bootloader-version $bl_ver_int --bl-settings-version 1  ../../release/${pwd}/${pwd}_bl_settings.hex)"
 
+echo "Generating Package"
 nrfutil_pkg_gen="$(nrfutil pkg generate --application build/${pwd}.hex --application-version $fw_ver_int --application-version-string "$fw_ver" --hw-version $hw_ver_int --sd-req "$sd_id" --key-file ../../../dfu_nrf_sdk15/examples/dfu/key_file.pem ../../release/${pwd}/${pwd}_${fw_ver_int}_010.zip)"
 
+echo "Generating output hex"
 out_hex="$(srec_cat build/${pwd}_${sd_used}.hex --Intel ../../platform/bootloader_hex/$bl_hex_name.hex --Intel ../../release/${pwd}/${pwd}_bl_settings.hex --Intel -O ../../release/${pwd}/${pwd}_${fw_ver_int}_output.hex --Intel)"
 
 (rm ../../release/${pwd}/${pwd}_bl_settings.hex)
