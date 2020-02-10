@@ -34,7 +34,7 @@ uint32_t rf_spi_init (rf_spi_init_t * p_spi_init)
         .mosi_pin = p_spi_init->mosi_pin,
         .spi_mode = HAL_SPIM_SPI_MODE0,
         .byte_order = HAL_SPIM_MSB_FIRST,
-        .freq = HAL_SPIM_FREQ_2M,
+        .freq = HAL_SPIM_FREQ_125K,
         .irq_priority = p_spi_init->irq_priority
     };
     hal_spim_init (&spim_init);

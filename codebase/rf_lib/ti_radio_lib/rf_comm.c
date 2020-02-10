@@ -168,13 +168,13 @@ uint32_t rf_comm_radio_init (rf_comm_radio_t * p_radio_params, rf_comm_hw_t * p_
     {
         gp_rx_failed = p_radio_params->rf_rx_failed_handler;
     }
-
-    hal_gpio_cfg_output (g_comm_hw.rf_reset_pin, 1);
-    hal_gpio_pin_set (g_comm_hw.rf_reset_pin);
-    hal_nop_delay_ms (1);
-    hal_gpio_pin_clear (g_comm_hw.rf_reset_pin);
-    hal_nop_delay_ms (1);
-    hal_gpio_pin_set (g_comm_hw.rf_reset_pin);
+//
+//    hal_gpio_cfg_output (g_comm_hw.rf_reset_pin, 1);
+//    hal_gpio_pin_set (g_comm_hw.rf_reset_pin);
+//    hal_nop_delay_ms (1);
+//    hal_gpio_pin_clear (g_comm_hw.rf_reset_pin);
+//    hal_nop_delay_ms (1);
+//    hal_gpio_pin_set (g_comm_hw.rf_reset_pin);
     //Set default config
 	trxSpiCmdStrobe(SRES);
 
@@ -195,6 +195,7 @@ uint32_t rf_comm_radio_init (rf_comm_radio_t * p_radio_params, rf_comm_hw_t * p_
     hal_gpio_cfg_input (g_comm_hw.rf_gpio3_pin, HAL_GPIO_PULL_DISABLED);
     
 #ifdef RF_COMM_AMPLIFIRE
+    hal_gpio_cfg_output (g_comm_hw.rf_hgm_pin, 0);
     hal_gpio_cfg_output (g_comm_hw.rf_pa_pin, 0);
     hal_gpio_cfg_output (g_comm_hw.rf_lna_pin, 0);
     
@@ -391,6 +392,7 @@ uint32_t rf_comm_pkt_send (uint8_t pkt_type, uint8_t * p_data, uint8_t len)
 {
     trxSpiCmdStrobe (SFTX);
 #ifdef RF_COMM_AMPLIFIRE
+    hal_gpio_pin_set (g_comm_hw.rf_hgm_pin);
     hal_gpio_pin_set (g_comm_hw.rf_pa_pin);
 #endif
     g_arr_pkt[0] = 4+len;  //Change this values
@@ -418,6 +420,7 @@ uint32_t rf_comm_pkt_receive (uint8_t * p_rxbuff, uint8_t * p_len)
     uint8_t status;
 #ifdef RF_COMM_AMPLIFIRE
     hal_gpio_pin_set (g_comm_hw.rf_lna_pin);
+    hal_gpio_pin_set (g_comm_hw.rf_hgm_pin);
 #endif
 //	trx16BitRegAccess(RADIO_READ_ACCESS, 0x2F, 0xff & NUM_RXBYTES, &pktLen, 1);
 
@@ -458,15 +461,19 @@ uint32_t rf_comm_idle ()
 uint32_t rf_comm_sleep ()
 {
 #ifdef RF_COMM_AMPLIFIRE
+    hal_gpio_pin_clear (g_comm_hw.rf_hgm_pin);
     hal_gpio_pin_clear (g_comm_hw.rf_lna_pin);
     hal_gpio_pin_clear (g_comm_hw.rf_pa_pin);
 #endif
 	/* Force transciever idle state */
+    hal_gpio_cfg_output (24,1);
 	trxSpiCmdStrobe(SIDLE);
 	trxSpiCmdStrobe(SXOFF);
 
 	/* Enter sleep state on exit */
+    hal_gpio_pin_toggle (24);
 	trxSpiCmdStrobe(SPWD);
+    hal_gpio_pin_toggle (24);
 
 	return(0);
 }
@@ -486,7 +493,7 @@ uint32_t rf_comm_wake(void)
 	trxSpiCmdStrobe(SIDLE);
 
 	/* 1 ms delay for letting RX settle */
-	hal_nop_delay_us (1000);
+	hal_nop_delay_us (5000);
 
 	return(0);
 }

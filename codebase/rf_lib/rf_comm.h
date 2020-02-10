@@ -79,10 +79,11 @@ typedef struct
     uint32_t rf_gpio1_pin; ///Sync detected
     uint32_t rf_gpio2_pin; ///CRC Ok
     uint32_t rf_gpio3_pin; ///Collision found
-#ifdef RF_COMM_AMPLIFIRE
+//#ifdef RF_COMM_AMPLIFIRE
+    uint32_t rf_hgm_pin;
     uint32_t rf_lna_pin;
     uint32_t rf_pa_pin;
-#endif
+//#endif
 }rf_comm_hw_t;
 
 /**
