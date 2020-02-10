@@ -52,18 +52,30 @@
 #endif
 
 
-#ifndef NVM_LOGGER_LOG_USED_MAIN
-#define NVM_LOGGER_LOG_USED_MAIN 0
+#ifndef NVM_LOGGER_LOG_USED_MAIN_0
+#define NVM_LOGGER_LOG_USED_MAIN_0 0
 #endif
 
-#ifndef NVM_LOGGER_PAGES_USED_MAIN
-#define NVM_LOGGER_PAGES_USED_MAIN 2
+#ifndef NVM_LOGGER_PAGES_USED_MAIN_0
+#define NVM_LOGGER_PAGES_USED_MAIN_0 1
 #endif
 
-#ifndef NVM_LOGGER_START_PAGE
-#define NVM_LOGGER_START_PAGE NVM_LOG_PAGE0
+#ifndef NVM_LOGGER_START_PAGE_0
+#define NVM_LOGGER_START_PAGE_0 NVM_LOG_PAGE0
 #endif
 
+
+#ifndef NVM_LOGGER_LOG_USED_MAIN_1
+#define NVM_LOGGER_LOG_USED_MAIN_1 1
+#endif
+
+#ifndef NVM_LOGGER_PAGES_USED_MAIN_1
+#define NVM_LOGGER_PAGES_USED_MAIN_1 2
+#endif
+
+#ifndef NVM_LOGGER_START_PAGE_1
+#define NVM_LOGGER_START_PAGE_1 NVM_LOG_PAGE1
+#endif
 
 
 /** The WDT bites if not fed every 301 sec (5 min)
@@ -78,7 +90,9 @@
 //#define RADIO_ID 0x48 //CC1120
 //#define RADIO_ID 0x40 //CC1121
 
-#define LOG_ID NVM_LOGGER_LOG_USED_MAIN
+#define FLAG_LOG_ID NVM_LOGGER_LOG_USED_MAIN_1
+
+#define FW_VER_LOG_ID NVM_LOGGER_PAGES_USED_MAIN_0
 
 uint8_t g_device_name[] = { DEVICE_NAME_CHAR };
 
@@ -149,6 +163,7 @@ static lrf_node_mod_init_t g_node_mod_init =
     
     .acce_hw_params.SCK = SCK_PIN,
     .acce_hw_params.SDA = SDA_PIN,
+    .acce_hw_params.ADDR_LSB = KXTJ3_ADDR_7B_LSB,
     
     .rf_tcxo_pin = TCXO_EN_PIN,
     
@@ -165,12 +180,20 @@ static struct nvm_data_t
 
 static log_config_t gc_flag_log = 
 {
-    .log_id = LOG_ID,
+    .log_id = FLAG_LOG_ID,
     .entry_size = sizeof(nvm_data),
-    .start_page = NVM_LOGGER_START_PAGE,
-    .no_of_pages = NVM_LOGGER_PAGES_USED_MAIN
+    .start_page = NVM_LOGGER_START_PAGE_1,
+    .no_of_pages = NVM_LOGGER_PAGES_USED_MAIN_1
 };
 
+
+static log_config_t gc_fw_ver_log = 
+{
+    .log_id =FW_VER_LOG_ID,
+    .entry_size = sizeof(fw_ver_t),
+    .no_of_pages = NVM_LOGGER_PAGES_USED_MAIN_0,
+    .start_page = NVM_LOGGER_START_PAGE_0
+};
 
 
 static lrf_node_states_t gs_lrf_state = LRF_STATE_PRE_DEPLOYED;
@@ -196,7 +219,7 @@ void next_interval_handler (uint32_t ticks)
     button_ui_add_tick (ticks);
     if((gs_lrf_state == LRF_STATE_DEPLOYMENT))
     {
-        g_dply_align.align_flag = (lrf_node_mod_is_tilted () ^ 0x01);
+        g_dply_align.align_flag = (lrf_node_mod_get_angle ());
         lrf_node_ble_update_dply_alignment (&g_dply_align);
     }
 }
@@ -208,6 +231,7 @@ void state_change_handler (uint32_t next_state)
     switch ((lrf_node_states_t)next_state)
     {
         case LRF_STATE_PRE_DEPLOYED :
+            lrf_node_mod_stop ();
             break;
         case LRF_STATE_DEPLOYMENT :
             {
@@ -419,6 +443,24 @@ void tx_done_handler (uint32_t error)
     }
 }
 
+
+
+void firmware_check ()
+{
+    if(nvm_logger_is_log_empty (gc_fw_ver_log.log_id))
+    {
+        nvm_logger_feed_data (gc_fw_ver_log.log_id, fw_ver_get ());
+    }
+    fw_ver_t l_prev_ver;
+    nvm_logger_fetch_tail_data (gc_fw_ver_log.log_id, &l_prev_ver, 1);
+    if(memcmp (&l_prev_ver, fw_ver_get (), sizeof(fw_ver_t)) != 0)
+    {
+        nvm_logger_release_log (gc_flag_log.log_id);
+        nvm_logger_log_init (&gc_flag_log);
+    }
+}
+
+    
 void boot_pwr_config(void)
 {
     log_printf("Reset because of ");
@@ -493,7 +535,7 @@ int main ()
     log_printf("Hello world from LRF Node\n");    
     lfclk_init (LFCLK_SRC_Xtal);
     ms_timer_init (APP_IRQ_PRIORITY_LOW);
-
+    
 #if ENABLE_WDT == 1
     hal_wdt_init(WDT_PERIOD_MS, wdt_prior_reset_callback);
     hal_wdt_start();
@@ -519,15 +561,18 @@ int main ()
 
     log_printf("Data size %d\n", gc_flag_log.entry_size);
     nvm_logger_log_init (&gc_flag_log);
+    
+    nvm_logger_log_init (&gc_fw_ver_log);
  
     lrf_node_ble_init(ble_evt_handler, deployment_flag_update,
                       bootloader_flag_update, production_info_update);
     lrf_node_ble_set_adv_data (&g_ble_adv_data, g_device_name);
     
+    firmware_check ();
     
-    if (nvm_logger_is_log_empty (LOG_ID) == false)
+    if (nvm_logger_is_log_empty (gc_flag_log.log_id) == false)
     {
-        nvm_logger_fetch_tail_data (LOG_ID, &nvm_data, 1);
+        nvm_logger_fetch_tail_data (gc_flag_log.log_id, &nvm_data, 1);
         log_printf("Is deployed : %d\n", nvm_data.gf_is_deployed);
         g_dply_align.deploy_flag = nvm_data.gf_is_deployed;
     }

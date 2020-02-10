@@ -26,6 +26,7 @@
 #include "hal_gpio.h"
 #include "string.h"
 #include "log.h"
+#include "hal_nop_delay.h"
 
 
 //macros
@@ -35,24 +36,31 @@
 /** Accelerometer frequency in sensing state */
 #define SENSE_FREQ_S (1)
 #define SENSE_FREQ_MS (S_to_MS(SENSE_FREQ_S))
+#define SENSE_FREQ_MIN_DEV_S 0
+#define SENSE_FREQ_MAX_DEV_S 1
 /** Accelerometer frequency in tilted state */
-#define TILT_FREQ_S (3)
+#define TILT_FREQ_S (5)
 #define TILT_FREQ_MS (S_to_MS(TILT_FREQ_S))
+#define TILT_FREQ_MIN_DEV_S 0
+#define TILT_FREQ_MAX_DEV_S 3
 /** Accelerometer frequency in maintain state */
-#define MAINTAIN_FREQ_S (7)
+#define MAINTAIN_FREQ_S (30 * 60)
 #define MAINTAIN_FREQ_MS (S_to_MS(MAINTAIN_FREQ_S))
+#define MAINTAIN_FREQ_MIN_DEV_S 0
+#define MAINTAIN_FREQ_MAX_DEV_S 3
 /** Alive signal frequency. Alive signal is to be sent if no other package has been sent */
-#define ALIVE_FREQ_S (30)
+#define ALIVE_FREQ_S (30 * 60)
+#define ALIVE_FREQ_MS (S_to_MS(ALIVE_FREQ_S))
 
 /** Threshold acceleration for motion */
-#define MOTION_THRESHOLD 1200
+#define MOTION_THRESHOLD (1200)
 /** Tilt threshold angle */
-#define TILT_THRESHOLD 30
+#define TILT_THRESHOLD (300)
 /** Maximum number of packet before state changes to maintain */
-#define MAX_NUM_TILT 3
+#define MAX_NUM_TILT (10)
 
 /** Maximum length of RF packet */
-#define RF_MAX_LEN 16
+#define RF_MAX_LEN (16)
 
 /** PKT Structure */
 typedef struct
@@ -100,14 +108,14 @@ static node_states_t g_node_state;
 static pkt_types_t g_current_pkt_type = PKT_ALIVE;
 /** Variable to store threshold angle */
 static uint8_t g_node_threshold_angle = 30;
-/** Array to store ms_timer_ticks for any state */
-static uint64_t garr_ms_ticks[] = {MS_TIMER_TICKS_MS(SENSE_FREQ_MS), 
-                                   MS_TIMER_TICKS_MS(TILT_FREQ_MS),
-                                   MS_TIMER_TICKS_MS(MAINTAIN_FREQ_MS)};
+///** Array to store ms_timer_ticks for any state */
+//static uint64_t garr_ms_ticks[] = {MS_TIMER_TICKS_MS(ALIVE_FREQ_MS), 
+//                                   MS_TIMER_TICKS_MS(TILT_FREQ_MS),
+//                                   MS_TIMER_TICKS_MS(MAINTAIN_FREQ_MS)};
 /** Array to store frequency of different states in S */
-static uint32_t garr_freq_s[] = {SENSE_FREQ_S, TILT_FREQ_S, MAINTAIN_FREQ_S};
+static uint32_t garr_freq_s[] = {ALIVE_FREQ_S, TILT_FREQ_S, MAINTAIN_FREQ_S};
 /** Array to store random time offset for given state */
-static uint32_t garr_random_offset [STATE_INVALID];
+static uint32_t garr_random_offset [] = {ALIVE_FREQ_S, TILT_FREQ_S, MAINTAIN_FREQ_S};
 
 /**Variable to store TCXO pin number */
 static uint32_t g_pin_tcxo_en;
@@ -145,7 +153,7 @@ void node_rf_sleep ();
  * @param acce_comp Acceleration component along reference axis
  * @return Angle from reference axis
  */
-uint8_t get_angle (uint32_t acce_comp);
+uint8_t get_angle (int32_t acce_comp);
 
 /**
  * @brief Function to check if net acceleration in below threshold level.
@@ -177,7 +185,7 @@ const uint32_t gc_cos_res5d[] = {
     707, 642, 573, 500, 422, 342, 258, 173, 87, 0
 };
 
-uint8_t get_angle (uint32_t acce_comp)
+uint8_t get_angle (int32_t acce_comp)
 {
     acce_comp = acce_comp < 0 ? acce_comp*(-1) : acce_comp;
     uint8_t angle_cnt = 0;
@@ -204,7 +212,9 @@ bool is_node_moving (uint32_t threshold)
 void node_rf_wakeup ()
 {
     hal_gpio_pin_set (g_pin_tcxo_en);
+    hal_nop_delay_ms (50);
     rf_comm_wake();
+    log_printf("Radio ID :0x%x\n", rf_comm_get_radio_id ());
     rf_comm_radio_init (&g_rf_comm_radio, &g_rf_comm_hw);
 
     rf_comm_idle ();
@@ -213,7 +223,10 @@ void node_rf_wakeup ()
 
 void node_rf_sleep ()
 {
+    log_printf("R Sl\n");
+    rf_comm_flush ();
     rf_comm_sleep ();
+//    hal_nop_delay_ms (5);
     hal_gpio_pin_clear (g_pin_tcxo_en);
 }
 
@@ -223,12 +236,9 @@ void state_sense_handler (void)
     {
         g_node_state = STATE_TILT;
         g_current_pkt_type = PKT_SENSE;
-        garr_random_offset[g_node_state] = MS_TIMER_TICKS_MS ((random_num_generate
-            (S_to_MS(1),S_to_MS(5))));
     }
     else
     {
-        garr_random_offset[g_node_state] = MS_TIMER_TICKS_MS ((random_num_generate (0,1000)));
         g_current_pkt_type = PKT_ALIVE;
         g_pkt_cnt = 0;        
     }
@@ -241,21 +251,16 @@ void state_tilt_handler (void)
     {
         g_current_pkt_type = PKT_SENSE;
         g_pkt_cnt++;
-        garr_random_offset[g_node_state] = MS_TIMER_TICKS_MS ((random_num_generate 
-            (S_to_MS(1),S_to_MS(5))));
     }
     else
     {
         g_node_state = STATE_SENSE;
         g_pkt_cnt = 0;
-        garr_random_offset[g_node_state] = MS_TIMER_TICKS_MS ((random_num_generate (0,1000)));
         
     }
     if(g_pkt_cnt >= MAX_NUM_TILT)
     {
         g_node_state = STATE_MAINTAIN;
-        garr_random_offset[g_node_state] = MS_TIMER_TICKS_MS ((random_num_generate
-            (S_to_MS(1),S_to_MS(5))));
     }
 //    log_printf ("%s\n",__func__);
 }
@@ -265,15 +270,12 @@ void state_maintain_handler (void)
     if(g_node_is_tilted)
     {
         g_current_pkt_type = PKT_MAINTAIN;
-        garr_random_offset[g_node_state] = MS_TIMER_TICKS_MS ((random_num_generate
-            (S_to_MS(10),S_to_MS(30))));
     }
     else
     {
         g_current_pkt_type = PKT_ALIVE;
         g_node_state = STATE_SENSE;
         g_pkt_cnt = 0;
-        garr_random_offset[g_node_state] = MS_TIMER_TICKS_MS ((random_num_generate (0,1000)));
     }
 //    log_printf ("%s\n",__func__);
 }
@@ -303,14 +305,13 @@ void switch_manage ()
 
 void ms_timer_handler (void)
 {
-//    log_printf ("%s\n",__func__);
     //calculate angle
     static uint32_t l_sense_alive_s = 0;
     memcpy (&g_acce_data,kxtj3_get_acce_value (), sizeof(KXTJ3_g_data_t));
-    g_node_current_angle = get_angle (g_acce_data.xg);
+    g_node_current_angle = get_angle (g_acce_data.yg);
     bool l_current_motion = is_node_moving (MOTION_THRESHOLD);
     //check if node is tilted
-    if ((g_node_current_angle > g_node_threshold_angle) && l_current_motion)
+    if ((g_node_current_angle >= g_node_threshold_angle) && l_current_motion)
     {
         g_node_is_tilted = true;
     }
@@ -322,21 +323,19 @@ void ms_timer_handler (void)
     switch_manage ();
     
     //start new ms_timer with random offset
-    ms_timer_start (MOD_TIMER, MS_SINGLE_CALL,
-                    (garr_ms_ticks[g_node_state] + garr_random_offset[g_node_state]),
-                    ms_timer_handler);
     
+    log_printf ("%s : A %d x %d y %d z %d S %d\n",__func__, g_node_current_angle,
+                g_acce_data.xg, g_acce_data.yg, g_acce_data.zg, g_node_state);
     //send RF packet if needed
-    if((l_sense_alive_s < ALIVE_FREQ_S) && (g_node_state == STATE_SENSE))
+    log_printf("T : L %d garr %d\n", l_sense_alive_s, garr_random_offset[g_node_state]);
+    if(l_sense_alive_s < garr_random_offset[g_node_state])
     {
-        l_sense_alive_s += (garr_freq_s[g_node_state] + 
-            ROUNDED_DIV(garr_random_offset[g_node_state], 32768));
-        
-        
+        l_sense_alive_s++;
     }
     else
     {
         node_rf_wakeup ();
+        hal_nop_delay_ms(50);
         l_sense_alive_s = 0;
         node_rf_pkt_t l_pkt = 
         {
@@ -346,6 +345,9 @@ void ms_timer_handler (void)
         //RF
         rf_comm_pkt_send (g_current_pkt_type, (uint8_t *)&l_pkt, 
                           sizeof(node_rf_pkt_t));
+        garr_random_offset[g_node_state] = (garr_freq_s[g_node_state] + 
+            (random_num_generate (0,3)));
+        
     }
     
 }
@@ -360,20 +362,7 @@ void node_rf_tx_failed (uint32_t status)
 {
     //in certain cases
     log_printf("Tx Failed : %d\n", status);
-//    if(status != 0)
-//    {
-//        node_rf_pkt_t l_pkt = 
-//        {
-//            .batt_volt = aa_aaa_battery_status (),
-//            .angle = g_node_current_angle
-//        };
-//        //RF
-//        rf_comm_pkt_send (g_current_pkt_type, (uint8_t *)&l_pkt, 
-//                          sizeof(node_rf_pkt_t));
-//    }
-//    else
     {
-//        rf_comm_flush ();
         node_rf_sleep ();
 
     }
@@ -409,11 +398,13 @@ void lrf_node_mod_init (lrf_node_mod_init_t * p_mod_init)
     {
         .i2c_sda = p_mod_init->acce_hw_params.SDA,
         .i2c_sck = p_mod_init->acce_hw_params.SCK,
+        .i2c_7b_lsb = p_mod_init->acce_hw_params.ADDR_LSB,
         .range = KXTJ_RNG_2g,
         .resolution = KXTJ_RES_8Bit,
     };
     kxtj3_init (&l_acce_init);
     kxtj3_start ();
+    hal_nop_delay_ms (500); 
     //
 }
 
@@ -427,8 +418,9 @@ void lrf_node_mod_start ()
     g_acce_data.xg = 0;
     g_acce_data.yg = 0;
     g_acce_data.zg = 0;
-    ms_timer_start (MOD_TIMER, MS_SINGLE_CALL,
-                    (garr_ms_ticks[g_node_state] + garr_random_offset[g_node_state]),
+    node_rf_wakeup ();
+    node_rf_sleep ();
+    ms_timer_start (MOD_TIMER, MS_REPEATED_CALL, MS_TIMER_TICKS_MS(SENSE_FREQ_MS),
                     ms_timer_handler);
     
 }
@@ -444,6 +436,8 @@ void lrf_node_mod_stop ()
     g_acce_data.xg = 0;
     g_acce_data.yg = 0;
     g_acce_data.zg = 0;
+    hal_gpio_pin_set (g_pin_tcxo_en);
+    node_rf_sleep ();
 }
 
 void lrf_node_mod_update_rf_head (lrf_node_mod_rf_head_t * p_head)
@@ -477,7 +471,7 @@ uint8_t lrf_node_mod_get_angle ()
 {
     //return current angle
     memcpy (&g_acce_data,kxtj3_get_acce_value (), sizeof(KXTJ3_g_data_t));
-    g_node_current_angle = get_angle (g_acce_data.xg);
+    g_node_current_angle = get_angle (g_acce_data.yg);
     return g_node_current_angle;
 }
 
@@ -485,7 +479,7 @@ uint8_t lrf_node_mod_is_tilted ()
 {
     //return tilt status
     memcpy (&g_acce_data,kxtj3_get_acce_value (), sizeof(KXTJ3_g_data_t));
-    g_node_current_angle = get_angle (g_acce_data.xg);
+    g_node_current_angle = get_angle (g_acce_data.yg);
     bool l_current_motion = is_node_moving (MOTION_THRESHOLD);
     if ((g_node_current_angle > g_node_threshold_angle) && l_current_motion)
     {
@@ -496,4 +490,16 @@ uint8_t lrf_node_mod_is_tilted ()
         g_node_is_tilted = false;
     }
     return g_node_is_tilted;
+}
+
+
+void lrf_node_mod_rf_check ()
+{
+    node_rf_wakeup ();
+    node_rf_sleep ();
+    while(1)
+    {
+        __WFI ();
+    }
+    
 }

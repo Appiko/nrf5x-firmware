@@ -55,6 +55,7 @@ typedef struct
 {
     uint32_t SDA;
     uint32_t SCK;
+    uint32_t ADDR_LSB;
 }lrf_node_acce_t;
 
 typedef struct
@@ -118,5 +119,7 @@ uint8_t lrf_node_mod_get_angle ();
  */
 uint8_t lrf_node_mod_is_tilted ();
 
+
+void lrf_node_mod_rf_check ();
 
 #endif /* LRF_NODE_RF_H */
