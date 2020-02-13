@@ -234,8 +234,17 @@ void state_sense_handler (void)
 {
     if(g_node_is_tilted)
     {
-        g_node_state = STATE_TILT;
-        g_current_pkt_type = PKT_SENSE;
+        static uint32_t cnt = 0;
+        if(cnt < 3)
+        {
+            cnt++;
+        }
+        else
+        {
+            cnt = 0;
+            g_node_state = STATE_TILT;
+            g_current_pkt_type = PKT_SENSE;
+        }
     }
     else
     {
@@ -254,8 +263,17 @@ void state_tilt_handler (void)
     }
     else
     {
-        g_node_state = STATE_SENSE;
-        g_pkt_cnt = 0;
+        static uint32_t cnt = 0;
+        if(cnt < 3)
+        {
+            cnt++;
+        }
+        else
+        {
+            cnt = 0;
+            g_node_state = STATE_SENSE;
+            g_pkt_cnt = 0;
+        }
         
     }
     if(g_pkt_cnt >= MAX_NUM_TILT)
@@ -273,9 +291,18 @@ void state_maintain_handler (void)
     }
     else
     {
-        g_current_pkt_type = PKT_ALIVE;
-        g_node_state = STATE_SENSE;
-        g_pkt_cnt = 0;
+        static uint32_t cnt = 0;
+        if(cnt < 3)
+        {
+            cnt++;
+        }
+        else
+        {
+            cnt = 0;
+            g_current_pkt_type = PKT_ALIVE;
+            g_node_state = STATE_SENSE;
+            g_pkt_cnt = 0;
+        }
     }
 //    log_printf ("%s\n",__func__);
 }
