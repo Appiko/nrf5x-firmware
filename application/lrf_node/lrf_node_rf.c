@@ -218,7 +218,7 @@ void node_rf_wakeup ()
     rf_comm_radio_init (&g_rf_comm_radio, &g_rf_comm_hw);
 
     rf_comm_idle ();
-    
+    rf_comm_enable_irq ();
 }
 
 void node_rf_sleep ()
@@ -228,6 +228,7 @@ void node_rf_sleep ()
     rf_comm_sleep ();
 //    hal_nop_delay_ms (5);
     hal_gpio_pin_clear (g_pin_tcxo_en);
+    rf_comm_disable_irq ();
 }
 
 void state_sense_handler (void)
@@ -362,7 +363,6 @@ void ms_timer_handler (void)
     else
     {
         node_rf_wakeup ();
-        hal_nop_delay_ms(50);
         l_sense_alive_s = 0;
         node_rf_pkt_t l_pkt = 
         {
