@@ -23,9 +23,9 @@
 uint32_t rf_spi_init (rf_spi_init_t * p_spi_init)
 {
     hal_gpio_cfg_output (p_spi_init->csn_pin, 1);
-    hal_gpio_cfg_output (p_spi_init->sclk_pin, 1);
-    hal_gpio_cfg_input (p_spi_init->miso_pin, HAL_GPIO_PULL_UP);
-    hal_gpio_cfg_output (p_spi_init->mosi_pin, 1);
+    hal_gpio_cfg_output (p_spi_init->sclk_pin, 0);
+    hal_gpio_cfg_input (p_spi_init->miso_pin, HAL_GPIO_PULL_DISABLED);
+    hal_gpio_cfg_output (p_spi_init->mosi_pin, 0);
     hal_spim_init_t spim_init =
     {
         .csBar_pin = p_spi_init->csn_pin,
