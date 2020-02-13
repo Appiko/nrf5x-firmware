@@ -80,8 +80,8 @@ const registerSetting_t default_setting[] =
     {FS_REG_DIV_CML,    0x14},
     {FS_SPARE,          0xAC},
     {FS_VCO0,           0xB4},
-    {XOSC5,             0x0E},
     {XOSC1,             0x03},
+    {XOSC2,             0x04},
 };
 
 typedef enum
@@ -189,11 +189,11 @@ uint32_t rf_comm_radio_init (rf_comm_radio_t * p_radio_params, rf_comm_hw_t * p_
     rf_comm_set_freq (p_radio_params->center_freq);
     rf_comm_set_pwr (p_radio_params->tx_power);
     
-    hal_gpio_cfg_input (g_comm_hw.rf_gpio0_pin, HAL_GPIO_PULL_DISABLED);
-    hal_gpio_cfg_input (g_comm_hw.rf_gpio1_pin, HAL_GPIO_PULL_DISABLED);
+//    hal_gpio_cfg_input (g_comm_hw.rf_gpio0_pin, HAL_GPIO_PULL_DISABLED);
+//    hal_gpio_cfg_input (g_comm_hw.rf_gpio1_pin, HAL_GPIO_PULL_DISABLED);
     hal_gpio_cfg_input (g_comm_hw.rf_gpio2_pin, HAL_GPIO_PULL_DISABLED);
-    hal_gpio_cfg_input (g_comm_hw.rf_gpio3_pin, HAL_GPIO_PULL_DISABLED);
-    
+//    hal_gpio_cfg_input (g_comm_hw.rf_gpio3_pin, HAL_GPIO_PULL_DISABLED);
+  
 #ifdef RF_COMM_AMPLIFIRE
     hal_gpio_cfg_output (g_comm_hw.rf_hgm_pin, 0);
     hal_gpio_cfg_output (g_comm_hw.rf_pa_pin, 0);
@@ -466,14 +466,13 @@ uint32_t rf_comm_sleep ()
     hal_gpio_pin_clear (g_comm_hw.rf_pa_pin);
 #endif
 	/* Force transciever idle state */
-    hal_gpio_cfg_output (24,1);
-	trxSpiCmdStrobe(SIDLE);
-	trxSpiCmdStrobe(SXOFF);
+    trxSpiCmdStrobe(SRES);
+    hal_nop_delay_ms (20);
+
+    while(rf_comm_get_state ());
 
 	/* Enter sleep state on exit */
-    hal_gpio_pin_toggle (24);
 	trxSpiCmdStrobe(SPWD);
-    hal_gpio_pin_toggle (24);
 
 	return(0);
 }
@@ -524,6 +523,34 @@ int8_t rf_comm_get_rssi ()
 
 }
 
+void rf_comm_disable_irq ()
+{
+        
+    NRF_GPIOTE->CONFIG[GPIOTE_USED0] = 0;
+    NRF_GPIOTE->INTENCLR = 1 << GPIOTE_USED0;
+    
+}
+
+void rf_comm_enable_irq()
+{
+        
+    NRF_GPIOTE->CONFIG[GPIOTE_USED0] = 
+        (GPIOTE_CONFIG_MODE_Event << GPIOTE_CONFIG_MODE_Pos)
+        | (g_comm_hw.rf_gpio2_pin << GPIOTE_CONFIG_PSEL_Pos)
+        | (GPIOTE_CONFIG_POLARITY_HiToLo << GPIOTE_CONFIG_POLARITY_Pos);
+    NRF_GPIOTE->INTENSET = 1 << GPIOTE_USED0;
+
+}
+
+
+uint32_t rf_comm_get_state ()
+{
+    uint8_t state;
+	state = (uint8_t)trxSpiCmdStrobe (SNOP);
+    state &= 0xF0;
+    state >>= 4;
+    return state;
+}
 uint32_t rf_comm_get_radio_id ()
 {
 	uint8_t ret_partnum;
@@ -539,7 +566,6 @@ void GPIOTE_IRQHandler ()
 {
     if(NRF_GPIOTE->EVENTS_IN[GPIOTE_USED0])
     {
-//        log_printf("%s : %d\n", __func__, g_current_state);
 #if ISR_MANAGER == 0
         NRF_GPIOTE->EVENTS_IN[GPIOTE_USED0] = 0;
 #endif
@@ -565,13 +591,15 @@ void GPIOTE_IRQHandler ()
 //                }
 //            }
 //        }
+        log_printf("%s : %d %d\n", __func__, g_current_state, g_marc_sts1);
     	trx16BitRegAccess((RADIO_READ_ACCESS | RADIO_BURST_ACCESS), 0x2F,
                      (0x00FF & MARC_STATUS1), &g_marc_sts1, 1);
+        
         if((g_marc_sts1 & MARC_TX_SUCCESSFUL) == MARC_TX_SUCCESSFUL) 
         {
             if(g_current_state == R_TX)
             {
-//                log_printf("Tx Done\n");
+                log_printf("Tx Done\n");
                 g_current_state = R_IDLE;
                 if(gp_tx_done != NULL)
                 {
@@ -583,7 +611,7 @@ void GPIOTE_IRQHandler ()
         {
             if(g_current_state == R_RX)
             {
-//                log_printf("Tx Done\n");
+                log_printf("Rx Done\n");
                 g_current_state = R_IDLE;
                 if(gp_rx_done != NULL)
                 {
@@ -596,7 +624,7 @@ void GPIOTE_IRQHandler ()
         {
             if(g_current_state == R_TX)
             {
-//                log_printf("Tx Failed\n");
+                log_printf("Tx Failed\n");
                 g_current_state = R_IDLE;
                 if(gp_tx_failed != NULL)
                 {
@@ -605,7 +633,7 @@ void GPIOTE_IRQHandler ()
             }
             if(g_current_state == R_RX)
             {
-//                log_printf("Rx Failed\n");
+                log_printf("Rx Failed\n");
                 g_current_state = R_IDLE;
                 if(gp_rx_failed != NULL)
                 {

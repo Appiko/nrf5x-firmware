@@ -219,5 +219,23 @@ int8_t rf_comm_get_rssi ();
  * @return Device Product ID (Not I2C address)
  */
 uint32_t rf_comm_get_radio_id ();
+
+/**
+ * @brief Function to Disbale GPIO IRQ
+ */
+void rf_comm_disable_irq ();
+
+/**
+ * @brief Function to enable GPIO IRQ 
+ */
+void rf_comm_enable_irq();
+
+/**
+ * @brief Function to get current state of CC112x/CC1175  ored with Crystal flag
+ * @return |Crystal stable flag|CC112x/CC1175 State|Blank|
+ *         |    1 Bit          |        3bits      |4bit |
+ */
+uint32_t rf_comm_get_state ();
+
 #endif /* RF_COMM_H */
 
