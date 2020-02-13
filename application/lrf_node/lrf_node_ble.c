@@ -91,8 +91,8 @@ const uint8_t ble_device_name[] = { DEVICE_NAME_CHAR };
 const uint8_t generic_adv_data[] = {0x02,
     BLE_GAP_AD_TYPE_FLAGS, BLE_GAP_ADV_FLAGS_LE_ONLY_LIMITED_DISC_MODE,
     0x03, BLE_GAP_AD_TYPE_16BIT_SERVICE_UUID_MORE_AVAILABLE,
-    0x60, 0xdc, 0x11, BLE_GAP_AD_TYPE_SHORT_LOCAL_NAME,
-    'x','x','x','x','x','x','x','x','x','x','x','x','x','x','x','x',
+    0x60, 0xdc, (sizeof(ble_device_name) + 1), BLE_GAP_AD_TYPE_SHORT_LOCAL_NAME,
+    DEVICE_NAME_CHAR
 //    0x05, BLE_GAP_AD_TYPE_MANUFACTURER_SPECIFIC_DATA, 'x','x'
 };
 
@@ -627,8 +627,8 @@ void lrf_node_ble_set_adv_data(lrf_node_ble_adv_data_t * lrf_node_ble_adv_data,
 {
     memcpy (lrf_node_ble_adv_data->adv_data, generic_adv_data, sizeof(generic_adv_data));
     memcpy (lrf_node_ble_adv_data->scan_rsp_data, generic_scn_rsp, sizeof(generic_scn_rsp));
-    memcpy (&lrf_node_ble_adv_data->adv_data[DEVICE_NAME_ADV_LOCATION], 
-            device_name, DEVICE_NAME_LEN);
+//    memcpy (&lrf_node_ble_adv_data->adv_data[DEVICE_NAME_ADV_LOCATION], 
+//            device_name, DEVICE_NAME_LEN);
 //    lrf_node_ble_adv_data->adv_data[BATTERY_TYPE_ADV_LOCATION] = 0;
     lrf_node_ble_adv_data->adv_len = sizeof(generic_adv_data);
     lrf_node_ble_adv_data->scan_rsp_len = sizeof(generic_scn_rsp);
