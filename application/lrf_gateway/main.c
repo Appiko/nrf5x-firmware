@@ -41,14 +41,6 @@
 #include "hal_nop_delay.h"
 #include "log.h"
 #include "nrf_util.h"
-//#include "pin_trace.h"
-//#include "rf_rx_ble.h"
-//#include "ble.h"
-//#include "nrf_soc.h"
-//#include "nrf_sdm.h"
-//#include "radio_drv.h"
-//#include "cc1x_utils.h"
-//#include "cc112x_def.h"
 
 #include "rf_comm.h"
 #include "rf_spi_hw.h"
@@ -73,7 +65,7 @@
 
 uint16_t start_pkt_no = 0;
 
-int32_t rssi_sum = 0;
+//int32_t rssi_sum = 0;
 
 /**
 * @brief Preemption priority IRQ
@@ -106,7 +98,7 @@ typedef enum
  * | 1B |  2B  |  GATEWAY | Batt    |
  * |proj|Dev ID|  NODE    | Tx Pkt  |
  */
-uint8_t g_arr_gsm_pkt[128];
+//uint8_t g_arr_gsm_pkt[128];
 
 void rx_failed_handler (uint32_t error);
 void rx_done_handler (uint32_t size);
@@ -203,13 +195,12 @@ void ms_timer_handler ()
 //    encodeFrame (g_arr_gsm_pkt, PAYLOAD_POS+1, byte_frame_done);
 }
 
-void assign_rf_pkt (uint8_t * p_rf_pkt, uint8_t len)
-{
-    g_arr_gsm_pkt[GSM_PKT_TYPE_POS] = GSM_NODE_PKT;
-    memcpy (&g_arr_gsm_pkt[PAYLOAD_POS], p_rf_pkt, len);
-    encodeFrame (g_arr_gsm_pkt, PAYLOAD_POS+len, byte_frame_done);
-    
-}
+//void assign_rf_pkt (uint8_t * p_rf_pkt, uint8_t len)
+//{
+////    g_arr_gsm_pkt[GSM_PKT_TYPE_POS] = GSM_NODE_PKT;
+////    memcpy (&g_arr_gsm_pkt[PAYLOAD_POS], p_rf_pkt, len);
+//    
+//}
 
 void rx_failed_handler (uint32_t error)
 {
@@ -225,12 +216,13 @@ void rx_done_handler (uint32_t size)
     log_printf("%s : %d\n", __func__, size);
     {
         uint8_t pkt_len;
-        rf_comm_pkt_receive (l_arr_rf_pkt, &pkt_len);
+        l_arr_rf_pkt[0] = rf_comm_get_rssi ();
+        rf_comm_pkt_receive (&l_arr_rf_pkt[1], &pkt_len);
         /* Flush the RX FIFO */
         log_printf("Data: ");
         for(uint32_t i =0; i < pkt_len; i++)
         {
-            log_printf("%d  ", l_arr_rf_pkt[i]);
+            log_printf("%d  ", l_arr_rf_pkt[i+1]);
 //#ifdef LOG_TEENSY        
 //            log_printf("%d : ", l_lkp_cnt);
 //            hal_uart_putchar (l_arr_rf_pkt[i]);
@@ -238,11 +230,11 @@ void rx_done_handler (uint32_t size)
 //#endif
         }
         log_printf("\n");
-        assign_rf_pkt (l_arr_rf_pkt, pkt_len);
-        int8_t rf_rx_rssi;
-        rf_rx_rssi = (uint8_t)rf_comm_get_rssi ();
-        log_printf("RSSI : %d\n", rf_rx_rssi);
-        rssi_sum += rf_rx_rssi;
+        encodeFrame (l_arr_rf_pkt, (pkt_len+1), byte_frame_done);
+//        int8_t rf_rx_rssi;
+//        rf_rx_rssi = (uint8_t)rf_comm_get_rssi ();
+        log_printf("RSSI : %d\n", (int8_t)l_arr_rf_pkt[0]);
+//        rssi_sum += rf_rx_rssi;
     }
     rf_comm_idle ();
     rf_comm_rx_enable();

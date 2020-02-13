@@ -32,8 +32,13 @@
 /** @anchor senseele_sma_rev1_serial
  * @name Serial port definitions for SenseEle SMA Rev1
  * @{*/
+#ifndef RX_PIN_NUMBER
 #define RX_PIN_NUMBER       (19)
+#endif
+
+#ifndef TX_PIN_NUMBER
 #define TX_PIN_NUMBER       (20)
+#endif
 #define HWFC                false
 #define RTS_PIN_NUMBER      (23)
 #define CTS_PIN_NUMBER      (24)
