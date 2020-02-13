@@ -133,3 +133,8 @@ void hfclk_xtal_deinit(void)
 {
     NRF_CLOCK->TASKS_HFCLKSTOP = 1;
 }
+
+uint32_t hfclk_xtal_get_src ()
+{
+    return (NRF_CLOCK->HFCLKSTAT & 0x01);
+}

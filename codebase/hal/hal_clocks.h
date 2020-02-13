@@ -75,6 +75,14 @@ void hfclk_block_till_xtal(void);
  * Starts quick though.*/
 void hfclk_xtal_deinit(void);
 
+/**
+ * @brief Function to get source of HF-CLK
+ * @return HFCLK Source
+ * @retval 0 : RC
+ * @retval 1 : XTal
+ */
+uint32_t hfclk_xtal_get_src ();
+
 
 #endif /* CODEBASE_HAL_HAL_CLOCKS_H_ */
 
