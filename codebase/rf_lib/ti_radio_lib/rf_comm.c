@@ -469,7 +469,9 @@ uint32_t rf_comm_sleep ()
     trxSpiCmdStrobe(SRES);
     hal_nop_delay_ms (20);
 
-    while(rf_comm_get_state ());
+    while(rf_comm_get_state ())
+    {
+    }
 
 	/* Enter sleep state on exit */
 	trxSpiCmdStrobe(SPWD);
