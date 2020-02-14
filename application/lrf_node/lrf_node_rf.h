@@ -65,7 +65,8 @@ typedef struct
     lrf_node_rf_hw_t radio_gpio;
     lrf_node_rf_spi_t radio_spi;
     lrf_node_acce_t acce_hw_params;
-    uint32_t threshold_angle;
+    uint32_t upper_threshold_angle;
+    uint32_t lower_threshold_angle;
     uint32_t rf_tcxo_pin;
 }lrf_node_mod_init_t;
 
@@ -100,10 +101,11 @@ void lrf_node_mod_update_rf_head (lrf_node_mod_rf_head_t * p_head);
 void lrf_node_mod_update_rf_params (lrf_node_mod_rf_params_t * p_params);
 
 /**
- * @brief Function to set threshold angle for LRF node.
- * @param angle Threshold angle. If node is tilted more than threshold angle, send RF pkt
+ * @brief Function to set Angle thresholds
+ * @param lower_angle Lower threshold (angle at which sensing should restart)
+ * @param upper_angle Higher threshold (angle at which pole is tilted)
  */
-void lrf_node_mod_set_angle_threshold (uint8_t angle);
+void lrf_node_mod_set_angle_thresholds (uint8_t lower_angle, uint8_t upper_angle);
 
 /**
  * @brief Function to get current angle of system

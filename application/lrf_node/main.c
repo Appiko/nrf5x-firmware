@@ -119,7 +119,8 @@ uint8_t g_device_name[] = { DEVICE_NAME_CHAR };
 
 #define DEPLOY_TIMEOUT_TICKS MS_TIMER_TICKS_MS(10*60*1000)
 
-#define DEFAULT_THRESHOLD_ANGLE 30
+#define DEFAULT_UPPER_THRESHOLD_ANGLE 30
+#define DEFAULT_LOWER_THRESHOLD_ANGLE 25
 
 typedef enum
 {
@@ -167,7 +168,8 @@ static lrf_node_mod_init_t g_node_mod_init =
     
     .rf_tcxo_pin = TCXO_EN_PIN,
     
-    .threshold_angle = DEFAULT_THRESHOLD_ANGLE,
+    .upper_threshold_angle = DEFAULT_UPPER_THRESHOLD_ANGLE,
+    .lower_threshold_angle = DEFAULT_LOWER_THRESHOLD_ANGLE,
 
 };
 

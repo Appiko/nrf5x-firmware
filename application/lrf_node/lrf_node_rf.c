@@ -106,7 +106,9 @@ static uint32_t g_pkt_cnt = 0;
 static node_states_t g_node_state;
 /** Variable to keep track of packet type to  be sent */
 static pkt_types_t g_current_pkt_type = PKT_ALIVE;
-/** Variable to store threshold angle */
+/** Variables to store threshold angles */
+static uint8_t g_node_upper_threshold_angle;
+static uint8_t g_node_lower_threshold_angle;
 static uint8_t g_node_threshold_angle = 30;
 ///** Array to store ms_timer_ticks for any state */
 //static uint64_t garr_ms_ticks[] = {MS_TIMER_TICKS_MS(ALIVE_FREQ_MS), 
@@ -180,20 +182,29 @@ void switch_manage ();
 
 //function definitions
 
-const uint32_t gc_cos_res5d[] = {
-    1000, 996, 984, 965, 939, 906, 866, 819, 766,
-    707, 642, 573, 500, 422, 342, 258, 173, 87, 0
+
+const uint32_t gc_cos_res1d[] = {
+	1000, 
+	999, 999, 998, 997, 996, 994, 992, 990, 987, 984, 
+	981, 978, 974, 970, 965, 961, 956, 951, 945, 939, 
+	933, 927, 920, 913, 906, 898, 891, 882, 874, 866, 
+	857, 848, 838, 829, 819, 809, 798, 788, 777, 766, 
+	754, 743, 731, 719, 707, 694, 681, 669, 656, 642, 
+	629, 615, 601, 587, 573, 559, 544, 529, 515, 499, 
+	484, 469, 453, 438, 422, 406, 390, 374, 358, 342, 
+	325, 309, 292, 275, 258, 241, 224, 207, 190, 173, 
+	156, 139, 121, 104, 87, 69, 52, 34, 17, 0, 
 };
 
 uint8_t get_angle (int32_t acce_comp)
 {
     acce_comp = acce_comp < 0 ? acce_comp*(-1) : acce_comp;
     uint8_t angle_cnt = 0;
-    while((gc_cos_res5d[angle_cnt] > acce_comp) && (angle_cnt < 19))
+    while((gc_cos_res1d[angle_cnt] > acce_comp) && (angle_cnt < 91))
     {
         angle_cnt++;
     }
-    return ((angle_cnt)*5);
+    return ((angle_cnt));
 }
 
 bool is_node_moving (uint32_t threshold)
@@ -244,6 +255,7 @@ void state_sense_handler (void)
         {
             cnt = 0;
             g_node_state = STATE_TILT;
+            g_node_threshold_angle = g_node_lower_threshold_angle;
             g_current_pkt_type = PKT_SENSE;
         }
     }
@@ -273,6 +285,7 @@ void state_tilt_handler (void)
         {
             cnt = 0;
             g_node_state = STATE_SENSE;
+            g_node_threshold_angle = g_node_upper_threshold_angle;
             g_pkt_cnt = 0;
         }
         
@@ -280,6 +293,7 @@ void state_tilt_handler (void)
     if(g_pkt_cnt >= MAX_NUM_TILT)
     {
         g_node_state = STATE_MAINTAIN;
+        g_node_threshold_angle = g_node_lower_threshold_angle;
     }
 //    log_printf ("%s\n",__func__);
 }
@@ -302,6 +316,7 @@ void state_maintain_handler (void)
             cnt = 0;
             g_current_pkt_type = PKT_ALIVE;
             g_node_state = STATE_SENSE;
+            g_node_threshold_angle = g_node_upper_threshold_angle;
             g_pkt_cnt = 0;
         }
     }
@@ -420,7 +435,9 @@ void lrf_node_mod_init (lrf_node_mod_init_t * p_mod_init)
     hal_gpio_cfg_output (g_pin_tcxo_en, 0);
     
     //initialize accelerometer
-    g_node_threshold_angle = p_mod_init->threshold_angle;
+    g_node_upper_threshold_angle = p_mod_init->upper_threshold_angle;
+    g_node_lower_threshold_angle = p_mod_init->lower_threshold_angle;
+    g_node_threshold_angle = g_node_upper_threshold_angle;
     KXTJ3_config_t l_acce_init = 
     {
         .i2c_sda = p_mod_init->acce_hw_params.SDA,
@@ -487,10 +504,11 @@ void lrf_node_mod_update_rf_params (lrf_node_mod_rf_params_t * p_params)
     g_rf_comm_radio.tx_power = p_params->tx_power;
 }
 
-void lrf_node_mod_set_angle_threshold (uint8_t angle)
+void lrf_node_mod_set_angle_thresholds (uint8_t lower_angle, uint8_t upper_angle)
 {
     //save threshold angle into global parameters
-    g_node_threshold_angle = angle;
+    g_node_lower_threshold_angle = lower_angle;
+    g_node_upper_threshold_angle = upper_angle;
 }
 
 
