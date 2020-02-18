@@ -264,7 +264,7 @@ void state_sense_handler (void)
         g_current_pkt_type = PKT_ALIVE;
         g_pkt_cnt = 0;        
     }
-//    log_printf ("%s\n",__func__);
+    log_printf ("%s\n",__func__);
 }
 
 void state_tilt_handler (void)
@@ -272,7 +272,6 @@ void state_tilt_handler (void)
     if(g_node_is_tilted)
     {
         g_current_pkt_type = PKT_SENSE;
-        g_pkt_cnt++;
     }
     else
     {
@@ -290,12 +289,12 @@ void state_tilt_handler (void)
         }
         
     }
-    if(g_pkt_cnt >= MAX_NUM_TILT)
+    if(g_pkt_cnt > MAX_NUM_TILT)
     {
         g_node_state = STATE_MAINTAIN;
         g_node_threshold_angle = g_node_lower_threshold_angle;
     }
-//    log_printf ("%s\n",__func__);
+    log_printf ("%s\n",__func__);
 }
 
 void state_maintain_handler (void)
@@ -320,7 +319,7 @@ void state_maintain_handler (void)
             g_pkt_cnt = 0;
         }
     }
-//    log_printf ("%s\n",__func__);
+    log_printf ("%s\n",__func__);
 }
 
 void switch_manage ()
@@ -387,6 +386,7 @@ void ms_timer_handler (void)
         //RF
         rf_comm_pkt_send (g_current_pkt_type, (uint8_t *)&l_pkt, 
                           sizeof(node_rf_pkt_t));
+        g_pkt_cnt++;
         garr_random_offset[g_node_state] = (garr_freq_s[g_node_state] + 
             (random_num_generate (0,3)));
         
