@@ -80,14 +80,17 @@
  */
 #define CC_RESET_PIN        11
 
+#ifndef RF_COMM_AMPLIFIRE
 #define RF_COMM_AMPLIFIRE   CC1190
+#endif
+
 #define CC_LNA_EN_PIN       3
 #define CC_PA_EN_PIN        2
 #define CC_HGM_PIN          4      
 /** @} */
 
 ///Bool define if the circuitry is present for the internal DC-DC of nRF52
-#define DC_DC_CIRCUITRY     false
+#define DC_DC_CIRCUITRY     true
 
 ///Bool define if a NFC Antenna circuitry is present
 #define NFC_CIRCUITRY       false
