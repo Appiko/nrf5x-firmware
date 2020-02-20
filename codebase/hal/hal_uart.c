@@ -109,6 +109,31 @@ void UART_IRQ_Handler (void)
     rx_collect(rx_buff);
 }
 
+void hal_uart_putdata (uint8_t * p_data, uint32_t len)
+{
+    
+//    UART_ID->ENABLE = UARTE_ENABLE_ENABLE_Disabled;
+    UART_ID->TXD.PTR = (uint32_t) p_data;
+    UART_ID->TXD.MAXCNT = len;
+//    UART_ID->ENABLE = UARTE_ENABLE_ENABLE_Enabled;
+
+    UART_ID->EVENTS_ENDTX = 0;
+    
+    while(UART_ID->EVENTS_ENDTX);
+    
+    UART_ID->TASKS_STARTTX = 1;
+
+    while (!UART_ID->EVENTS_ENDTX)
+    {
+    }
+
+    UART_ID->EVENTS_ENDTX = 0;
+    UART_ID->TASKS_STOPTX = 1;
+
+    UART_ID->TXD.PTR = (uint32_t) tx_buff;
+    UART_ID->TXD.MAXCNT = 1;
+}
+
 void hal_uart_putchar(uint8_t cr)
 {
     tx_buff[0] = cr;
@@ -177,7 +202,7 @@ void hal_uart_init(hal_uart_baud_t baud, void (*handler)(uint8_t * ptr))
     UART_ID->BAUDRATE = (baud);
 
     //Enable UART
-    UART_ID->ENABLE = (0x08);
+    UART_ID->ENABLE = UARTE_ENABLE_ENABLE_Enabled;
 
     UART_ID->INTENCLR = 0xFFFFFFFF;
 
