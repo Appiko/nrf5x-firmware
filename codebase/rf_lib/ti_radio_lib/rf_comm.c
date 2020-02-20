@@ -407,6 +407,10 @@ uint32_t rf_comm_pkt_send (uint8_t pkt_type, uint8_t * p_data, uint8_t len)
 
 uint32_t rf_comm_rx_enable ()
 {
+#ifdef RF_COMM_AMPLIFIRE
+    hal_gpio_pin_set (g_comm_hw.rf_lna_pin);
+    hal_gpio_pin_set (g_comm_hw.rf_hgm_pin);
+#endif
     g_current_state = R_RX;
     trxSpiCmdStrobe (SFRX);
 	trxSpiCmdStrobe(SRX);               // Change state to RX, initiating
@@ -418,10 +422,6 @@ uint32_t rf_comm_pkt_receive (uint8_t * p_rxbuff, uint8_t * p_len)
 {
     uint8_t pktLen;
     uint8_t status;
-#ifdef RF_COMM_AMPLIFIRE
-    hal_gpio_pin_set (g_comm_hw.rf_lna_pin);
-    hal_gpio_pin_set (g_comm_hw.rf_hgm_pin);
-#endif
 //	trx16BitRegAccess(RADIO_READ_ACCESS, 0x2F, 0xff & NUM_RXBYTES, &pktLen, 1);
 
     trx8BitRegAccess(RADIO_READ_ACCESS, RXFIFO, &pktLen, 1);
