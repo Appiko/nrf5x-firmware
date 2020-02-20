@@ -32,12 +32,10 @@
 /** @anchor senseele_sma_rev2_serial
  * @name Serial port definitions for SenseEle SMA Rev2
  * @{*/
-//#define TEST_LED       22 //original RX
+//#define RX_PIN_NUMBER       8
+//#define TX_PIN_NUMBER       6
 #define RX_PIN_NUMBER       21
 #define TX_PIN_NUMBER       20
-//#define TX_PIN_NUMBER       06 //bluey
-//#define RX_PIN_NUMBER		8 //bluey
-//#define TX_PIN_NUMBER       02 //bluey_rx
 #define HWFC                false
 #define RTS_PIN_NUMBER      23
 #define CTS_PIN_NUMBER      24
@@ -47,20 +45,26 @@
  * @name SPI definitions for SenseEle SMA Rev1
  * @{
  */
-#define MISO_PIN            04
-#define MOSI_PIN            06
-#define SCLK_PIN            05
-#define CSN_PIN             02
+//#define MISO_PIN            (3)
+//#define MOSI_PIN            (4)
+//#define SCLK_PIN            (22)
+//#define CSN_PIN             (23)
+#define MISO_PIN            (4)
+#define MOSI_PIN            (6)
+#define SCLK_PIN            (5)
+#define CSN_PIN             (2)
 /** @} */
 
 /** @anchor senseele_sma_rev1_ccgpio
  * @name GPIO definitions connected to CC112x's GPIOs
  * @{
  */
-//#define CC_GPIO2            26    //bluey  
-#define CC_GPIO2            07       
-#define CC_GPIO0            03      
-#define CC_GPIO3            08       
+//#define CC_GPIO0            (27)      
+//#define CC_GPIO2            (26)    //bluey  
+//#define CC_GPIO3            (28)       
+#define CC_GPIO0            (3)      
+#define CC_GPIO2            (7)       
+#define CC_GPIO3            (8)       
 /** @} */
 
 /** @anchor senseele_sma_rev1_i2c
@@ -71,12 +75,15 @@
 #define SCK_PIN             12
 /** @} */
 
+#define KXTJ3_ADDR_7B_LSB  1
+
 /** @anchor senseele_sma_rev1_halleffect
  * @name Hall effect sensor definition for SenseEle SMA Rev1
  * @{
  */
-//#define HALL_EFFECT_PIN     27 //Bluey
+//#define HALL_EFFECT_PIN     16 //Bluey
 #define HALL_EFFECT_PIN     10
+#define BUTTON_ACTIVE_STATE 0
 /** @} */
 
 /** @anchor senseele_sma_rev1_tcxo_en
@@ -97,11 +104,11 @@
  * @name Reset Pin fpr CC112x for SenseEle Rev1
  * @{
  */
-#define CC_RESET_PIN        09
+#define CC_RESET_PIN        (9)
 /** @} */
 
 ///Bool define if the circuitry is present for the internal DC-DC of nRF52
-#define DC_DC_CIRCUITRY     false
+#define DC_DC_CIRCUITRY     true
 
 ///Bool define if a NFC Antenna circuitry is present
 #define NFC_CIRCUITRY       false
