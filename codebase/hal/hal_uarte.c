@@ -38,10 +38,14 @@
 
 /** Size of the buffer to hold the received characters before @ref LINE_END is received
  *   This value must be a power of two to enable increment to 0 */
-#define BUFFER_SIZE     8
+#define RX_BUFFER_SIZE     8
+
+/** Size of buffer for the transmission of characters from UART and printf string forming
+ *  */
+#define TX_BUFFER_SIZE     64
 
 /** Buffer to hold the received characters from UART */
-volatile uint8_t rx_buffer[BUFFER_SIZE];
+volatile uint8_t rx_buffer[RX_BUFFER_SIZE];
 
 /** Handler to be called when a characters is received from UART */
 void (*rx_handler)(uint8_t rx_byte);
@@ -58,36 +62,36 @@ void hal_uart_Handler ()
 void UART_IRQ_Handler (void)
 #endif
 {
-	if(NRF_UARTE0->EVENTS_RXDRDY == 1)
-	{
+    if(NRF_UARTE0->EVENTS_RXDRDY == 1)
+    {
         NRF_UARTE0->EVENTS_RXDRDY = 0;
         //This is to increment to zero if it overflows
-		rx_count = ((rx_count + 1) & (BUFFER_SIZE - 1));
-	}
+        rx_count = ((rx_count + 1) & (RX_BUFFER_SIZE - 1));
+    }
 }
 
 void hal_uarte_start_rx(void (*handler) (uint8_t rx_byte))
 {
-	rx_handler = handler;
+    rx_handler = handler;
 
-	NRF_UARTE0->EVENTS_RXDRDY = 0;
-	NRF_UARTE0->EVENTS_ENDRX = 0;
-	NRF_UARTE0->EVENTS_RXTO = 0;
-	NRF_UARTE0->EVENTS_RXSTARTED = 0;
+    NRF_UARTE0->EVENTS_RXDRDY = 0;
+    NRF_UARTE0->EVENTS_ENDRX = 0;
+    NRF_UARTE0->EVENTS_RXTO = 0;
+    NRF_UARTE0->EVENTS_RXSTARTED = 0;
 
-	NRF_UARTE0->INTENCLR = 0xFFFFFFFF;
-	NRF_UARTE0->INTENSET = (UARTE_INTENSET_RXDRDY_Enabled << UARTE_INTENSET_RXDRDY_Pos);
+    NRF_UARTE0->INTENCLR = 0xFFFFFFFF;
+    NRF_UARTE0->INTENSET = (UARTE_INTENSET_RXDRDY_Enabled << UARTE_INTENSET_RXDRDY_Pos);
 
     NVIC_ClearPendingIRQ(UARTE_IRQN);
     NVIC_EnableIRQ(UARTE_IRQN);
 
-	NRF_UARTE0->RXD.MAXCNT = BUFFER_SIZE/2;
-	NRF_UARTE0->RXD.PTR = (uint32_t) (rx_buffer);
+    NRF_UARTE0->RXD.MAXCNT = RX_BUFFER_SIZE/2;
+    NRF_UARTE0->RXD.PTR = (uint32_t) (rx_buffer);
 
-	NRF_UARTE0->SHORTS = (UARTE_SHORTS_ENDRX_STARTRX_Enabled << UARTE_SHORTS_ENDRX_STARTRX_Pos);
+    NRF_UARTE0->SHORTS = (UARTE_SHORTS_ENDRX_STARTRX_Enabled << UARTE_SHORTS_ENDRX_STARTRX_Pos);
 
-	rx_count = 0;
-	process_count = 0;
+    rx_count = 0;
+    process_count = 0;
 
     NRF_UARTE0->TASKS_STARTRX = 1;
 }
@@ -106,30 +110,30 @@ void hal_uarte_putchar(uint8_t cr)
 
 void hal_uarte_puts(uint8_t * buff, uint32_t len)
 {
-	static uint8_t tx_buffer[BUFFER_SIZE];
+    static uint8_t tx_buffer[TX_BUFFER_SIZE];
 
-	if((len == 0) || (buff == NULL))
-	{
-		return;
-	}
+    if((len == 0) || (buff == NULL))
+    {
+        return;
+    }
 
-	//If the previous transmission is still ongoing
-	if((NRF_UARTE0->EVENTS_TXSTARTED == 1) &&
-			(NRF_UARTE0->EVENTS_ENDTX == 0))
-	{
-		while(NRF_UARTE0->EVENTS_ENDTX == 0)
-		{
-		}
-	}
+    //If the previous transmission is still ongoing
+    if((NRF_UARTE0->EVENTS_TXSTARTED == 1) &&
+            (NRF_UARTE0->EVENTS_ENDTX == 0))
+    {
+        while(NRF_UARTE0->EVENTS_ENDTX == 0)
+        {
+        }
+    }
 
-	//Clear the flags
-	NRF_UARTE0->EVENTS_TXSTARTED = 0;
-	NRF_UARTE0->EVENTS_ENDTX = 0;
+    //Clear the flags
+    NRF_UARTE0->EVENTS_TXSTARTED = 0;
+    NRF_UARTE0->EVENTS_ENDTX = 0;
 
-	memcpy(tx_buffer, buff, len);
+    memcpy(tx_buffer, buff, len);
 
-	NRF_UARTE0->TXD.PTR = (uint32_t) tx_buffer;
-	NRF_UARTE0->TXD.MAXCNT = len;
+    NRF_UARTE0->TXD.PTR = (uint32_t) tx_buffer;
+    NRF_UARTE0->TXD.MAXCNT = len;
 
     NRF_UARTE0->TASKS_STARTTX = 1;
 
@@ -144,10 +148,11 @@ void hal_uarte_puts(uint8_t * buff, uint32_t len)
  */
 void printf_callback(void* str_end, char ch)
 {
-	static uint32_t str_count = 0;
+    static uint32_t str_count = 0;
 
-	static uint8_t printf_buffer[BUFFER_SIZE];
+    static uint8_t printf_buffer[TX_BUFFER_SIZE];
 
+    hal_gpio_pin_toggle(23);
     if((uint32_t) str_end == START_TX)
     {
         //Since puts is not re-entrant
@@ -158,8 +163,8 @@ void printf_callback(void* str_end, char ch)
     }
     else
     {
-    	printf_buffer[str_count] = ch;
-    	str_count++;
+        printf_buffer[str_count] = ch;
+        str_count++;
     }
 }
 
@@ -183,7 +188,7 @@ void hal_uarte_init(hal_uart_baud_t baud, uint32_t irq_priority)
         NRF_UARTE0->PSEL.CTS = CTS_PIN_NUMBER;
         NRF_UARTE0->CONFIG = (UARTE_CONFIG_HWFC_Enabled << UARTE_CONFIG_HWFC_Pos)
                 | (UARTE_CONFIG_PARITY_Excluded << UARTE_CONFIG_PARITY_Pos)
-        		| (UARTE_CONFIG_STOP_One << UARTE_CONFIG_STOP_Pos);
+                | (UARTE_CONFIG_STOP_One << UARTE_CONFIG_STOP_Pos);
     }
 #endif
 
@@ -208,20 +213,20 @@ void hal_uarte_uninit(void)
 
 void hal_uarte_process(void)
 {
-	while(process_count != rx_count)
-	{
-		rx_handler(rx_buffer[process_count]);
-		process_count = ((process_count + 1) & (BUFFER_SIZE - 1));
+    while(process_count != rx_count)
+    {
+        rx_handler(rx_buffer[process_count]);
+        process_count = ((process_count + 1) & (RX_BUFFER_SIZE - 1));
 
-		//To change the DMA double buffered pointer for upcoming data to
-		//either first half or second half of the buffer
-		if(rx_count == 1)
-		{
-			NRF_UARTE0->RXD.PTR = (uint32_t) (rx_buffer + (BUFFER_SIZE/2));
-		}
-		else if(rx_count == ((BUFFER_SIZE/2) + 1))
-		{
-			NRF_UARTE0->RXD.PTR = (uint32_t) (rx_buffer);
-		}
-	}
+        //To change the DMA double buffered pointer for upcoming data to
+        //either first half or second half of the buffer
+        if(rx_count == 1)
+        {
+            NRF_UARTE0->RXD.PTR = (uint32_t) (rx_buffer + (RX_BUFFER_SIZE/2));
+        }
+        else if(rx_count == ((RX_BUFFER_SIZE/2) + 1))
+        {
+            NRF_UARTE0->RXD.PTR = (uint32_t) (rx_buffer);
+        }
+    }
 }
