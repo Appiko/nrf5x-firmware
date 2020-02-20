@@ -49,6 +49,7 @@
 
 #ifdef LOG_TEENSY
 #include "hal_uart.h"
+#include "tinyprintf.h"
 #endif
 
 #define APP_ID_POS          0
@@ -121,6 +122,7 @@ static rf_comm_hw_t gc_radio_hw =
 #ifdef RF_COMM_AMPLIFIRE
     .rf_lna_pin = CC_LNA_EN_PIN,
     .rf_pa_pin = CC_PA_EN_PIN,
+    .rf_hgm_pin = CC_HGM_PIN,
 #endif
 };
 
@@ -139,7 +141,6 @@ static rf_comm_radio_t gc_radio_params =
 /** @brief Configure the RGB LED pins as output and turn off LED */
 static void rgb_led_init(void)
 {
-    hal_gpio_cfg_output(17, 1);
 }
 
 /** @brief Configure the RGB LED pins as output and turn off LED */
@@ -172,7 +173,7 @@ void ms_timer_10ms (void)
 
 void byte_frame_done(const uint8_t * encoded_data,uint16_t len)
 {
-    log_printf(" Encoded Data : ");
+    log_printf(" Encoded Data (%d): ",len);
     for(uint32_t i = 0; i < len; i++)
     {
         log_printf ("%d ",encoded_data[i]);
@@ -180,10 +181,17 @@ void byte_frame_done(const uint8_t * encoded_data,uint16_t len)
     log_printf("\n");
 
 #ifdef LOG_TEENSY
-    for(uint32_t i = 0; i < len; i++)
-    {
-        hal_uart_putchar (encoded_data[i]);
-    }
+//    hal_gpio_pin_toggle (13);
+    uint8_t p_data[16];
+    memcpy (p_data, encoded_data, len);
+    hal_uart_putdata (p_data, len);
+        
+//    for(uint32_t i = 0; i < len; i++)
+//    {
+//        tfp_printf ("%c",encoded_data[i]);
+//        hal_uart_putchar (encoded_data[i]);
+//    }
+//    hal_gpio_pin_toggle (13);
 #endif
 }
 
@@ -205,35 +213,36 @@ void ms_timer_handler ()
 void rx_failed_handler (uint32_t error)
 {
     log_printf("%s : %d\n", __func__, error);
+//    hal_gpio_pin_toggle (31);
     rf_comm_idle ();
     rf_comm_rx_enable();
 }
 
 void rx_done_handler (uint32_t size)
 {
+//    hal_gpio_pin_toggle (13);
     uint8_t l_arr_rf_pkt[32];
-    hal_gpio_pin_toggle (17);
-    log_printf("%s : %d\n", __func__, size);
+//    log_printf("%s : %d\n", __func__, size);
     {
         uint8_t pkt_len;
         l_arr_rf_pkt[0] = rf_comm_get_rssi ();
         rf_comm_pkt_receive (&l_arr_rf_pkt[1], &pkt_len);
         /* Flush the RX FIFO */
-        log_printf("Data: ");
+//        log_printf("Data: ");
         for(uint32_t i =0; i < pkt_len; i++)
         {
-            log_printf("%d  ", l_arr_rf_pkt[i+1]);
+//            log_printf("%d  ", l_arr_rf_pkt[i+1]);
 //#ifdef LOG_TEENSY        
 //            log_printf("%d : ", l_lkp_cnt);
 //            hal_uart_putchar (l_arr_rf_pkt[i]);
 //            hal_uart_putchar('\n');
 //#endif
         }
-        log_printf("\n");
+//        log_printf("\n");
         encodeFrame (l_arr_rf_pkt, (pkt_len+1), byte_frame_done);
 //        int8_t rf_rx_rssi;
 //        rf_rx_rssi = (uint8_t)rf_comm_get_rssi ();
-        log_printf("RSSI : %d\n", (int8_t)l_arr_rf_pkt[0]);
+//        log_printf("RSSI : %d\n", (int8_t)l_arr_rf_pkt[0]);
 //        rssi_sum += rf_rx_rssi;
     }
     rf_comm_idle ();
@@ -269,6 +278,9 @@ int main(void)
     hal_gpio_cfg_output (TCXO_EN_PIN, 1);
     hal_gpio_pin_set (TCXO_EN_PIN);
 #endif
+    
+    hal_gpio_cfg_output(13, 1);
+//    hal_gpio_cfg_output(31, 1);
     rgb_led_init();
     rgb_led_cycle();
     rf_spi_init (&gc_spi_hw);
@@ -286,7 +298,7 @@ int main(void)
     
     ms_timer_start (MS_TIMER0, MS_REPEATED_CALL, MS_TIMER_TICKS_MS(300*1000),
                     ms_timer_handler);
-
+    
 //    start_rx();
 
     log_printf("Here..!!\n");
