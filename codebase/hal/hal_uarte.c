@@ -28,6 +28,14 @@
 #include "isr_manager.h"
 #endif
 
+#ifdef NRF52810
+#define UART_IRQ_Handler UARTE0_IRQHandler
+#define UARTE_IRQN UARTE0_IRQn
+#else
+#define UART_IRQ_Handler UARTE0_UART0_IRQHandler
+#define UARTE_IRQN UARTE0_UART0_IRQn
+#endif
+
 /** Size of the buffer to hold the received characters before @ref LINE_END is received
  *   This value must be a power of two to enable increment to 0 */
 #define BUFFER_SIZE     8
@@ -44,7 +52,11 @@ uint32_t process_count;
 /** Count of number of bytes received by UART, incremented in interrupt*/
 volatile uint32_t rx_count;
 
-void UARTE0_UART0_IRQHandler (void)
+#if ISR_MANAGER == 1
+void hal_uart_Handler ()
+#else
+void UART_IRQ_Handler (void)
+#endif
 {
 	if(NRF_UARTE0->EVENTS_RXDRDY == 1)
 	{
@@ -66,8 +78,8 @@ void hal_uarte_start_rx(void (*handler) (uint8_t rx_byte))
 	NRF_UARTE0->INTENCLR = 0xFFFFFFFF;
 	NRF_UARTE0->INTENSET = (UARTE_INTENSET_RXDRDY_Enabled << UARTE_INTENSET_RXDRDY_Pos);
 
-    NVIC_ClearPendingIRQ(UARTE0_UART0_IRQn);
-    NVIC_EnableIRQ(UARTE0_UART0_IRQn);
+    NVIC_ClearPendingIRQ(UARTE_IRQN);
+    NVIC_EnableIRQ(UARTE_IRQN);
 
 	NRF_UARTE0->RXD.MAXCNT = BUFFER_SIZE/2;
 	NRF_UARTE0->RXD.PTR = (uint32_t) (rx_buffer);
@@ -184,7 +196,7 @@ void hal_uarte_init(hal_uart_baud_t baud, uint32_t irq_priority)
     //Initialize the printf if it needs to use this driver
     init_printf((void *) !(START_TX), printf_callback);
 
-    NVIC_SetPriority(UARTE0_UART0_IRQn, irq_priority);
+    NVIC_SetPriority(UARTE_IRQN, irq_priority);
 }
 
 void hal_uarte_uninit(void)
