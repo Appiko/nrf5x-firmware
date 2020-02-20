@@ -1,5 +1,5 @@
 
-BOARD           := BOARD_SENSEELE_SMA_REV1
+BOARD           := BOARD_SENSEBLE_REV1
 SLNO            := 682073614
 BLE_REQD        := BLE_STACK_SUPPORT_REQD
 PINRESET_REQD   := CONFIG_GPIO_AS_PINRESET
@@ -67,6 +67,7 @@ else ifeq ($(LOGGER), LOG_UART_PRINTF)
 C_SRC += hal_uart.c tinyprintf.c
 else ifeq ($(LOGGER), LOG_TEENSY)
 C_SRC += hal_uart.c tinyprintf.c
+
 endif
 C_SRC += hal_wdt.c
 C_SRC += nrf_util.c 
@@ -111,7 +112,10 @@ CFLAGS_APP += -DFW_VER=$(FW_VER_VAL)
 CFLAGS_APP += -DMS_TIMER_FREQ=$(MS_TIMER_FREQ)
 CFLAGS_APP += -DTSSP_DETECT_FREQ=$(TSSP_DETECT_FREQ)
 CFLAGS_APP += -DSYS_CFG_PRESENT=$(CONFIG_HEADER)
-
+ifeq ($(LOGGER), LOG_TEENSY)
+CFLAGS_APP +=-DRX_PIN_NUMBER=15
+CFLAGS_APP +=-DTX_PIN_NUMBER=16
+endif
 
 #Lower case of BOARD
 BOARD_HEADER  = $(shell echo $(BOARD) | tr A-Z a-z)

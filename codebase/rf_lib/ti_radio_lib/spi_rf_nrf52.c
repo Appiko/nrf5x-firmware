@@ -155,9 +155,8 @@ rfStatus_t trx16BitRegAccess(uint8_t accessType, uint8_t extAddr, uint8_t regAdd
 rfStatus_t trxSpiCmdStrobe(uint8_t cmd)
 {
 	uint8_t rc;
-    hal_spim_tx_rx (&cmd, 1, NULL, 0);
+    hal_spim_tx_rx (&cmd, 1, &rc, 1);
     while(hal_spim_is_busy ());
-    rc = 0;
 
     return(rc);
 }

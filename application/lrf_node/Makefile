@@ -1,5 +1,5 @@
 
-BOARD           := BOARD_SENSEELE_SMA_REV1
+BOARD           := BOARD_SENSEELE_PCB_REV2
 SLNO            := 682073614
 BLE_REQD        := BLE_STACK_SUPPORT_REQD
 PINRESET_REQD   := CONFIG_GPIO_AS_PINRESET
@@ -8,7 +8,6 @@ LOGGER          := LOG_UART_PRINTF
 FW_VER_VAL      := 0
 MS_TIMER_FREQ   := 32768
 TSSP_DETECT_FREQ := 32768
-#SD_USED         := 
 SD_USED         := s112
 SD_VER          := 6.0.0
 CONFIG_HEADER	:= 1
@@ -77,6 +76,7 @@ C_SRC += simple_adc.c
 C_SRC += random_num.c
 C_SRC += lrf_node_ble.c
 C_SRC += dev_id_fw_ver.c
+C_SRC += lrf_node_rf.c
 #Gets the name of the application folder
 APPLN = $(shell basename $(PWD))
 

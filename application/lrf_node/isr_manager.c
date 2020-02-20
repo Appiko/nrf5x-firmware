@@ -176,12 +176,20 @@ void NFCT_IRQHandler (void)
 #endif
 void GPIOTE_IRQHandler (void)
 {
-    log_printf ("%s\n", __func__);
+//    log_printf ("%s\n", __func__);
 #if defined GPIOTE_CH_USED_BUTTON_UI_PORT
-    button_ui_gpiote_Handler ();
-
+    if(NRF_GPIOTE->EVENTS_PORT)
+    {
+        button_ui_gpiote_Handler ();
+    }
 #endif
-    rf_comm_gpiote_Handler ();
+    if( NRF_GPIOTE->EVENTS_IN[GPIOTE_CH_USED_RF_COMM_0] ||
+        NRF_GPIOTE->EVENTS_IN[GPIOTE_CH_USED_RF_COMM_1] ||
+        NRF_GPIOTE->EVENTS_IN[GPIOTE_CH_USED_RF_COMM_2] ||
+        NRF_GPIOTE->EVENTS_IN[GPIOTE_CH_USED_RF_COMM_3] )
+    {
+        rf_comm_gpiote_Handler ();
+    }
 //Clear events
     NRF_GPIOTE->EVENTS_PORT = 0;
     NRF_GPIOTE->EVENTS_IN[0] = 0;

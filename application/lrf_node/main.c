@@ -45,29 +45,38 @@
 #include "dev_id_fw_ver.h"
 #include "random_num.h"
 
+#include "lrf_node_rf.h"
+
 #if SYS_CFG_PRESENT == 1
 #include "sys_config.h"
 #endif
 
 
-#ifndef NVM_LOGGER_LOG_USED_MAIN
-#define NVM_LOGGER_LOG_USED_MAIN 0
+#ifndef NVM_LOGGER_LOG_USED_MAIN_0
+#define NVM_LOGGER_LOG_USED_MAIN_0 0
 #endif
 
-#ifndef NVM_LOGGER_PAGES_USED_MAIN
-#define NVM_LOGGER_PAGES_USED_MAIN 2
+#ifndef NVM_LOGGER_PAGES_USED_MAIN_0
+#define NVM_LOGGER_PAGES_USED_MAIN_0 1
 #endif
 
-#ifndef NVM_LOGGER_START_PAGE
-#define NVM_LOGGER_START_PAGE NVM_LOG_PAGE0
-#endif
-
-#ifndef MS_TIMER_USED_MAIN
-#define MS_TIMER_USED_MAIN 1
+#ifndef NVM_LOGGER_START_PAGE_0
+#define NVM_LOGGER_START_PAGE_0 NVM_LOG_PAGE0
 #endif
 
 
-#define MS_TIMER_ID MS_TIMER_USED_MAIN
+#ifndef NVM_LOGGER_LOG_USED_MAIN_1
+#define NVM_LOGGER_LOG_USED_MAIN_1 1
+#endif
+
+#ifndef NVM_LOGGER_PAGES_USED_MAIN_1
+#define NVM_LOGGER_PAGES_USED_MAIN_1 2
+#endif
+
+#ifndef NVM_LOGGER_START_PAGE_1
+#define NVM_LOGGER_START_PAGE_1 NVM_LOG_PAGE1
+#endif
+
 
 /** The WDT bites if not fed every 301 sec (5 min)
  * @warning All the tick intervals must be lower than this*/
@@ -81,21 +90,9 @@
 //#define RADIO_ID 0x48 //CC1120
 //#define RADIO_ID 0x40 //CC1121
 
-#define LOG_ID NVM_LOGGER_LOG_USED_MAIN
+#define FLAG_LOG_ID NVM_LOGGER_LOG_USED_MAIN_1
 
-#define TILT_SENSE_FREQ MS_TIMER_TICKS_MS(1000)
-
-#define ALIVE_SIGNAL_FREQ MS_TIMER_TICKS_MS(3600*1000)
-
-#define PKT_PER_DETECT 10
-
-#define DETECTS_BEFORE_MAINTAIN 5
-
-#define TILT_THRESHOLD_VAL 866
-
-#define PKT_DURATION 500
-
-#define TILT_DETECT_ANGLE 30
+#define FW_VER_LOG_ID NVM_LOGGER_PAGES_USED_MAIN_0
 
 uint8_t g_device_name[] = { DEVICE_NAME_CHAR };
 
@@ -122,25 +119,17 @@ uint8_t g_device_name[] = { DEVICE_NAME_CHAR };
 
 #define DEPLOY_TIMEOUT_TICKS MS_TIMER_TICKS_MS(10*60*1000)
 
+#define DEFAULT_UPPER_THRESHOLD_ANGLE 30
+#define DEFAULT_LOWER_THRESHOLD_ANGLE 25
+
 typedef enum
 {
     LRF_STATE_PRE_DEPLOYED,
     LRF_STATE_DEPLOYMENT,
     LRF_STATE_SENSING,
-    LRF_STATE_LOOP,
-    LRF_STATE_MAINTAINENCE,
     LRF_MAX_STATES,
 }lrf_node_states_t;
 
-typedef enum
-{
-    LRF_ALIVE,
-    LRF_SENSE,
-    LRF_MAINTAIN,
-}lrf_node_pkt_type_t;
-
-void tx_done_handler (uint32_t error);
-void tx_failed_handler (uint32_t error);
 
 void check_point ();
 
@@ -150,224 +139,72 @@ void state_change_handler (uint32_t next_state);
 
 static lrf_node_ble_adv_data_t g_ble_adv_data;
 
-static rf_spi_init_t gc_spi_hw= 
-{
-    .csn_pin = CSN_PIN,
-    .sclk_pin = SCLK_PIN,
-    .miso_pin = MISO_PIN,
-    .mosi_pin = MOSI_PIN,
-    .irq_priority = APP_IRQ_PRIORITY_HIGHEST,
-};
 
-static rf_comm_hw_t gc_radio_hw = 
+static lrf_node_mod_init_t g_node_mod_init = 
 {
-    .rf_gpio0_pin = CC_GPIO0,
-    .rf_gpio2_pin = CC_GPIO2,
-    .rf_gpio3_pin = CC_GPIO3,
-    .rf_reset_pin = CC_RESET_PIN,
+    .radio_spi.csn_pin = CSN_PIN,
+    .radio_spi.sclk_pin = SCLK_PIN,
+    .radio_spi.miso_pin = MISO_PIN,
+    .radio_spi.mosi_pin = MOSI_PIN,
+    .radio_spi.irq_priority = APP_IRQ_PRIORITY_HIGHEST,
+
+    .radio_gpio.rf_gpio0_pin = CC_GPIO0,
+    .radio_gpio.rf_gpio2_pin = CC_GPIO2,
+    .radio_gpio.rf_gpio3_pin = CC_GPIO3,
+    .radio_gpio.rf_reset_pin = CC_RESET_PIN,
 #ifdef RF_COMM_AMPLIFIRE
-    .rf_lna_pin = CC_LNA_PIN,
-    .rf_pa_pin = CC_PA_PIN,
+    .radio_gpio.rf_lna_pin = CC_LNA_PIN,
+    .radio_gpio.rf_pa_pin = CC_PA_PIN,
 #endif
+  
+    .radio_params.bitrate = 300,
+    .radio_params.center_freq = 866000,
+    .radio_params.fdev = 2,
+    .radio_params.tx_power = 14,
+    
+    .acce_hw_params.SCK = SCK_PIN,
+    .acce_hw_params.SDA = SDA_PIN,
+    .acce_hw_params.ADDR_LSB = KXTJ3_ADDR_7B_LSB,
+    
+    .rf_tcxo_pin = TCXO_EN_PIN,
+    
+    .upper_threshold_angle = DEFAULT_UPPER_THRESHOLD_ANGLE,
+    .lower_threshold_angle = DEFAULT_LOWER_THRESHOLD_ANGLE,
+
 };
 
-static rf_comm_radio_t gc_radio_params = 
-{
-    .bitrate = 300,
-    .center_freq = 866000,
-    .freq_dev = 2,
-    .tx_power = 14,
-    .irq_priority = APP_IRQ_PRIORITY_LOW,
-    .rf_tx_done_handler = tx_done_handler,
-    .rf_tx_failed_handler = tx_failed_handler,
-};
 
-static KXTJ3_config_t gc_acce_init = 
+static struct nvm_data_t 
 {
-    .i2c_sda = SDA_PIN,
-    .i2c_sck = SCK_PIN,
-    .range = KXTJ_RNG_2g,
-    .resolution = KXTJ_RES_8Bit,
-};
+    lrf_node_prodc_info_t production_data;
+    bool gf_is_deployed;
+}nvm_data;
 
 static log_config_t gc_flag_log = 
 {
-    .log_id = LOG_ID,
-    .entry_size = sizeof(bool),
-    .start_page = NVM_LOGGER_START_PAGE,
-    .no_of_pages = NVM_LOGGER_PAGES_USED_MAIN
+    .log_id = FLAG_LOG_ID,
+    .entry_size = sizeof(nvm_data),
+    .start_page = NVM_LOGGER_START_PAGE_1,
+    .no_of_pages = NVM_LOGGER_PAGES_USED_MAIN_1
 };
 
-bool gf_is_deployed = false;
+
+static log_config_t gc_fw_ver_log = 
+{
+    .log_id =FW_VER_LOG_ID,
+    .entry_size = sizeof(fw_ver_t),
+    .no_of_pages = NVM_LOGGER_PAGES_USED_MAIN_0,
+    .start_page = NVM_LOGGER_START_PAGE_0
+};
+
 
 static lrf_node_states_t gs_lrf_state = LRF_STATE_PRE_DEPLOYED;
 
-static lrf_node_pkt_type_t g_pkt_type = LRF_ALIVE;
-
 static lrf_node_flag_dply_t g_dply_align;
-
-static uint32_t g_sense_cnt = 0;
-
-//min(Random delay) > PKT_Duation
-//random delay = pkt_dur + random_no*2 ms
-static uint32_t g_random_delay;
-
-const uint32_t gc_cos_res5d[] = {
-    1000, 996, 984, 965, 939, 906, 866, 819, 766,
-    707, 642, 573, 500, 422, 342, 258, 173, 87, 0
-};
-
-static KXTJ3_g_data_t g_acce_data;
-
-uint8_t  angle_measure (uint32_t acce_comp)
-{
-    acce_comp = acce_comp < 0 ? acce_comp*(-1) : acce_comp;
-    uint8_t angle_cnt = 0;
-    while((gc_cos_res5d[angle_cnt] > acce_comp) && (angle_cnt < 19))
-    {
-        angle_cnt++;
-    }
-    return ((angle_cnt)*5);
-}
-
-bool net_acce_check (uint32_t thrs_mg)
-{
-    uint32_t res = (g_acce_data.xg*g_acce_data.xg) 
-        + (g_acce_data.yg * g_acce_data.yg) + (g_acce_data.zg*g_acce_data.zg);
-    if(res  <= (thrs_mg * thrs_mg))
-    {
-        return 1;
-    }
-    else
-    {
-        return 0;
-    }
-}
-
-void radio_enable ()
-{
-    hal_gpio_pin_set (TCXO_EN_PIN);
-    rf_comm_wake();
-    rf_comm_radio_init (&gc_radio_params, &gc_radio_hw);
-
-    rf_comm_idle ();
-
-}
-
-void radio_disable ()
-{
-    rf_comm_sleep ();
-    hal_gpio_pin_clear (TCXO_EN_PIN);
-}
-void ms_timer_handler_pre_deployed ();
-void ms_timer_handler_deployment ();
-void ms_timer_handler_sensing ();
-void ms_timer_handler_loop ();
-void ms_timer_handler_maintainence ();
-
-void ( * ms_timer_handler_state[])(void) = {
-ms_timer_handler_pre_deployed, 
-ms_timer_handler_deployment,
-ms_timer_handler_sensing,
-ms_timer_handler_loop,
-ms_timer_handler_maintainence
-};
-
-uint32_t g_arr_state_durations_ticks[] = {
-    MS_TIMER_TICKS_MS(3600 * 1000),
-    DEPLOY_TIMEOUT_TICKS,
-    TILT_SENSE_FREQ,
-    PKT_DURATION,
-    ALIVE_SIGNAL_FREQ
-};
-
-void ms_timer_handler_pre_deployed ()
-{
-
-}
-
-void ms_timer_handler_deployment ()
-{
-    lrf_node_ble_disconn ();
-    //ble timeout
-    check_point ();
-}
-
-void ms_timer_handler_loop ()
-{
-    log_printf("detected\n");
-    uint8_t pkt_data[2];
-    pkt_data[0] = aa_aaa_battery_status ();
-    pkt_data[1] = angle_measure (g_acce_data.xg);
-    rf_comm_pkt_send (g_pkt_type, pkt_data, sizeof(pkt_data));
-
-    static uint32_t l_pkt_cnt = 0;
-    l_pkt_cnt++;
-    if (l_pkt_cnt < PKT_PER_DETECT)
-    {
-        irq_msg_push (MSG_STATE_CHANGE, (void *)LRF_STATE_LOOP);
-    }
-    else
-    {
-        l_pkt_cnt = 0;
-        radio_disable ();
-        irq_msg_push (MSG_STATE_CHANGE, (void *)LRF_STATE_SENSING);
-    }
-}
-
-void ms_timer_handler_sensing ()
-{
-    memcpy (&g_acce_data,kxtj3_get_acce_value (), sizeof(KXTJ3_g_data_t));
-
-    bool l_acce_flag = net_acce_check (1200);
-
-//    log_printf("tilt sense : %d\n", g_sense_cnt);
-//    log_printf("Acce : %d\n", net_acce_check(1500));
-    log_printf("Acce x: %d\n", g_acce_data.xg);
-//    log_printf("Angle : %d\n",angle_measure (g_acce_data.xg));
-
-    if((l_acce_flag) && (angle_measure (g_acce_data.xg) > TILT_DETECT_ANGLE))
-    {
-        g_sense_cnt++;
-        g_pkt_type = LRF_SENSE;
-        if(g_sense_cnt < DETECTS_BEFORE_MAINTAIN)
-        {
-            radio_enable ();
-            irq_msg_push (MSG_STATE_CHANGE, (void *)LRF_STATE_LOOP);
-        }
-        else
-        {
-            radio_disable ();
-            irq_msg_push (MSG_STATE_CHANGE, (void *)LRF_STATE_MAINTAINENCE);
-        }
-    }
-    else
-    {
-        g_sense_cnt = 0;
-    }
-}
-
-void ms_timer_handler_maintainence ()
-{
-    log_printf("alive\n");
-    uint8_t pkt_data[2];
-    memcpy (&g_acce_data,kxtj3_get_acce_value (), sizeof(KXTJ3_g_data_t));
-    pkt_data[0] = aa_aaa_battery_status ();
-    pkt_data[1] = angle_measure (g_acce_data.xg);
-    radio_enable ();
-    for(uint32_t pkt_cnt = 0; pkt_cnt < PKT_PER_DETECT; pkt_cnt++)
-    {
-        g_random_delay = random_num_generate ();
-        hal_nop_delay_ms (PKT_DURATION+g_random_delay);
-        rf_comm_pkt_send (g_pkt_type, pkt_data, sizeof(pkt_data));
-    }
-    radio_disable ();
-}
-
 
 void check_point ()
 {
-    if(gf_is_deployed)
+    if(nvm_data.gf_is_deployed)
     {
         irq_msg_push (MSG_STATE_CHANGE,(void *) LRF_STATE_SENSING);
     }
@@ -379,30 +216,12 @@ void check_point ()
 
 void next_interval_handler (uint32_t ticks)
 {
+//    static prev_state = LRF_STATE_PRE_DEPLOYED;
     log_printf("t%d\n",ticks);
     button_ui_add_tick (ticks);
-    uint8_t pkt_data[1];
-    static uint32_t l_alive_ticks = 0;
-    l_alive_ticks += ticks;
-    pkt_data[0] = aa_aaa_battery_status ();
-    if((gs_lrf_state == LRF_STATE_SENSING) && (l_alive_ticks > ALIVE_SIGNAL_FREQ))
-    {
-        g_pkt_type = LRF_ALIVE;
-        rf_comm_pkt_send (g_pkt_type, pkt_data, sizeof(pkt_data));
-        l_alive_ticks = 0;
-    }
     if((gs_lrf_state == LRF_STATE_DEPLOYMENT))
     {
-        memcpy (&g_acce_data,kxtj3_get_acce_value (), sizeof(KXTJ3_g_data_t));
-
-        if(angle_measure (g_acce_data.xg) < TILT_DETECT_ANGLE)
-        {
-            g_dply_align.align_flag = 1;
-        }
-        else
-        {
-            g_dply_align.align_flag = 0;
-        }
+        g_dply_align.align_flag = (lrf_node_mod_get_angle ());
         lrf_node_ble_update_dply_alignment (&g_dply_align);
     }
 }
@@ -410,15 +229,15 @@ void next_interval_handler (uint32_t ticks)
 void state_change_handler (uint32_t next_state)
 {
     log_printf("%s : %d\n", __func__, next_state);
-    ms_timer_stop (MS_TIMER_ID);
     gs_lrf_state = next_state;
     switch ((lrf_node_states_t)next_state)
     {
         case LRF_STATE_PRE_DEPLOYED :
+            lrf_node_mod_stop ();
             break;
         case LRF_STATE_DEPLOYMENT :
             {
-                radio_disable ();
+                lrf_node_mod_stop ();
                 device_tick_cfg tick_cfg = {
                     DEPLOY_TICKS_FAST,
                     DEPLOY_TICKS_SLOW,
@@ -441,40 +260,17 @@ void state_change_handler (uint32_t next_state)
                     sysinfo.battery_status = aa_aaa_battery_status();
                     memcpy(&sysinfo.fw_ver, fw_ver_get(), sizeof(fw_ver_t));
                     lrf_node_ble_update_sysinfo(&sysinfo);
-
-                    lrf_node_prodc_info_t l_ble_pkt;
-
-                    uint8_t * p_temp = (uint8_t * )&NRF_UICR->CUSTOMER[4];
-                    memcpy (&l_ble_pkt, p_temp, sizeof(lrf_node_prodc_info_t));
-                    lrf_node_ble_update_prodict_info(&l_ble_pkt);
+                    nvm_logger_fetch_tail_data (gc_flag_log.log_id, &nvm_data, 1);
+                    lrf_node_ble_update_product_info(&nvm_data.production_data);
                 }
                 lrf_node_ble_adv_start();
 
-                ms_timer_start (MS_TIMER_ID, MS_SINGLE_CALL,
-                                g_arr_state_durations_ticks[next_state],
-                                ms_timer_handler_state[next_state]);
             }
             break;
         case LRF_STATE_SENSING :
-            g_pkt_type = LRF_ALIVE;
-            ms_timer_start (MS_TIMER_ID, MS_REPEATED_CALL,
-                            g_arr_state_durations_ticks[next_state],
-                            ms_timer_handler_state[next_state]);
-            break;
-        case LRF_STATE_LOOP :
-            g_random_delay = random_num_generate ();
-            g_arr_state_durations_ticks[next_state] = MS_TIMER_TICKS_MS
-                (PKT_DURATION + g_random_delay);
-            ms_timer_start (MS_TIMER_ID, MS_SINGLE_CALL,
-                            g_arr_state_durations_ticks[next_state],
-                            ms_timer_handler_state[next_state]);
-            break;
-        case LRF_STATE_MAINTAINENCE :
-            g_sense_cnt = 0;
-            g_pkt_type = LRF_MAINTAIN;
-            ms_timer_start (MS_TIMER_ID, MS_REPEATED_CALL,
-                            g_arr_state_durations_ticks[next_state],
-                            ms_timer_handler_maintainence);
+            {
+                lrf_node_mod_start ();
+            }
             break;
         case LRF_MAX_STATES :
             check_point ();
@@ -523,14 +319,24 @@ static void ble_evt_handler(ble_evt_t * evt)
 
 static void deployment_flag_update (uint8_t dply_flag)
 {
-    if(dply_flag != (gf_is_deployed ))
+    if(dply_flag != (nvm_data.gf_is_deployed ))
     {
-        gf_is_deployed = dply_flag;
-        nvm_logger_feed_data (LOG_ID, &gf_is_deployed);
+        nvm_data.gf_is_deployed = dply_flag;
+        nvm_logger_feed_data (gc_flag_log.log_id, &nvm_data);
     }
-    g_dply_align.deploy_flag = gf_is_deployed;
+    g_dply_align.deploy_flag = nvm_data.gf_is_deployed;
 }
 
+
+static void production_info_update (lrf_node_prodc_info_t * new_info)
+{
+    nvm_data.production_data.app_id = new_info->app_id;
+    nvm_data.production_data.prod_id = new_info->prod_id;
+    nvm_logger_feed_data (gc_flag_log.log_id, &nvm_data);
+    
+    
+    lrf_node_mod_update_rf_head ((lrf_node_mod_rf_head_t *) new_info);
+}
 static void bootloader_flag_update (uint8_t dfu_flag)
 {
     if(dfu_flag == true)
@@ -639,6 +445,24 @@ void tx_done_handler (uint32_t error)
     }
 }
 
+
+
+void firmware_check ()
+{
+    if(nvm_logger_is_log_empty (gc_fw_ver_log.log_id))
+    {
+        nvm_logger_feed_data (gc_fw_ver_log.log_id, fw_ver_get ());
+    }
+    fw_ver_t l_prev_ver;
+    nvm_logger_fetch_tail_data (gc_fw_ver_log.log_id, &l_prev_ver, 1);
+    if(memcmp (&l_prev_ver, fw_ver_get (), sizeof(fw_ver_t)) != 0)
+    {
+        nvm_logger_release_log (gc_flag_log.log_id);
+        nvm_logger_log_init (&gc_flag_log);
+    }
+}
+
+    
 void boot_pwr_config(void)
 {
     log_printf("Reset because of ");
@@ -713,7 +537,7 @@ int main ()
     log_printf("Hello world from LRF Node\n");    
     lfclk_init (LFCLK_SRC_Xtal);
     ms_timer_init (APP_IRQ_PRIORITY_LOW);
-
+    
 #if ENABLE_WDT == 1
     hal_wdt_init(WDT_PERIOD_MS, wdt_prior_reset_callback);
     hal_wdt_start();
@@ -737,44 +561,36 @@ int main ()
     button_ui_init(HALL_EFFECT_PIN, APP_IRQ_PRIORITY_LOW,
             magnet_detect_handler);
 
-    
+    log_printf("Data size %d\n", gc_flag_log.entry_size);
     nvm_logger_log_init (&gc_flag_log);
-    hal_gpio_cfg_output (TCXO_EN_PIN, 0);
-    hal_gpio_pin_set (TCXO_EN_PIN);
+    
+    nvm_logger_log_init (&gc_fw_ver_log);
  
     lrf_node_ble_init(ble_evt_handler, deployment_flag_update,
-                      bootloader_flag_update);
+                      bootloader_flag_update, production_info_update);
     lrf_node_ble_set_adv_data (&g_ble_adv_data, g_device_name);
     
-    rf_spi_init (&gc_spi_hw);
-    log_printf("Here\n");
-    rf_comm_radio_init (&gc_radio_params, &gc_radio_hw);
-    log_printf("Device ID : 0x%x\n", rf_comm_get_radio_id ());
-    if(rf_comm_get_radio_id () != RADIO_ID)
-    {
-        log_printf("System halt : Radio not detected.\n");
-        while(1);
-    }
-//    hal_gpio_pin_clear (TCXO_EN_PIN);
+    firmware_check ();
     
-    if (nvm_logger_is_log_empty (LOG_ID) == false)
+    if (nvm_logger_is_log_empty (gc_flag_log.log_id) == false)
     {
-        nvm_logger_fetch_tail_data (LOG_ID, &gf_is_deployed, 1);
-        log_printf("Is deployed : %d\n", gf_is_deployed);
-        g_dply_align.deploy_flag = gf_is_deployed;
+        nvm_logger_fetch_tail_data (gc_flag_log.log_id, &nvm_data, 1);
+        log_printf("Is deployed : %d\n", nvm_data.gf_is_deployed);
+        g_dply_align.deploy_flag = nvm_data.gf_is_deployed;
     }
-    
-    kxtj3_init (&gc_acce_init);
-
-    radio_disable ();
-
-    rf_comm_pkt_t pkt_config = 
+    else
     {
-        .max_len = 10,
-        .app_id = 1,
-        .dev_id = 10,
-    };
-    rf_comm_pkt_config (&pkt_config);
+        nvm_data.production_data.app_id = 0xFF;
+        nvm_data.production_data.prod_id = 0xFFFF;
+        nvm_data.gf_is_deployed = 0;
+        nvm_logger_feed_data (gc_flag_log.log_id, &nvm_data);
+    }
+
+    g_node_mod_init.radio_header.app_id = nvm_data.production_data.app_id;
+    g_node_mod_init.radio_header.prod_id = nvm_data.production_data.prod_id;
+    
+    lrf_node_mod_init (&g_node_mod_init);
+    
     check_point ();
     while(1)
     {

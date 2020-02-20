@@ -41,14 +41,6 @@
 #include "hal_nop_delay.h"
 #include "log.h"
 #include "nrf_util.h"
-//#include "pin_trace.h"
-//#include "rf_rx_ble.h"
-//#include "ble.h"
-//#include "nrf_soc.h"
-//#include "nrf_sdm.h"
-//#include "radio_drv.h"
-//#include "cc1x_utils.h"
-//#include "cc112x_def.h"
 
 #include "rf_comm.h"
 #include "rf_spi_hw.h"
@@ -73,7 +65,7 @@
 
 uint16_t start_pkt_no = 0;
 
-int32_t rssi_sum = 0;
+//int32_t rssi_sum = 0;
 
 /**
 * @brief Preemption priority IRQ
@@ -90,8 +82,8 @@ int32_t rssi_sum = 0;
 
 typedef enum
 {
-    GSM_GATEWAY_PKT = 1,
-    GSM_NODE_PKT = 2,
+    GSM_GATEWAY_PKT = 2,
+    GSM_NODE_PKT = 1,
 }gsm_pkt_types_t;
 
 
@@ -106,29 +98,29 @@ typedef enum
  * | 1B |  2B  |  GATEWAY | Batt    |
  * |proj|Dev ID|  NODE    | Tx Pkt  |
  */
-uint8_t g_arr_gsm_pkt[128];
+//uint8_t g_arr_gsm_pkt[128];
 
 void rx_failed_handler (uint32_t error);
 void rx_done_handler (uint32_t size);
 
 static rf_spi_init_t gc_spi_hw= 
 {
-    .csn_pin = 23,
-    .sclk_pin = 22,
-    .miso_pin = 3,
-    .mosi_pin = 4,
+    .csn_pin = CSN_PIN,
+    .sclk_pin = SCLK_PIN,
+    .miso_pin = MISO_PIN,
+    .mosi_pin = MOSI_PIN,
     .irq_priority = APP_IRQ_PRIORITY_HIGHEST,
 };
 
 static rf_comm_hw_t gc_radio_hw = 
 {
-    .rf_gpio0_pin = 26,
-    .rf_gpio2_pin = 20,
-    .rf_gpio3_pin = 21,
-    .rf_reset_pin = 24,
+    .rf_gpio0_pin = CC_GPIO0,
+    .rf_gpio2_pin = CC_GPIO2,
+    .rf_gpio3_pin = CC_GPIO3,
+    .rf_reset_pin = CC_RESET_PIN,
 #ifdef RF_COMM_AMPLIFIRE
-    .rf_lna_pin = CC_LNA_PIN,
-    .rf_pa_pin = CC_PA_PIN,
+    .rf_lna_pin = CC_LNA_EN_PIN,
+    .rf_pa_pin = CC_PA_EN_PIN,
 #endif
 };
 
@@ -180,12 +172,12 @@ void ms_timer_10ms (void)
 
 void byte_frame_done(const uint8_t * encoded_data,uint16_t len)
 {
-//    log_printf(" Encoded Data : ");
-//    for(uint32_t i = 0; i < len; i++)
-//    {
-//        log_printf ("%d ",encoded_data[i]);
-//    }
-//    log_printf("\n");
+    log_printf(" Encoded Data : ");
+    for(uint32_t i = 0; i < len; i++)
+    {
+        log_printf ("%d ",encoded_data[i]);
+    }
+    log_printf("\n");
 
 #ifdef LOG_TEENSY
     for(uint32_t i = 0; i < len; i++)
@@ -197,19 +189,18 @@ void byte_frame_done(const uint8_t * encoded_data,uint16_t len)
 
 void ms_timer_handler ()
 {
-    g_arr_gsm_pkt[GSM_PKT_TYPE_POS] = GSM_GATEWAY_PKT;
+//    g_arr_gsm_pkt[GSM_PKT_TYPE_POS] = GSM_GATEWAY_PKT;
 
-    g_arr_gsm_pkt[PAYLOAD_POS] = aa_aaa_battery_status ();
-    encodeFrame (g_arr_gsm_pkt, PAYLOAD_POS+1, byte_frame_done);
+//    g_arr_gsm_pkt[PAYLOAD_POS] = aa_aaa_battery_status ();
+//    encodeFrame (g_arr_gsm_pkt, PAYLOAD_POS+1, byte_frame_done);
 }
 
-void assign_rf_pkt (uint8_t * p_rf_pkt, uint8_t len)
-{
-    g_arr_gsm_pkt[GSM_PKT_TYPE_POS] = GSM_NODE_PKT;
-    memcpy (&g_arr_gsm_pkt[PAYLOAD_POS], p_rf_pkt, len);
-    encodeFrame (g_arr_gsm_pkt, PAYLOAD_POS+len, byte_frame_done);
-    
-}
+//void assign_rf_pkt (uint8_t * p_rf_pkt, uint8_t len)
+//{
+////    g_arr_gsm_pkt[GSM_PKT_TYPE_POS] = GSM_NODE_PKT;
+////    memcpy (&g_arr_gsm_pkt[PAYLOAD_POS], p_rf_pkt, len);
+//    
+//}
 
 void rx_failed_handler (uint32_t error)
 {
@@ -225,12 +216,13 @@ void rx_done_handler (uint32_t size)
     log_printf("%s : %d\n", __func__, size);
     {
         uint8_t pkt_len;
-        rf_comm_pkt_receive (l_arr_rf_pkt, &pkt_len);
+        l_arr_rf_pkt[0] = rf_comm_get_rssi ();
+        rf_comm_pkt_receive (&l_arr_rf_pkt[1], &pkt_len);
         /* Flush the RX FIFO */
         log_printf("Data: ");
         for(uint32_t i =0; i < pkt_len; i++)
         {
-            log_printf("%d  ", l_arr_rf_pkt[i]);
+            log_printf("%d  ", l_arr_rf_pkt[i+1]);
 //#ifdef LOG_TEENSY        
 //            log_printf("%d : ", l_lkp_cnt);
 //            hal_uart_putchar (l_arr_rf_pkt[i]);
@@ -238,11 +230,11 @@ void rx_done_handler (uint32_t size)
 //#endif
         }
         log_printf("\n");
-        assign_rf_pkt (l_arr_rf_pkt, pkt_len);
-        int8_t rf_rx_rssi;
-        rf_rx_rssi = (uint8_t)rf_comm_get_rssi ();
-        log_printf("RSSI : %d\n", rf_rx_rssi);
-        rssi_sum += rf_rx_rssi;
+        encodeFrame (l_arr_rf_pkt, (pkt_len+1), byte_frame_done);
+//        int8_t rf_rx_rssi;
+//        rf_rx_rssi = (uint8_t)rf_comm_get_rssi ();
+        log_printf("RSSI : %d\n", (int8_t)l_arr_rf_pkt[0]);
+//        rssi_sum += rf_rx_rssi;
     }
     rf_comm_idle ();
     rf_comm_rx_enable();
@@ -264,7 +256,7 @@ int main(void)
     log_printf("Hello World from RF_RX..!!\n");
 
 #ifdef LOG_TEENSY
-    hal_uart_init(HAL_UART_BAUD_9600, NULL);
+    hal_uart_init(HAL_UART_BAUD_1M, NULL);
 #endif
     
 #if DC_DC_CIRCUITRY == true  //Defined in the board header file
@@ -273,34 +265,15 @@ int main(void)
     NRF_POWER->TASKS_LOWPWR = 1;
 
     ms_timer_init(APP_IRQ_PRIORITY_LOWEST);
-    
+#ifdef TCXO_EN_PIN
     hal_gpio_cfg_output (TCXO_EN_PIN, 1);
     hal_gpio_pin_set (TCXO_EN_PIN);
+#endif
     rgb_led_init();
     rgb_led_cycle();
     rf_spi_init (&gc_spi_hw);
     
     rf_comm_radio_init (&gc_radio_params, &gc_radio_hw);
-//    radio_init(APPIKO_1120_0K3);
-//    radio_set_freq (915000);
-//    set_rf_packet_length (6);
-
-//    hal_gpio_cfg_output (LNA_EN_PIN, 1);
-//    hal_gpio_cfg_input (GPIO_PIN, HAL_GPIO_PULL_DOWN);
-//    NRF_GPIOTE->CONFIG[GPIOTE_CHANNEL_USED] = ((GPIOTE_CONFIG_MODE_Event << GPIOTE_CONFIG_MODE_Pos) & GPIOTE_CONFIG_MODE_Msk) |
-//        ((GPIOTE_CONFIG_POLARITY_HiToLo << GPIOTE_CONFIG_POLARITY_Pos)&GPIOTE_CONFIG_POLARITY_Msk) |
-//        ((GPIO_PIN << GPIOTE_CONFIG_PSEL_Pos) & GPIOTE_CONFIG_PSEL_Msk);
-//    NRF_GPIOTE->INTENSET = (GPIOTE_INTENSET_IN0_Enabled<<GPIOTE_INTENSET_IN0_Pos)&GPIOTE_INTENSET_IN0_Msk;
-
-    
-//    rf_rx_ble_stack_init ();
-//    rf_rx_ble_gap_params_init ();
-//    rf_rx_ble_adv_init ();
-//    rf_rx_ble_adv_start (on_connect);
-//    rf_rx_ble_service_init ();
-//
-//    ble_data.rf_rx_rssi = 0;
-//    rf_rx_ble_update_status_byte (&ble_data);
     
     rf_comm_pkt_t pkt_config = 
     {

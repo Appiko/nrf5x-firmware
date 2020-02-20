@@ -63,7 +63,7 @@
 /** MS_TIMER used for Device Ticks module */
 #define MS_TIMER_USED_DEVICE_TICKS 0
 /** MS_TIMER used for main application */
-#define MS_TIMER_USED_MAIN 1
+#define MS_TIMER_USED_LRF_NODE_MOD 1
 
 /** GPIOTE PORT channel used for button_ui */
 #define GPIOTE_CH_USED_BUTTON_UI_PORT 
