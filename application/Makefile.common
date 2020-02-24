@@ -330,7 +330,7 @@ doc:
 	( cat $(DOC_DIR)/Appiko.doxyfile ; echo "$(DOXY_EDITS)" ) | doxygen -
 
 release:
-	( ../../release/release_script.sh; )
+	( ../../release/release_script.sh $(FW_VER_STR); )
 
 .PHONY: upload eraseall recover pinreset doc debug
 

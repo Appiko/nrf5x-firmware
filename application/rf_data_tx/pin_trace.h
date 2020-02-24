@@ -25,3 +25,4 @@
 //#define SDN   26 //With BMP:Bluey
 #define PA_EN_PIN   30
 #define LNA_EN_PIN  31
+#define HALL_PIN 27

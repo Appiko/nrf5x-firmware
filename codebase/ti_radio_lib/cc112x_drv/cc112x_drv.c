@@ -292,19 +292,19 @@ const registerSetting_t preferredSettings_50kbps[]=
 };
 
 // Address Config = No address check 
-// Bit Rate = 1.2 
+// Bit Rate = 0.3 
 // Carrier Frequency = 915.000000 
-// Deviation = 3.997803 
+// Deviation = 1.998901 
 // Device Address = 0 
 // Manchester Enable = false 
 // Modulation Format = 2-FSK 
 // PA Ramping = true 
 // Packet Bit Length = 0 
-// Packet Length = 2 
-// Packet Length Mode = Fixed 
+// Packet Length = 255 
+// Packet Length Mode = Variable 
 // Performance Mode = High Performance 
-// RX Filter BW = 10.000000 
-// Symbol rate = 1.2 
+// RX Filter BW = 8.000000 
+// Symbol rate = 0.3 
 // TX Power = 15 
 // Whitening = false 
 
@@ -315,25 +315,24 @@ const registerSetting_t trial_Settings[]=
     {IOCFG1,            0xB0},
     {IOCFG0,            0x40},
     {SYNC_CFG1,         0x0B},
+    {MODCFG_DEV_E,      0x02},
     {DCFILT_CFG,        0x1C},
     {PREAMBLE_CFG1,     0x18},
     {IQIC,              0xC6},
+    {CHAN_BW,           0x19},
     {MDMCFG0,           0x05},
+    {SYMBOL_RATE2,      0x23},
     {AGC_REF,           0x20},
     {AGC_CS_THR,        0x19},
     {AGC_CFG1,          0xA9},
     {AGC_CFG0,          0xCF},
     {FIFO_CFG,          0x00},
-    {PKT_CFG1,          0x04},
-    {PKT_CFG0,          0x00},
     {FS_CFG,            0x12},
-    {PA_CFG2,           0x77},
-    {PA_CFG1,           0x56},
-    {PA_CFG0,           0x7C},
-    {PKT_LEN,           0x02},
+    {PKT_CFG0,          0x20},
+    {PA_CFG0,           0x7E},
+    {PKT_LEN,           0xFF},
     {IF_MIX_CFG,        0x00},
-    {DCFILT_CFG,        0x0A},
-    {FREQOFF_CFG,       0x30},
+    {FREQOFF_CFG,       0x22},
     {FREQ2,             0x72},
     {FREQ1,             0x60},
     {FS_DIG1,           0x00},
@@ -352,6 +351,8 @@ const registerSetting_t trial_Settings[]=
     {XOSC1,             0x03},
 };
 
+
+
 /******************************************************************************
  * @fn         radio_init
  *
@@ -367,7 +368,7 @@ const registerSetting_t trial_Settings[]=
  * @return      void
  *
  */
-int radio_init(uint8_t config_select) {
+int radio_init(radio_config_id_t config_select, radio_hw_config_t * hw_config) {
 
 	uint8_t i, writeByte, preferredSettings_length;
 	uint32_t bit_rate;
@@ -377,14 +378,13 @@ int radio_init(uint8_t config_select) {
 	/* Instantiate transceiver RF SPI interface to SCLK ~ 4 MHz */
 	/* Input parameter is clockDivider */
 	/* SCLK frequency = SMCLK/clockDivider */
-    hal_gpio_cfg_output (RF_RESET_PIN, 1);
-    hal_gpio_pin_set (RF_RESET_PIN);
+    hal_gpio_cfg_output (hw_config->reset_pin, 1);
+    hal_gpio_pin_set (hw_config->reset_pin);
     hal_nop_delay_ms (1);
-    hal_gpio_pin_clear (RF_RESET_PIN);
+    hal_gpio_pin_clear (hw_config->reset_pin);
     hal_nop_delay_ms (1);
-    hal_gpio_pin_set (RF_RESET_PIN);
-	trxRfSpiInterfaceInit();
-    log_printf("%s\n", __func__);
+    hal_gpio_pin_set (hw_config->reset_pin);
+	trxRfSpiInterfaceInit((rf_spi_hw_t * )hw_config);
     
 //	/* remove the reset from the rf device */
 //	RF_RESET_N_PORT_SEL &= ~RF_RESET_N_PIN;
@@ -397,32 +397,33 @@ int radio_init(uint8_t config_select) {
 	/* give the tranciever time enough to complete reset cycle */
 	hal_nop_delay_us (16000);
 
+
 	switch (config_select) {
-	case 1:
+	case TI_1120_1K2:
 		preferredSettings_length = sizeof(preferredSettings_1200bps)/sizeof(registerSetting_t);
 		preferredSettings = (registerSetting_t *)preferredSettings_1200bps;
 		bit_rate = 12;
 		break;
-	case 2:
+	case TI_1120_38K4:
 		preferredSettings_length = sizeof(preferredSettings_38400bps)/sizeof(registerSetting_t);
 		preferredSettings = (registerSetting_t *)preferredSettings_38400bps;
 		bit_rate = 384;
 		break;
-	case 3:
+	case TI_1120_50K:
 		preferredSettings_length = sizeof(preferredSettings_50kbps)/sizeof(registerSetting_t);
 		preferredSettings = (registerSetting_t *)preferredSettings_50kbps;
 		bit_rate = 500;
 		break;
-	case 4:
+	case APPIKO_1120_0K3:
 		preferredSettings_length = sizeof(trial_Settings)/sizeof(registerSetting_t);
 		preferredSettings = (registerSetting_t *)trial_Settings;
 		bit_rate = 02;
 		break;
-	default:
-		preferredSettings_length = sizeof(preferredSettings_1200bps)/sizeof(registerSetting_t);
-		preferredSettings = (registerSetting_t *)preferredSettings_1200bps;
-		bit_rate = 12;
-		break;
+//	default:
+//		preferredSettings_length = sizeof(preferredSettings_1200bps)/sizeof(registerSetting_t);
+//		preferredSettings = (registerSetting_t *)preferredSettings_1200bps;
+//		bit_rate = 12;
+//		break;
 	}
 
 	/* Write registers to radio */
@@ -442,6 +443,7 @@ int radio_init(uint8_t config_select) {
 #ifdef ENABLE_RANGE_EXTENDER
 	range_extender_init();
 #endif
+    log_printf("%s\n", __func__);
 
 	return bit_rate;
 }
@@ -553,7 +555,7 @@ int radio_send(uint8_t *payload, uint16_t payload_len) {
 	uint8_t pktLen;
 
 	trx16BitRegAccess(RADIO_READ_ACCESS|RADIO_BURST_ACCESS, 0x2F, 0xff & NUM_TXBYTES, &pktLen, 1);
-//    log_printf("Pkt : %d, %d\n", payload_len, pktLen);
+    log_printf("Pkt : %d, %d\n", payload_len, pktLen);
 
 	/* Range extender in TX mode */
 #ifdef ENABLE_RANGE_EXTENDER
@@ -591,7 +593,7 @@ int radio_read(uint8_t *buf, uint8_t *buf_len) {
 	trx16BitRegAccess(RADIO_READ_ACCESS, 0x2F, 0xff & NUM_RXBYTES, &pktLen, 1);
 //	pktLen = pktLen  & NUM_RXBYTES;    
 
-//    log_printf("Pkt :%d, %d\n",*buf_len, pktLen);
+    log_printf("Pkt :%d, %d\n",*buf_len, pktLen);
 	/* make sure the packet size is appropriate, that is 1 -> buffer_size */
 	if ((pktLen > 0) && (pktLen <= *buf_len)) {
 
@@ -612,7 +614,7 @@ int radio_read(uint8_t *buf, uint8_t *buf_len) {
 
 		/* if the length returned by the transciever does not make sense, flush it */
 
-        log_printf("Wrong..!!");
+        log_printf("Wrong..!!\n");
 		*buf_len = 0;                                // Return 0 indicating a failure
 		status = 0;                                  // Return 0 indicating a failure
 		trxSpiCmdStrobe(SFRX);	                     // Flush RXFIFO
@@ -852,6 +854,7 @@ int radio_set_freq(uint64_t freq) {
 	/* write the frequency word to the transciever */
 	trx16BitRegAccess(RADIO_WRITE_ACCESS | RADIO_BURST_ACCESS, 0x2F, (0xFF & FREQ2), freq_regs, 3);
 
+    log_printf("Here\n");
 	return 0;
 }
 

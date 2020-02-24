@@ -55,19 +55,19 @@
  */
 //static void trxReadWriteBurstSingle(uint8_t addr,uint8_t *pData,uint16_t len) ;
 
-void trxRfSpiInterfaceInit()
+void trxRfSpiInterfaceInit(rf_spi_hw_t * hw_config)
 {
     log_printf("%s\n", __func__);
-    hal_gpio_cfg_output (RF_CS_PIN, 1);
-    hal_gpio_cfg_output (RF_SCK_PIN, 1);
-    hal_gpio_cfg_input (RF_MISO_PIN, HAL_GPIO_PULL_UP);
-    hal_gpio_cfg_output (RF_MOSI_PIN, 1);
+    hal_gpio_cfg_output (hw_config->csn_pin, 1);
+    hal_gpio_cfg_output (hw_config->sclk_pin, 1);
+    hal_gpio_cfg_input (hw_config->miso_pin, HAL_GPIO_PULL_UP);
+    hal_gpio_cfg_output (hw_config->mosi_pin, 1);
     hal_spim_init_t default_spim_config = 
     {
-        .csBar_pin = RF_CS_PIN,
-        .miso_pin = RF_MISO_PIN,
-        .mosi_pin = RF_MOSI_PIN,
-        .sck_pin = RF_SCK_PIN,
+        .csBar_pin = hw_config->csn_pin,
+        .miso_pin = hw_config->miso_pin,
+        .mosi_pin = hw_config->mosi_pin,
+        .sck_pin = hw_config->sclk_pin,
         .freq = HAL_SPIM_FREQ_2M,
         .spi_mode = HAL_SPIM_SPI_MODE0,
         .byte_order = HAL_SPIM_MSB_FIRST,
