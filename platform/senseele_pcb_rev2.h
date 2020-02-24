@@ -71,8 +71,6 @@
  * @name I2C definitions for SenseEle SMA Rev1
  * @{
  */
-//#define SDA_PIN             13
-//#define SCK_PIN             11
 #define SDA_PIN             11
 #define SCK_PIN             12
 /** @} */
