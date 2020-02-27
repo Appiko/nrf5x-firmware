@@ -16,8 +16,12 @@
  *  along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#ifndef CODEBASE_HAL_HAL_UART_H_
-#define CODEBASE_HAL_HAL_UART_H_
+#ifndef CODEBASE_HAL_HAL_UARTE_H_
+#define CODEBASE_HAL_HAL_UARTE_H_
+
+#ifdef CODEBASE_HAL_HAL_UART_H_
+#error "UART is being used by older driver"
+#endif
 
 /**
  * @addtogroup group_hal
@@ -35,6 +39,8 @@
 #if SYS_CFG_PRESENT == 1
 #include "sys_config.h"
 #endif
+
+#include "nrf.h"
 
 /**
  * Defines to specify the baudrate options for the uart data transfer

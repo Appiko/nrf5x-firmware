@@ -31,6 +31,9 @@
 
 #include "stdint.h"
 #include "stddef.h"
+#ifdef CODEBASE_HAL_HAL_UARTE_H_
+#error "UART is being used by newer driver"
+#endif
 
 #if SYS_CFG_PRESENT == 1
 #include "sys_config.h"
