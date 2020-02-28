@@ -51,7 +51,7 @@
 #define log_init()       hal_uarte_init(HAL_UARTE_BAUD_9600, APP_IRQ_PRIORITY_LOW)
 #pragma GCC diagnostic ignored "-Wformat"
 #pragma GCC diagnostic push
-#define log_printf(...)  tfp_printf(__VA_ARGS__)
+#define log_printf(...)  
 #pragma GCC diagnostic pop
 #else
 #define log_init()
