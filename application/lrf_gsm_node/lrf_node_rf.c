@@ -53,7 +53,7 @@
 #define ALIVE_FREQ_MS (S_to_MS(ALIVE_FREQ_S))
 
 
-#define GPS_TIMEOUT_S  150
+#define GPS_TIMEOUT_S  (5 * 60)
 #define GPS_TIMEOUT_MS (S_to_MS(GPS_TIMEOUT_S))
 
 #define NO_RF_PKTS 5
@@ -326,11 +326,12 @@ void lrf_node_mod_init (lrf_node_mod_init_t * p_mod_init)
 void lrf_node_mod_start ()
 {
     //start sensing the angle
-    g_node_state = STATE_SLEEP;
+    g_node_state = STATE_RUN;
     g_pkt_cnt = 0;
     node_rf_wakeup ();
     node_rf_sleep ();
-    
+    gps_mod_start (g_gps_timeout_ms);
+
 }
 
 void lrf_node_mod_stop ()
@@ -369,7 +370,7 @@ void lrf_node_mod_add_ticks (uint32_t ticks)
     static uint32_t sleep_ticks;
     sleep_ticks += ticks;
     log_printf("T %d S %d\n", sleep_ticks, g_node_state);
-    static node_states_t l_prev_state = 0;
+    static node_states_t l_prev_state = STATE_RUN;
     if (l_prev_state != g_node_state)
     {
         l_prev_state = g_node_state;

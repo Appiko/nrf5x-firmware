@@ -61,6 +61,8 @@ void UARTE0_UART0_IRQHandler (void)
     hal_uart_Handler ();
 #elif defined LOG_UART_DMA_PRINTF
     uart_printf_uart_Handler ();
+#elif defined LOG_GPS
+     hal_uart_Handler ();
 #endif
 //Clear events
     NRF_UARTE0->EVENTS_CTS = 0;

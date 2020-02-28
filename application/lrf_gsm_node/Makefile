@@ -1,10 +1,10 @@
 
 BOARD           := BOARD_SENSEELE_PCB_REV2
-SLNO            := 682073614
+SLNO            := 681592281
 BLE_REQD        := BLE_STACK_SUPPORT_REQD
 PINRESET_REQD   := CONFIG_GPIO_AS_PINRESET
-DEBUGGER        := BMP
-LOGGER          := LOG_UART_PRINTF
+DEBUGGER        := JLINK
+LOGGER          := LOG_GPS
 FW_VER_VAL      := 1
 MS_TIMER_FREQ   := 32768
 TSSP_DETECT_FREQ := 32768
@@ -53,6 +53,8 @@ C_SRC += SEGGER_RTT.c SEGGER_RTT_printf.c
 else ifeq ($(LOGGER), LOG_UART_DMA_PRINTF)
 C_SRC += uart_printf.c tinyprintf.c
 else ifeq ($(LOGGER), LOG_UART_PRINTF)
+C_SRC += hal_uart.c tinyprintf.c
+else ifeq ($(LOGGER), LOG_GPS)
 C_SRC += hal_uarte.c tinyprintf.c
 else
 endif
@@ -71,7 +73,7 @@ C_SRC += rf_spi_hw.c
 C_SRC += spi_rf_nrf52.c
 C_SRC += button_ui.c
 C_SRC += nvm_logger.c
-C_SRC += KXTJ3.c
+#C_SRC += KXTJ3.c
 C_SRC += simple_adc.c
 C_SRC += random_num.c
 C_SRC += lrf_node_ble.c

@@ -126,6 +126,8 @@ uint8_t g_device_name[] = { DEVICE_NAME_CHAR };
 
 #define GPS_EN_PIN 26
 
+#define GPS_SAMPLE_FREQ (1 * 60* 60 * 1000)
+
 typedef enum
 {
     LRF_STATE_PRE_DEPLOYED,
@@ -173,7 +175,7 @@ static lrf_node_mod_init_t g_node_mod_init =
     .gps.irq_priority = APP_IRQ_PRIORITY_LOW,
     .gps.gps_en_pin = GPS_EN_PIN,
     
-    .sleep_ms = 180000
+    .sleep_ms = GPS_SAMPLE_FREQ
 
 };
 
@@ -539,7 +541,6 @@ void slumber(void)
     }
 }
 
-
 int main ()
 {
     log_init ();
@@ -547,7 +548,7 @@ int main ()
     log_printf("Hello world from LRF Node\n");    
     lfclk_init (LFCLK_SRC_Xtal);
     ms_timer_init (APP_IRQ_PRIORITY_LOW);
-    
+       
 #if ENABLE_WDT == 1
     hal_wdt_init(WDT_PERIOD_MS, wdt_prior_reset_callback);
     hal_wdt_start();
@@ -591,7 +592,7 @@ int main ()
     else
     {
         nvm_data.production_data.app_id = 0x02;
-        nvm_data.production_data.prod_id = 0x0011;
+        nvm_data.production_data.prod_id = 0x000C;
         nvm_data.gf_is_deployed = 1;
         nvm_logger_feed_data (gc_flag_log.log_id, &nvm_data);
     }
