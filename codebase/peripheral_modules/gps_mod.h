@@ -79,6 +79,11 @@ void gps_mod_start (uint32_t timeout_ms);
 void gps_mod_add_ticks (uint32_t ticks);
 
 /**
+ * @brief Function to start GPS module for indefinite time 
+ */
+void gps_mod_always_on ();
+
+/**
  * @brief Function to stop GPS location scan
  */
 void gps_mod_stop ();

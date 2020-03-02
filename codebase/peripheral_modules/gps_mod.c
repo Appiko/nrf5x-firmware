@@ -23,6 +23,7 @@
 #include "string.h"
 #include "minmea.h"
 #include "log.h"
+#include "stdbool.h"
 
 #define MAX_LINE_BUFF_LEN 81
 
@@ -43,6 +44,12 @@ volatile uint32_t g_current_ticks;
 
 static uint32_t g_en_pin;
 
+static bool g_is_always_on = false;
+
+static hal_uart_baud_t g_baudrate;
+
+static app_irq_priority_t g_irq_priority;
+
 static gps_mod_resolution_t g_loc_res;
 
 static gps_mod_loc_t g_current_loc;
@@ -62,11 +69,15 @@ void validate_gps_data ()
     if(/*((float)(gps_data.hdop.value/gps_data.hdop.scale) < MAX_HDOP) &&*/
         (gps_data.lat.value != 0) && (gps_data.lng.value != 0))
     {
-        g_current_loc.lng = (uint32_t)((float)(gps_data.lng.value/(float)(gps_data.lng.scale * 100)) *
+        
+        g_current_loc.lng = (uint32_t)((float)(minmea_tocoord(&gps_data.lng)) *
                                 g_loc_res);
-        g_current_loc.lat = (uint32_t)((float)(gps_data.lat.value/(float)(gps_data.lat.scale * 100)) *
+        g_current_loc.lat = (uint32_t)((float)(minmea_tocoord(&gps_data.lat)) *
                                 g_loc_res);
-        g_loc_handler(&g_current_loc);
+        if(g_current_loc.lng != (-1) && (g_is_always_on == false))
+        {
+            g_loc_handler(&g_current_loc);
+        }
     }
 }
 
@@ -78,10 +89,10 @@ void update_location ()
         {
             struct minmea_sentence_gll frame;
             if (minmea_parse_gll(&frame, (char *)g_line)) {
-                                    log_printf("GLL Coordinates: (%d/%d,%d/%d)\n\n",
-                                            frame.latitude.value, frame.latitude.scale,
-                                            frame.longitude.value, frame.longitude.scale
-                                            );
+//                                    log_printf("GLL Coordinates: (%d/%d,%d/%d)\n\n",
+//                                            frame.latitude.value, frame.latitude.scale,
+//                                            frame.longitude.value, frame.longitude.scale
+//                                            );
                 gps_data.lat = frame.latitude;
                 gps_data.lng = frame.longitude;
 
@@ -94,13 +105,13 @@ void update_location ()
         {
             struct minmea_sentence_gga frame;
             if (minmea_parse_gga(&frame, (char *)g_line)) {
-                log_printf("$GGA: LatLng: (%d/%d,%d/%d)\n Accuracy: (%d/%d) \n\n",
-
-                        frame.latitude.value, frame.latitude.scale,
-                        frame.longitude.value, frame.longitude.scale,
-                        frame.hdop.value, frame.hdop.scale
-
-                        );
+//                log_printf("$GGA: LatLng: (%d/%d,%d/%d)\n Accuracy: (%d/%d) \n\n",
+//
+//                        frame.latitude.value, frame.latitude.scale,
+//                        frame.longitude.value, frame.longitude.scale,
+//                        frame.hdop.value, frame.hdop.scale
+//
+//                        );
 
                 gps_data.hdop.scale = frame.hdop.scale;
                 gps_data.lat.scale = frame.latitude.scale;
@@ -119,11 +130,11 @@ void update_location ()
         {
             struct minmea_sentence_rmc frame;
             if (minmea_parse_rmc(&frame, (char *)g_line)) {
-                                    log_printf("$RMC: LatLng: (%d/%d, %d/%d)\n\n",
-                                            frame.latitude.value, frame.latitude.scale,
-                                            frame.longitude.value, frame.longitude.scale
-                                            );
-
+//                                    log_printf("$RMC: LatLng: (%d/%d, %d/%d)\n\n",
+//                                            frame.latitude.value, frame.latitude.scale,
+//                                            frame.longitude.value, frame.longitude.scale
+//                                            );
+//
                 gps_data.lat = frame.latitude;
                 gps_data.lng = frame.longitude;
             } else {
@@ -161,8 +172,10 @@ void gps_mod_init (gps_mod_config_t * p_mod_init)
     g_timeout_handler = p_mod_init->timeout_handler;
     g_loc_handler = p_mod_init->loc_handler;
     g_loc_res = p_mod_init->resolution;
+    g_baudrate = p_mod_init->baudrate;
+    g_irq_priority = p_mod_init->uarte_comm_irq_priority;
     hal_uarte_uninit ();
-    hal_uarte_init(p_mod_init->baudrate, p_mod_init->uarte_comm_irq_priority);
+    hal_uarte_init(g_baudrate, g_irq_priority);
     g_en_pin = p_mod_init->en_pin;
     hal_gpio_cfg_output (g_en_pin, 1);
     hal_gpio_pin_set (g_en_pin);
@@ -173,18 +186,30 @@ void gps_mod_start (uint32_t timeout_ms)
 {
     log_printf("GPS Start\n");
     hal_gpio_pin_clear (g_en_pin);
+    hal_uarte_init(g_baudrate, g_irq_priority);
+    g_is_always_on = false;
     g_timeout_ticks = MS_TIMER_TICKS_MS (timeout_ms);
     g_current_ticks = 0;
     hal_uarte_start_rx (rx_data_parser);
 }
 
+void gps_mod_always_on ()
+{
+    hal_uarte_init(g_baudrate, g_irq_priority);
+    g_is_always_on = true;
+    hal_gpio_pin_clear (g_en_pin);
+    hal_uarte_start_rx (rx_data_parser);
+}
+
+
 void gps_mod_add_ticks (uint32_t ticks)
 {
     g_current_ticks += ticks;
     log_printf("G %d %d\n", g_current_ticks, g_timeout_ticks);
-    if (g_current_ticks>g_timeout_ticks)
+    if ((g_current_ticks>g_timeout_ticks) && (g_is_always_on == false))
     {
         hal_uarte_stop_rx ();
+        hal_uarte_uninit ();
         g_timeout_handler ();
         hal_gpio_pin_set (g_en_pin);
     }
@@ -193,7 +218,9 @@ void gps_mod_add_ticks (uint32_t ticks)
 void gps_mod_stop ()
 {
     hal_gpio_pin_set (g_en_pin);
+    g_is_always_on = false;
     hal_uarte_stop_rx ();
+    hal_uarte_uninit ();
     g_current_ticks = 0;
 }
 
