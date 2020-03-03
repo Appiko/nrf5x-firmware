@@ -53,7 +53,7 @@
 #define ALIVE_FREQ_MS (S_to_MS(ALIVE_FREQ_S))
 
 
-#define GPS_TIMEOUT_S  (5 * 60)
+#define GPS_TIMEOUT_S  (300)
 #define GPS_TIMEOUT_MS (S_to_MS(GPS_TIMEOUT_S))
 
 #define NO_RF_PKTS 5
@@ -406,6 +406,24 @@ void lrf_node_mod_add_ticks (uint32_t ticks)
         sleep_ticks= 0;
     }
 
+}
+
+
+void lrf_node_mod_gps_only (bool state)
+{
+    if(state)
+    {
+        gps_mod_always_on ();
+    }
+    else
+    {
+        gps_mod_stop ();
+    }
+}
+
+gps_mod_loc_t * lrf_node_mod_get_current_loc ()
+{
+    return gps_mod_get_last_location ();
 }
 
 

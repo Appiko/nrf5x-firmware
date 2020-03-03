@@ -106,7 +106,8 @@ typedef struct
 typedef struct
 {
     uint8_t deploy_flag;
-    uint8_t align_flag;
+    int32_t gps_lat;
+    int32_t gps_lng;
 }__attribute__((packed)) lrf_node_flag_dply_t;
 
 

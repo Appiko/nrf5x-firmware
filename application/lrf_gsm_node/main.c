@@ -59,7 +59,7 @@
 #endif
 
 #ifndef NVM_LOGGER_PAGES_USED_MAIN_0
-#define NVM_LOGGER_PAGES_USED_MAIN_0 1
+#define NVM_LOGGER_PAGES_USED_MAIN_0 2
 #endif
 
 #ifndef NVM_LOGGER_START_PAGE_0
@@ -76,7 +76,7 @@
 #endif
 
 #ifndef NVM_LOGGER_START_PAGE_1
-#define NVM_LOGGER_START_PAGE_1 NVM_LOG_PAGE1
+#define NVM_LOGGER_START_PAGE_1 NVM_LOG_PAGE2
 #endif
 
 
@@ -92,9 +92,9 @@
 //#define RADIO_ID 0x48 //CC1120
 //#define RADIO_ID 0x40 //CC1121
 
-#define FLAG_LOG_ID NVM_LOGGER_LOG_USED_MAIN_1
+#define FLAG_LOG_ID NVM_LOGGER_LOG_USED_MAIN_0
 
-#define FW_VER_LOG_ID NVM_LOGGER_LOG_USED_MAIN_0
+#define FW_VER_LOG_ID NVM_LOGGER_LOG_USED_MAIN_1
 
 uint8_t g_device_name[] = { DEVICE_NAME_CHAR };
 
@@ -126,7 +126,7 @@ uint8_t g_device_name[] = { DEVICE_NAME_CHAR };
 
 #define GPS_EN_PIN 26
 
-#define GPS_SAMPLE_FREQ (1 * 60* 60 * 1000)
+#define GPS_SAMPLE_FREQ (2 * 60 * 60 * 1000)
 
 typedef enum
 {
@@ -138,7 +138,6 @@ typedef enum
 
 
 void check_point ();
-
 void next_interval_handler (uint32_t ticks);
 
 void state_change_handler (uint32_t next_state);
@@ -199,8 +198,8 @@ static log_config_t gc_fw_ver_log =
 {
     .log_id =FW_VER_LOG_ID,
     .entry_size = sizeof(fw_ver_t),
+    .start_page = NVM_LOGGER_START_PAGE_0,
     .no_of_pages = NVM_LOGGER_PAGES_USED_MAIN_0,
-    .start_page = NVM_LOGGER_START_PAGE_0
 };
 
 
@@ -210,6 +209,7 @@ static lrf_node_flag_dply_t g_dply_align;
 
 void check_point ()
 {
+    lrf_node_mod_gps_only (false);
     if(nvm_data.gf_is_deployed)
     {
         irq_msg_push (MSG_STATE_CHANGE,(void *) LRF_STATE_SENSING);
@@ -233,8 +233,10 @@ void next_interval_handler (uint32_t ticks)
     
     if((gs_lrf_state == LRF_STATE_DEPLOYMENT))
     {
-//        g_dply_align.align_flag = (lrf_node_mod_get_angle ());
+        g_dply_align.gps_lat = lrf_node_mod_get_current_loc ()->lat;
+        g_dply_align.gps_lng = lrf_node_mod_get_current_loc ()->lng;
         lrf_node_ble_update_dply_alignment (&g_dply_align);
+        log_printf("Lat %d, Lng %d\n", g_dply_align.gps_lat, g_dply_align.gps_lng);
     }
 }
 
@@ -250,6 +252,7 @@ void state_change_handler (uint32_t next_state)
         case LRF_STATE_DEPLOYMENT :
             {
                 lrf_node_mod_stop ();
+                lrf_node_mod_gps_only (true);
                 device_tick_cfg tick_cfg = {
                     DEPLOY_TICKS_FAST,
                     DEPLOY_TICKS_SLOW,
@@ -331,6 +334,7 @@ static void ble_evt_handler(ble_evt_t * evt)
 
 static void deployment_flag_update (uint8_t dply_flag)
 {
+    log_printf("Update flag %d %d\n", dply_flag, nvm_data.gf_is_deployed);
     if(dply_flag != (nvm_data.gf_is_deployed ))
     {
         nvm_data.gf_is_deployed = dply_flag;
@@ -568,10 +572,10 @@ int main ()
     };
     device_tick_init(&tick_cfg);
 
-    nvm_logger_mod_init ();
     button_ui_init(HALL_EFFECT_PIN, APP_IRQ_PRIORITY_LOW,
             magnet_detect_handler);
 
+    nvm_logger_mod_init ();
     log_printf("Data size %d\n", gc_flag_log.entry_size);
     nvm_logger_log_init (&gc_flag_log);
     
@@ -592,7 +596,7 @@ int main ()
     else
     {
         nvm_data.production_data.app_id = 0x02;
-        nvm_data.production_data.prod_id = 0x000C;
+        nvm_data.production_data.prod_id = 0x00F3;
         nvm_data.gf_is_deployed = 1;
         nvm_logger_feed_data (gc_flag_log.log_id, &nvm_data);
     }

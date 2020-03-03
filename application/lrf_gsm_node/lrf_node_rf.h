@@ -29,6 +29,7 @@
 #include "rf_spi_hw.h"
 #include "hal_uarte.h"
 #include "nrf_util.h"
+#include "gps_mod.h"
 
 
 #ifndef MS_TIMER_USED_LRF_NODE_MOD
@@ -106,6 +107,18 @@ void lrf_node_mod_update_rf_params (lrf_node_mod_rf_params_t * p_params);
  * @param ticks Number of ticks since last add ticks event
  */
 void lrf_node_mod_add_ticks (uint32_t ticks);
+
+/**
+ * @brief Function to set state of only GPS module
+ * @param state State of GPS  module.
+ */
+void lrf_node_mod_gps_only (bool state);
+
+/**
+ * @brief Function to get current GPS location
+ * @return structure pointer to the structure storing location
+ */
+gps_mod_loc_t * lrf_node_mod_get_current_loc ();
 
 void lrf_node_mod_rf_check ();
 

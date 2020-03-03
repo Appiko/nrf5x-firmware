@@ -62,7 +62,7 @@ ifeq ($(SHARED_RESOURCES), 1)
 C_SRC += isr_manager.c
 endif
 C_SRC += hal_wdt.c
-C_SRC += hal_twim.c
+#C_SRC += hal_twim.c
 C_SRC += hal_nvmc.c
 C_SRC += nrf_util.c irq_msg_util.c
 C_SRC += device_tick.c

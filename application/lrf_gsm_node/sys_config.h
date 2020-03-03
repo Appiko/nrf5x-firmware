@@ -54,7 +54,7 @@
 /** SPIM peripheral used for hal driver */
 #define HAL_SPIM_PERIPH_USED 0
 /** TWIM peripheral used for hal driver */
-#define HAL_TWIM_PERIPH_USED 0
+//#define HAL_TWIM_PERIPH_USED 0
 /** UART peripheral used for hal driver */
 #define HAL_UART_PERIPH_USED 0
 
