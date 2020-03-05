@@ -51,7 +51,8 @@ typedef struct
     /** Baudrate of GSM module | Note:baudrate of log_printf also changes */
     hal_uart_baud_t baudrate;
     /** IRQ priority for UART communication */
-    app_irq_priority_t uarte_comm_irq_priority;
+    app_irq_priority_t comm_timeout_irq_priority;
+    app_irq_priority_t comm_running_irq_priority;
     /** Resolution of GPS Lat Lng output */
     gps_mod_resolution_t resolution;
     /** Function pointer to the function which is to be called on location update */
