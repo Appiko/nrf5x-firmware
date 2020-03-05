@@ -305,8 +305,10 @@ void lrf_node_mod_init (lrf_node_mod_init_t * p_mod_init)
     
     g_gps_config.baudrate = p_mod_init->gps.baudrate;
     g_gps_config.en_pin = p_mod_init->gps.gps_en_pin;
-    g_gps_config.uarte_comm_irq_priority =
-        p_mod_init->gps.irq_priority;
+    g_gps_config.comm_timeout_irq_priority =
+        p_mod_init->gps.timeout_irq_priority;
+    g_gps_config.comm_running_irq_priority = 
+        p_mod_init->gps.running_irq_priority;
     g_gps_config.resolution = GPS_MOD_RES_D6;
     g_gps_config.loc_handler = node_gps_loc_update;
     g_gps_config.timeout_handler = node_gps_timeout;

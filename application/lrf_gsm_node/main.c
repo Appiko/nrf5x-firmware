@@ -171,7 +171,8 @@ static lrf_node_mod_init_t g_node_mod_init =
     .rf_tcxo_pin = TCXO_EN_PIN,
     
     .gps.baudrate = HAL_UARTE_BAUD_9600,
-    .gps.irq_priority = APP_IRQ_PRIORITY_LOW,
+    .gps.running_irq_priority = APP_IRQ_PRIORITY_HIGH,
+    .gps.timeout_irq_priority = APP_IRQ_PRIORITY_LOW,
     .gps.gps_en_pin = GPS_EN_PIN,
     
     .sleep_ms = GPS_SAMPLE_FREQ

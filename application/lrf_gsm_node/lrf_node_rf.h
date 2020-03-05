@@ -57,7 +57,8 @@ typedef rf_spi_init_t lrf_node_rf_spi_t;
 typedef struct 
 {
     hal_uart_baud_t baudrate;
-    app_irq_priority_t irq_priority;
+    app_irq_priority_t timeout_irq_priority;
+    app_irq_priority_t running_irq_priority;
     uint32_t gps_en_pin;
 }lrf_node_mod_gps_t;
 
