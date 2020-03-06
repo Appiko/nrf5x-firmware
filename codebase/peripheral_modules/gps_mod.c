@@ -69,6 +69,31 @@ void (* g_timeout_handler) ();
 
 static uint32_t g_fix_cnt = 0;
 
+const app_irq_priority_t g_disable_irq = APP_IRQ_PRIORITY_THREAD;
+
+void rx_data_parser(uint8_t byte);
+
+
+void set_gps_state (bool state, app_irq_priority_t irq_priority)
+{
+    if(state)
+    {
+
+        hal_uarte_init(g_baudrate, irq_priority);
+        hal_uarte_start_rx (rx_data_parser);
+        g_current_loc.lat = 0;
+        g_current_loc.lng = 0;
+        hal_gpio_pin_clear (g_en_pin);
+    }
+    else
+    {
+        hal_gpio_pin_set (g_en_pin);
+        hal_uarte_stop_rx ();
+        hal_uarte_uninit ();
+    }
+}
+
+
 void validate_gps_data ()
 {
     if(((float)(gps_data.hdop.value/gps_data.hdop.scale) < MAX_HDOP) &&
@@ -80,7 +105,7 @@ void validate_gps_data ()
                                 g_loc_res);
         g_current_loc.lat = (uint32_t)((float)(minmea_tocoord(&gps_data.lat)) *
                                 g_loc_res);
-        if((g_fix_cnt > MIN_FIXES)(g_current_loc.lng != (-1)) && (g_is_always_on == false))
+        if((g_fix_cnt > MIN_FIXES) && (g_current_loc.lng != (-1)) && (g_is_always_on == false))
         {
             g_loc_handler(&g_current_loc);
             g_fix_cnt = 0;
@@ -200,31 +225,23 @@ void gps_mod_init (gps_mod_config_t * p_mod_init)
     hal_uarte_init(g_baudrate, g_timeout_irq_priority);
     g_en_pin = p_mod_init->en_pin;
     hal_gpio_cfg_output (g_en_pin, 1);
-    hal_gpio_pin_set (g_en_pin);
+    set_gps_state (false, g_disable_irq);
     
 }
 
 void gps_mod_start (uint32_t timeout_ms)
 {
     log_printf("GPS Start\n");
-    hal_gpio_pin_clear (g_en_pin);
-    hal_uarte_init(g_baudrate, g_timeout_irq_priority);
     g_is_always_on = false;
-    g_current_loc.lat = 0;
-    g_current_loc.lng = 0;
     g_timeout_ticks = MS_TIMER_TICKS_MS (timeout_ms);
     g_current_ticks = 0;
-    hal_uarte_start_rx (rx_data_parser);
+    set_gps_state (true, g_timeout_irq_priority);
 }
 
 void gps_mod_always_on ()
 {
-    hal_uarte_init(g_baudrate, g_running_irq_priority);
     g_is_always_on = true;
-    hal_gpio_pin_clear (g_en_pin);
-    g_current_loc.lat = 0;
-    g_current_loc.lng = 0;
-    hal_uarte_start_rx (rx_data_parser);
+    set_gps_state (true, g_running_irq_priority);
 }
 
 
@@ -234,21 +251,17 @@ void gps_mod_add_ticks (uint32_t ticks)
     log_printf("G %d %d\n", g_current_ticks, g_timeout_ticks);
     if ((g_current_ticks>g_timeout_ticks) && (g_is_always_on == false))
     {
-        hal_uarte_stop_rx ();
-        hal_uarte_uninit ();
         g_timeout_handler ();
-        hal_gpio_pin_set (g_en_pin);
+        set_gps_state (false, g_disable_irq);
         g_fix_cnt = 0;
     }
 }
 
 void gps_mod_stop ()
 {
-    hal_gpio_pin_set (g_en_pin);
     g_is_always_on = false;
-    hal_uarte_stop_rx ();
-    hal_uarte_uninit ();
     g_current_ticks = 0;
+    set_gps_state (false, g_disable_irq);
 }
 
 gps_mod_loc_t * gps_mod_get_last_location ()
