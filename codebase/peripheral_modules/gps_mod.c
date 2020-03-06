@@ -29,6 +29,8 @@
 
 #define MAX_HDOP    3
 
+#define MIN_FIXES 30
+
 typedef struct 
 {
     struct minmea_float lat;
@@ -65,20 +67,23 @@ void (* g_loc_handler) (gps_mod_loc_t * loc);
 void (* g_timeout_handler) ();
 
 
+static uint32_t g_fix_cnt = 0;
 
 void validate_gps_data ()
 {
     if(/*((float)(gps_data.hdop.value/gps_data.hdop.scale) < MAX_HDOP) &&*/
         (gps_data.lat.value != 0) && (gps_data.lng.value != 0))
     {
+        g_fix_cnt++;
         
         g_current_loc.lng = (uint32_t)((float)(minmea_tocoord(&gps_data.lng)) *
                                 g_loc_res);
         g_current_loc.lat = (uint32_t)((float)(minmea_tocoord(&gps_data.lat)) *
                                 g_loc_res);
-        if(g_current_loc.lng != (-1) && (g_is_always_on == false))
+        if((g_fix_cnt > MIN_FIXES)(g_current_loc.lng != (-1)) && (g_is_always_on == false))
         {
             g_loc_handler(&g_current_loc);
+            g_fix_cnt = 0;
         }
     }
 }
@@ -233,6 +238,7 @@ void gps_mod_add_ticks (uint32_t ticks)
         hal_uarte_uninit ();
         g_timeout_handler ();
         hal_gpio_pin_set (g_en_pin);
+        g_fix_cnt = 0;
     }
 }
 
