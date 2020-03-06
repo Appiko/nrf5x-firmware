@@ -71,7 +71,7 @@ static uint32_t g_fix_cnt = 0;
 
 void validate_gps_data ()
 {
-    if(/*((float)(gps_data.hdop.value/gps_data.hdop.scale) < MAX_HDOP) &&*/
+    if(((float)(gps_data.hdop.value/gps_data.hdop.scale) < MAX_HDOP) &&
         (gps_data.lat.value != 0) && (gps_data.lng.value != 0))
     {
         g_fix_cnt++;
@@ -130,6 +130,7 @@ void update_location ()
                 gps_data.hdop.value = frame.hdop.value;
                 gps_data.lat.value = frame.latitude.value;
                 gps_data.lng.value = frame.longitude.value;
+                validate_gps_data ();
                 
             }
             else
@@ -161,7 +162,6 @@ void update_location ()
             break;
 
     }
-    validate_gps_data ();
 }
 
 void rx_data_parser(uint8_t byte)
