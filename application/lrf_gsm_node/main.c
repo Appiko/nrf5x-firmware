@@ -474,6 +474,7 @@ void firmware_check ()
     nvm_logger_fetch_tail_data (gc_fw_ver_log.log_id, &l_prev_ver, 1);
     if(memcmp (&l_prev_ver, fw_ver_get (), sizeof(fw_ver_t)) != 0)
     {
+        nvm_logger_feed_data (gc_fw_ver_log.log_id, fw_ver_get ());
         nvm_logger_release_log (gc_flag_log.log_id);
         nvm_logger_log_init (&gc_flag_log);
     }
