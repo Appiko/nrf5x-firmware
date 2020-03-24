@@ -34,7 +34,7 @@
  * @{*/
 //#define RX_PIN_NUMBER       8
 //#define TX_PIN_NUMBER       6
-#define RX_PIN_NUMBER       21
+#define RX_PIN_NUMBER       28
 #define TX_PIN_NUMBER       20
 #define HWFC                false
 #define RTS_PIN_NUMBER      23

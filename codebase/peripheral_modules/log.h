@@ -43,6 +43,16 @@
 #pragma GCC diagnostic push
 #define log_printf(...)  tfp_printf(__VA_ARGS__)
 #pragma GCC diagnostic pop
+#elif defined LOG_GPS//UART printf
+#include "nrf.h"
+#include "nrf_util.h"
+#include "tinyprintf.h"
+#include "hal_uarte.h"
+#define log_init()       hal_uarte_init(HAL_UARTE_BAUD_9600, APP_IRQ_PRIORITY_LOW)
+#pragma GCC diagnostic ignored "-Wformat"
+#pragma GCC diagnostic push
+#define log_printf(...)  
+#pragma GCC diagnostic pop
 #else
 #define log_init()
 #define log_printf(...)
