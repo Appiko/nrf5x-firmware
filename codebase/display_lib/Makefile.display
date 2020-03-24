@@ -1,0 +1,10 @@
+INCLUDEDIRS += $(DISPLAY_DIR)
+INCLUDEDIRS += $(DISPLAY_DIR)/support
+C_SRC_DIRS += $(DISPLAY_DIR)/support
+C_SRC += hal_spim.c
+C_SRC += ugui.c DEV_Config.c
+ifeq ($(DISPLAY_USED), WSEPD_1IN54_BW_V1)
+INCLUDEDIRS += $(DISPLAY_DIR)/WSEPD_1IN54_BW_V1
+C_SRC_DIRS += $(DISPLAY_DIR)/WSEPD_1IN54_BW_V1
+C_SRC += EPD_1in54.c  display_lib.c
+endif
