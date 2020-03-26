@@ -213,8 +213,6 @@ disp_lib_status_t disp_lib_putC (uint8_t c)
     }
     else if (c != '\n')
     {
-        log_printf("%d %d   %c\n", disp_lib_txt.current_line_no,disp_lib_txt.current_col_no,
-                   c);
         disp_lib_txt.current_col_no++;
     }
 
