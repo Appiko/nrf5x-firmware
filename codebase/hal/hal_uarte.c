@@ -38,11 +38,18 @@
 
 /** Size of the buffer to hold the received characters before @ref LINE_END is received
  *   This value must be a power of two to enable increment to 0 */
-#define RX_BUFFER_SIZE     8
-
+#ifdef HAL_UARTE_RX_BUFF_SIZE
+#define RX_BUFFER_SIZE     HAL_UARTE_RX_BUFF_SIZE
+#else
+#define RX_BUFFER_SIZE     128
+#endif
 /** Size of buffer for the transmission of characters from UART and printf string forming
  *  */
-#define TX_BUFFER_SIZE     64
+#ifdef HAL_UARTE_TX_BUFF_SIZE
+#define TX_BUFFER_SIZE     HAL_UARTE_TX_BUFF_SIZE
+#else
+#define TX_BUFFER_SIZE     128
+#endif
 
 /** Buffer to hold the received characters from UART */
 volatile uint8_t rx_buffer[RX_BUFFER_SIZE];
@@ -168,7 +175,7 @@ void printf_callback(void* str_end, char ch)
     }
 }
 
-void hal_uarte_init(hal_uart_baud_t baud, uint32_t irq_priority)
+void hal_uarte_init(hal_uarte_baud_t baud, uint32_t irq_priority)
 {
     /* Configure TX and RX pins from board.h */
     hal_gpio_cfg_output(TX_PIN_NUMBER, 1);
@@ -229,4 +236,10 @@ void hal_uarte_process(void)
             NRF_UARTE0->RXD.PTR = (uint32_t) (rx_buffer);
         }
     }
+}
+
+uint8_t hal_uarte_is_data_present ()
+{
+    return ((rx_count >= process_count) ? (rx_count - process_count):
+        (RX_BUFFER_SIZE - process_count) + rx_count);
 }
