@@ -42,7 +42,7 @@ static bool cmd_is_critical = false;
 
 static cmd_status_t g_current_status = CMD_SUCCESSFUL; 
 
-bool mod_is_busy = false;
+volatile bool mod_is_busy = false;
 
 volatile uint32_t g_timeout_ticks;
 
@@ -124,9 +124,9 @@ void collect_rsp (uint8_t rsp_char)
         memset (response, 0, sizeof(response));
         len=0;
     }
-    
+
     l_prev_char = rsp_char;
-    
+
 }
 
 void AT_proc_init (AT_proc_init_t * init)
@@ -142,7 +142,6 @@ at_proc_cmd_check_t AT_proc_send_cmd (at_proc_cmd_t * cmd)
     memcpy (&g_buff_cmd, cmd, sizeof(at_proc_cmd_t));
     memset (g_arr_rsp, 0, sizeof(g_arr_rsp));
     memset (g_arr_err, 0, sizeof(g_arr_err));
-    log_printf("Command : %s",cmd->cmd.ptr);
     for(uint32_t cnt = 0; cnt < AT_PROC_MAX_RESPOSES; cnt++)
     {
         if((cmd->resp[cnt].ptr != NULL) && (cmd->resp[cnt].len < HAL_UARTE_TX_BUFF_SIZE))
@@ -192,6 +191,7 @@ void AT_proc_add_ticks (uint32_t ticks)
         if (g_timeout_ticks <= g_current_ticks)
         {
             ticks_reset ();
+            g_current_status = CMD_FAILED;
             timeout_handler ();
         }
     }
