@@ -78,14 +78,14 @@ static char err_sim_sts1[] = {'+','C','P','I','N',':',' ','E','R','R','O','R','\
  * Check for network
  * AT+CREG? -- 
  */
-const char cmd_gprs_reg[] = {'A','T','+','C','G','R','E','G','?','\r','\n'};
+static char cmd_nw_reg[] = {'A','T','+','C','R','E','G','?','\r','\n'};
 
-const char rsp1l2_gprs_reg[] = {'+','C','G','R','E','G',':',' ','0',',','1','\r','\n'};
-const char rsp2l2_gprs_reg[] = {'+','C','G','R','E','G',':',' ','0',',','5','\r','\n'};
+static char rsp1l2_gprs_reg[] = {'+','C','R','E','G',':',' ','0',',','1','\r','\n'};
+static char rsp2l2_gprs_reg[] = {'+','C','R','E','G',':',' ','0',',','5','\r','\n'};
 
-const char err1l2_gprs_reg[] = {'+','C','G','R','E','G',':',' ','0',',','0','\r','\n'};
-const char err2l2_gprs_reg[] = {'+','C','G','R','E','G',':',' ','0',',','2','\r','\n'};
-const char err3l2_gprs_reg[] = {'+','C','G','R','E','G',':',' ','0',',','4','\r','\n'};
+static char err1l2_gprs_reg[] = {'+','C','R','E','G',':',' ','0',',','0','\r','\n'};
+static char err2l2_gprs_reg[] = {'+','C','R','E','G',':',' ','0',',','2','\r','\n'};
+static char err3l2_gprs_reg[] = {'+','C','R','E','G',':',' ','0',',','4','\r','\n'};
 
 /**
  * Connect to GPRS
@@ -109,43 +109,55 @@ const char err3l2_gprs_reg[] = {'+','C','G','R','E','G',':',' ','0',',','4','\r'
  */
 
 //
-//const char cmd_set_brr_ctype[] = {'A','T','+','S','A','P','B','R','=','3',',','1',',',
-//    '\"','C','o','n','t','y','p','e','\"',',','\"','G','P','R','S','\"','\r','\n'}; //Res : std
-////static char cmd_set_brr_apn[] = {'A','T','+','S','A','P','B','R','=','3',',','1',',',
-////    '\"','A','P','N','\"',',','\"','w','w','w','\"','\r','\n'};//Res : std
-//const char cmd_set_brr_usr[]= {'A','T','+','S','A','P','B','R','=','3',',','1',',',
-//    '\"','U','S','E','R','\"',',','\"','\"','\r','\n'};//Res: std
-//const char cmd_set_brr_pwd[] = {'A','T','+','S','A','P','B','R','=','3',',','1',',',
-//    '\"','P','W','D','\"',',','\"','\"','\r','\n'};//Res: std
-//
-////static char cmd_ip_cntxt[] = {'A','T','+','C','G','D','C','O','N','T','=','1',',',
-////    '\"','I','P','\"',',','\"','a','p','n','\"','\r','\n'};
-//
-//
-//const char cmd_actv_cid[] = {'A','T','+','C','G','A','C','T','=',
-//'1',',','1','\r','\n'};//res: Std ok, CME error
-//
-//const char cmd_actv_brr[] = {'A','T','+','S','A','P','B','R','=','1',',','1','\r','\n'};
-//const char cmd_chk_brr[] = {'A','T','+','S','A','P','B','R','=','2',',','1','\r','\n'}; //res: variable
-//
-//const char cmd_en_mux[] =  {'A','T','+','C','I','P','M','U','X','=','1','\r','\n'};
-//
-//const char cmd_sel_dtx_mode[] = {'A','T','+','C','I','P','Q','S','E','N','D','=','1','\r','\n'};
-//
-//const char cmd_get_net_data[] = {'A','T','+','C','I','P','R','X','G','E','T','=','1','\r','\n'};
-//
-//const char cmd_tsk_start[] = {'A','T','+','C','S','T','T','=','\"','w','w','w','\"',',','\"','\"',',','\"','\"','\r','\n'};
-//
-//const char cmd_con_gprs[] = {'A','T','+','C','I','I','C','R','\r','\n'};
-//
-//const char cmd_get_ip[] = {'A','T','+','C','I','F','S','R','\r','\n'};
-//
-//const char cmd_set_dns[] = {'A','T','+','C','D','N','S','C','F','G','=',
-//'\"','8','.','8','.','8','.','8','\"',',','\"','8','.','8','.','4','.','4','\"','\r','\n'};
+static char cmd_set_brr_ctype[] = {'A','T','+','S','A','P','B','R','=','3',',','1',',',
+    '\"','C','o','n','t','y','p','e','\"',',','\"','G','P','R','S','\"','\r','\n'}; //Res : std
+static char cmd_set_brr_apn[] = {'A','T','+','S','A','P','B','R','=','3',',','1',',',
+    '\"','A','P','N','\"',',','\"','w','w','w','\"','\r','\n'};//Res : std
+static char cmd_set_brr_usr[]= {'A','T','+','S','A','P','B','R','=','3',',','1',',',
+    '\"','U','S','E','R','\"',',','\"','\"','\r','\n'};//Res: std
+static char cmd_set_brr_pwd[] = {'A','T','+','S','A','P','B','R','=','3',',','1',',',
+    '\"','P','W','D','\"',',','\"','\"','\r','\n'};//Res: std
+
+static char cmd_ip_cntxt[] = {'A','T','+','C','G','D','C','O','N','T','=','1',',',
+    '\"','I','P','\"',',','\"','a','p','n','\"','\r','\n'};
+
+
+static char cmd_actv_cid[] = {'A','T','+','C','G','A','C','T','=',
+'1',',','1','\r','\n'};//res: Std ok, CME error
+
+static char cmd_actv_brr[] = {'A','T','+','S','A','P','B','R','=','1',',','1','\r','\n'};
+//static char cmd_chk_brr[] = {'A','T','+','S','A','P','B','R','=','2',',','1','\r','\n'}; //res: variable
+
+static char cmd_en_mux[] =  {'A','T','+','C','I','P','M','U','X','=','1','\r','\n'};
+
+static char cmd_sel_dtx_mode[] = {'A','T','+','C','I','P','Q','S','E','N','D','=','1','\r','\n'};
+
+//static char cmd_get_net_data[] = {'A','T','+','C','I','P','R','X','G','E','T','=','1','\r','\n'};
+
+static char cmd_tsk_start[] = {'A','T','+','C','S','T','T','=','\"','w','w','w','\"',',','\"','\"',',','\"','\"','\r','\n'};
+
+static char cmd_con_gprs[] = {'A','T','+','C','I','I','C','R','\r','\n'};
+
+//static char cmd_get_ip[] = {'A','T','+','C','I','F','S','R','\r','\n'};
+
+static char cmd_set_dns[] = {'A','T','+','C','D','N','S','C','F','G','=',
+'\"','8','.','8','.','8','.','8','\"',',','\"','8','.','8','.','4','.','4','\"','\r','\n'};
 /**
  * In this module we will have queue of AT_proc_cmds. 
  * On each init or enable call, we'll add appropriate AT commands to that queue
  */
+
+typedef enum
+{
+    NET_LOST,
+    NET_SEARCHING,
+    NET_FOUND,
+}network_status_t;
+
+volatile sim800_oper_status_t g_mod_current_state;
+
+volatile network_status_t g_net_state;
+
 
 
 void at_process ()
@@ -192,6 +204,9 @@ void command_process_failure (uint8_t was_critical, uint8_t was_timeout,uint32_t
     if (was_critical == false)
     {
 //        send_next_cmd ();
+    }
+    else
+    {
     }
 }
 
@@ -307,7 +322,171 @@ void sim800_oper_enable_sms (void)
 
 void sim800_oper_enable_gprs (void)
 {
+    at_proc_cmd_t l_at_cmd;
+    //Network
+    reset_cmd (&l_at_cmd);
+    l_at_cmd.cmd.ptr = cmd_nw_reg;
+    l_at_cmd.cmd.len = sizeof(cmd_nw_reg);
+    l_at_cmd.resp[0].ptr = rsp1l2_gprs_reg;
+    l_at_cmd.resp[0].len = sizeof(rsp1l2_gprs_reg);
+    l_at_cmd.resp[1].ptr = rsp2l2_gprs_reg;
+    l_at_cmd.resp[1].len = sizeof(rsp2l2_gprs_reg);
+    l_at_cmd.err[0].ptr = err1l2_gprs_reg;
+    l_at_cmd.err[0].len = sizeof(err1l2_gprs_reg);
+    l_at_cmd.err[1].ptr = err2l2_gprs_reg;
+    l_at_cmd.err[1].len = sizeof(err2l2_gprs_reg);
+    l_at_cmd.err[2].ptr = err3l2_gprs_reg;
+    l_at_cmd.err[2].len = sizeof(err3l2_gprs_reg);
+    l_at_cmd.is_critical = 1;
+    l_at_cmd.is_response_variable = 0;
+    l_at_cmd.timeout = 15000;
+    CBUF_Push(ATbuff, l_at_cmd);
+    
     //Add GPRS
+    reset_cmd (&l_at_cmd);
+    l_at_cmd.cmd.ptr = cmd_set_brr_ctype;
+    l_at_cmd.cmd.len = sizeof(cmd_set_brr_ctype);
+    l_at_cmd.resp[0].ptr = rsp_std_OK;
+    l_at_cmd.resp[0].len = sizeof(rsp_std_OK);
+    l_at_cmd.err[0].ptr = rsp_std_ERR;
+    l_at_cmd.err[0].len = sizeof(rsp_std_ERR);
+    l_at_cmd.is_critical = 0;
+    l_at_cmd.is_response_variable = 0;
+    l_at_cmd.timeout = 2500;
+    CBUF_Push(ATbuff, l_at_cmd);
+    
+    reset_cmd (&l_at_cmd);
+    l_at_cmd.cmd.ptr = cmd_set_brr_apn;
+    l_at_cmd.cmd.len = sizeof(cmd_set_brr_apn);
+    l_at_cmd.resp[0].ptr = rsp_std_OK;
+    l_at_cmd.resp[0].len = sizeof(rsp_std_OK);
+    l_at_cmd.err[0].ptr = rsp_std_ERR;
+    l_at_cmd.err[0].len = sizeof(rsp_std_ERR);
+    l_at_cmd.is_critical = 0;
+    l_at_cmd.is_response_variable = 0;
+    l_at_cmd.timeout = 2500;
+    CBUF_Push(ATbuff, l_at_cmd);
+    
+    reset_cmd (&l_at_cmd);
+    l_at_cmd.cmd.ptr = cmd_set_brr_usr;
+    l_at_cmd.cmd.len = sizeof(cmd_set_brr_usr);
+    l_at_cmd.resp[0].ptr = rsp_std_OK;
+    l_at_cmd.resp[0].len = sizeof(rsp_std_OK);
+    l_at_cmd.err[0].ptr = rsp_std_ERR;
+    l_at_cmd.err[0].len = sizeof(rsp_std_ERR);
+    l_at_cmd.is_critical = 0;
+    l_at_cmd.is_response_variable = 0;
+    l_at_cmd.timeout = 2500;
+    CBUF_Push(ATbuff, l_at_cmd);
+    
+    reset_cmd (&l_at_cmd);
+    l_at_cmd.cmd.ptr = cmd_set_brr_pwd;
+    l_at_cmd.cmd.len = sizeof(cmd_set_brr_pwd);
+    l_at_cmd.resp[0].ptr = rsp_std_OK;
+    l_at_cmd.resp[0].len = sizeof(rsp_std_OK);
+    l_at_cmd.err[0].ptr = rsp_std_ERR;
+    l_at_cmd.err[0].len = sizeof(rsp_std_ERR);
+    l_at_cmd.is_critical = 0;
+    l_at_cmd.is_response_variable = 0;
+    l_at_cmd.timeout = 2500;
+    CBUF_Push(ATbuff, l_at_cmd);
+    
+    reset_cmd (&l_at_cmd);
+    l_at_cmd.cmd.ptr = cmd_ip_cntxt;
+    l_at_cmd.cmd.len = sizeof(cmd_ip_cntxt);
+    l_at_cmd.resp[0].ptr = rsp_std_OK;
+    l_at_cmd.resp[0].len = sizeof(rsp_std_OK);
+    l_at_cmd.err[0].ptr = rsp_std_ERR;
+    l_at_cmd.err[0].len = sizeof(rsp_std_ERR);
+    l_at_cmd.is_critical = 0;
+    l_at_cmd.is_response_variable = 0;
+    l_at_cmd.timeout = 2500;
+    CBUF_Push(ATbuff, l_at_cmd);
+    
+    reset_cmd (&l_at_cmd);
+    l_at_cmd.cmd.ptr = cmd_actv_cid;
+    l_at_cmd.cmd.len = sizeof(cmd_actv_cid);
+    l_at_cmd.resp[0].ptr = rsp_std_OK;
+    l_at_cmd.resp[0].len = sizeof(rsp_std_OK);
+    l_at_cmd.err[0].ptr = rsp_std_ERR;
+    l_at_cmd.err[0].len = sizeof(rsp_std_ERR);
+    l_at_cmd.is_critical = 0;
+    l_at_cmd.is_response_variable = 0;
+    l_at_cmd.timeout = 2500;
+    CBUF_Push(ATbuff, l_at_cmd);
+    
+    reset_cmd (&l_at_cmd);
+    l_at_cmd.cmd.ptr = cmd_actv_brr;
+    l_at_cmd.cmd.len = sizeof(cmd_actv_brr);
+    l_at_cmd.resp[0].ptr = rsp_std_OK;
+    l_at_cmd.resp[0].len = sizeof(rsp_std_OK);
+    l_at_cmd.err[0].ptr = rsp_std_ERR;
+    l_at_cmd.err[0].len = sizeof(rsp_std_ERR);
+    l_at_cmd.is_critical = 0;
+    l_at_cmd.is_response_variable = 0;
+    l_at_cmd.timeout = 2500;
+    CBUF_Push(ATbuff, l_at_cmd);
+    
+    reset_cmd (&l_at_cmd);
+    l_at_cmd.cmd.ptr = cmd_en_mux;
+    l_at_cmd.cmd.len = sizeof(cmd_en_mux);
+    l_at_cmd.resp[0].ptr = rsp_std_OK;
+    l_at_cmd.resp[0].len = sizeof(rsp_std_OK);
+    l_at_cmd.err[0].ptr = rsp_std_ERR;
+    l_at_cmd.err[0].len = sizeof(rsp_std_ERR);
+    l_at_cmd.is_critical = 0;
+    l_at_cmd.is_response_variable = 0;
+    l_at_cmd.timeout = 2500;
+    CBUF_Push(ATbuff, l_at_cmd);
+    
+    reset_cmd (&l_at_cmd);
+    l_at_cmd.cmd.ptr = cmd_sel_dtx_mode;
+    l_at_cmd.cmd.len = sizeof(cmd_sel_dtx_mode);
+    l_at_cmd.resp[0].ptr = rsp_std_OK;
+    l_at_cmd.resp[0].len = sizeof(rsp_std_OK);
+    l_at_cmd.err[0].ptr = rsp_std_ERR;
+    l_at_cmd.err[0].len = sizeof(rsp_std_ERR);
+    l_at_cmd.is_critical = 0;
+    l_at_cmd.is_response_variable = 0;
+    l_at_cmd.timeout = 2500;
+    CBUF_Push(ATbuff, l_at_cmd);
+    
+    reset_cmd (&l_at_cmd);
+    l_at_cmd.cmd.ptr = cmd_tsk_start;
+    l_at_cmd.cmd.len = sizeof(cmd_tsk_start);
+    l_at_cmd.resp[0].ptr = rsp_std_OK;
+    l_at_cmd.resp[0].len = sizeof(rsp_std_OK);
+    l_at_cmd.err[0].ptr = rsp_std_ERR;
+    l_at_cmd.err[0].len = sizeof(rsp_std_ERR);
+    l_at_cmd.is_critical = 0;
+    l_at_cmd.is_response_variable = 0;
+    l_at_cmd.timeout = 2500;
+    CBUF_Push(ATbuff, l_at_cmd);
+    
+    reset_cmd (&l_at_cmd);
+    l_at_cmd.cmd.ptr = cmd_con_gprs;
+    l_at_cmd.cmd.len = sizeof(cmd_con_gprs);
+    l_at_cmd.resp[0].ptr = rsp_std_OK;
+    l_at_cmd.resp[0].len = sizeof(rsp_std_OK);
+    l_at_cmd.err[0].ptr = rsp_std_ERR;
+    l_at_cmd.err[0].len = sizeof(rsp_std_ERR);
+    l_at_cmd.is_critical = 0;
+    l_at_cmd.is_response_variable = 0;
+    l_at_cmd.timeout = 2500;
+    CBUF_Push(ATbuff, l_at_cmd);
+    
+    reset_cmd (&l_at_cmd);
+    l_at_cmd.cmd.ptr = cmd_set_dns;
+    l_at_cmd.cmd.len = sizeof(cmd_set_dns);
+    l_at_cmd.resp[0].ptr = rsp_std_OK;
+    l_at_cmd.resp[0].len = sizeof(rsp_std_OK);
+    l_at_cmd.err[0].ptr = rsp_std_ERR;
+    l_at_cmd.err[0].len = sizeof(rsp_std_ERR);
+    l_at_cmd.is_critical = 0;
+    l_at_cmd.is_response_variable = 0;
+    l_at_cmd.timeout = 2500;
+    CBUF_Push(ATbuff, l_at_cmd);
+    
 }
 
 /**

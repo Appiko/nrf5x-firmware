@@ -110,7 +110,7 @@ int main(void)
     leds_init ();
     /* Mandatory welcome message */
     log_init();
-    log_printf("\nSIM800 testing\n");
+    log_printf("\nSIM800 testing : 15s wait for nw\n");
     
     lfclk_init(LFCLK_SRC_Xtal);
     ms_timer_init(APP_IRQ_PRIORITY_LOW);
@@ -178,6 +178,7 @@ int main(void)
 //    }
 //    log_printf("Here\n");
     sim800_oper_init (SIM800_VODAFONE);
+    sim800_oper_enable_gprs ();
     ms_timer_start (MS_TIMER0, MS_REPEATED_CALL, MS_TIMER_TICKS_MS(MS_TIEMR_EPD_RR), ms_timer_handler);
     while (true)
     {

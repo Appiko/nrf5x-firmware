@@ -36,6 +36,10 @@ static uint8_t response[HAL_UARTE_RX_BUFF_SIZE];
 uint8_t g_arr_rsp[AT_PROC_MAX_RESPOSES][HAL_UARTE_RX_BUFF_SIZE];
 uint8_t g_arr_err[AT_PROC_MAX_ERRORS][HAL_UARTE_RX_BUFF_SIZE];
 
+static uint8_t g_arr_cmd[HAL_UARTE_TX_BUFF_SIZE];
+
+static uint8_t g_cmd_len = 0;
+
 static at_proc_cmd_t g_buff_cmd;
 
 static bool cmd_is_critical = false;
@@ -48,9 +52,13 @@ volatile uint32_t g_timeout_ticks;
 
 volatile uint32_t g_current_ticks;
 
+
 void (* cmd_successful_handle) (uint32_t response_id);
 //void (* cmd_successful_data_handle) (at_uart_data_t data1, at_uart_data_t data2);
 void (* cmd_failed_handle) (uint8_t is_critical, uint8_t is_timeout, uint32_t error_id);
+
+void collect_rsp (uint8_t rsp_char);
+
 
 void stop_uart ()
 {
@@ -60,7 +68,7 @@ void stop_uart ()
 
 void handle_critical ()
 {
-    if((cmd_is_critical == true) && (g_current_status == CMD_FAILED))
+    if((cmd_is_critical) && (g_current_status != CMD_SUCCESSFUL))
     {
         mod_is_busy = true;
         
@@ -82,17 +90,13 @@ void timeout_handler ()
 }
 
 void check_rsp ()
-{
-//    uint32_t rsp_id = AT_PROC_MAX_RESPOSES;
-//    uint32_t err_id = AT_PROC_MAX_ERRORS;
-    
+{    
     for(uint32_t rsp_cnt = 0; rsp_cnt < AT_PROC_MAX_RESPOSES; rsp_cnt++)
     {
         if (strcmp ((char * )response, (char *)&g_arr_rsp[rsp_cnt][0]) == 0)
         {
             stop_uart ();
             g_current_status = CMD_SUCCESSFUL;
-            handle_critical ();
             cmd_successful_handle (rsp_cnt);
             break;
         }
@@ -102,11 +106,13 @@ void check_rsp ()
     {
         if(strcmp ((char *)response, (char *)&g_arr_err[err_cnt][0]) == 0)
         {
-            stop_uart ();
             g_current_status = CMD_FAILED;
-            handle_critical ();
-            cmd_failed_handle (0, cmd_is_critical, err_cnt);
-            break;
+            if(cmd_is_critical == false)
+            {
+                stop_uart ();
+                cmd_failed_handle (0, cmd_is_critical, err_cnt);
+                break;
+            }
         }
     }
 }
@@ -117,6 +123,7 @@ void collect_rsp (uint8_t rsp_char)
     static uint8_t l_prev_char;
     response[len] = rsp_char;
     len++;
+    log_printf ("%c", rsp_char);
     if((l_prev_char == '\r') && (rsp_char == '\n'))
     {
         log_printf("%s\n",(char *)response);
@@ -142,6 +149,11 @@ at_proc_cmd_check_t AT_proc_send_cmd (at_proc_cmd_t * cmd)
     memcpy (&g_buff_cmd, cmd, sizeof(at_proc_cmd_t));
     memset (g_arr_rsp, 0, sizeof(g_arr_rsp));
     memset (g_arr_err, 0, sizeof(g_arr_err));
+    
+    g_cmd_len = cmd->cmd.len;
+    
+    memcpy (g_arr_cmd, cmd->cmd.ptr, cmd->cmd.len);
+    
     for(uint32_t cnt = 0; cnt < AT_PROC_MAX_RESPOSES; cnt++)
     {
         if((cmd->resp[cnt].ptr != NULL) && (cmd->resp[cnt].len < HAL_UARTE_TX_BUFF_SIZE))
@@ -185,14 +197,35 @@ void AT_proc_send_cmd_no_rsp (uint8_t * cmd, uint32_t len, uint32_t duration)
 
 void AT_proc_add_ticks (uint32_t ticks)
 {
-    if ((mod_is_busy) && (g_current_status == CMD_RUNNING))
+    log_printf ("Busy : %d\n", mod_is_busy);
+    if ((mod_is_busy))
     {
         g_current_ticks += ticks;
-        if (g_timeout_ticks <= g_current_ticks)
+        switch(g_current_status)
         {
-            ticks_reset ();
-            g_current_status = CMD_FAILED;
-            timeout_handler ();
+            case CMD_SUCCESSFUL :
+                break;
+            case CMD_RUNNING : 
+            {
+                if (g_timeout_ticks <= g_current_ticks)
+                {
+                    ticks_reset ();
+                    g_current_status = CMD_FAILED;
+                    timeout_handler ();
+                }
+                break;
+            }
+            case CMD_FAILED : 
+            {
+                log_printf("Here\n");
+                if ((cmd_is_critical))
+                {
+                    g_current_status = CMD_RUNNING;
+                    hal_uarte_start_rx (collect_rsp);
+                    hal_uarte_puts (g_arr_cmd, g_cmd_len);
+                }
+                break;
+            }
         }
     }
 }
