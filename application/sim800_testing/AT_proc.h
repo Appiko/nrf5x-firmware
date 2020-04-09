@@ -101,7 +101,7 @@ typedef struct
      * Function pointer of function which is to be called when cmd is executed but 
      * response is unknown
      */
-    void (* cmd_successful_data) (at_uart_data_t data1, at_uart_data_t data2);
+    void (* cmd_successful_data) (at_uart_data_t * u_data1, uint32_t len);
     
     /**
      * Function pointer to function which is to be called when cmd is failed

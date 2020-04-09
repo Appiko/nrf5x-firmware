@@ -37,6 +37,10 @@ static uint8_t response[HAL_UARTE_RX_BUFF_SIZE];
 uint8_t g_arr_rsp[AT_PROC_MAX_RESPOSES][HAL_UARTE_RX_BUFF_SIZE];
 uint8_t g_arr_err[AT_PROC_MAX_ERRORS][HAL_UARTE_RX_BUFF_SIZE];
 
+at_uart_data_t g_arr_at_rsp[AT_PROC_MAX_RESPOSES + AT_PROC_MAX_ERRORS];
+
+static uint32_t g_var_rsp_lcnt = 0;
+
 static uint8_t g_arr_cmd[HAL_UARTE_TX_BUFF_SIZE];
 
 static uint8_t g_cmd_len = 0;
@@ -57,7 +61,7 @@ volatile uint32_t g_current_ticks;
 
 
 void (* cmd_successful_handle) (uint32_t response_id);
-//void (* cmd_successful_data_handle) (at_uart_data_t data1, at_uart_data_t data2);
+void (* cmd_successful_data_handle) (at_uart_data_t * u_data1, uint32_t len);
 void (* cmd_failed_handle) (uint8_t is_critical, uint8_t is_timeout, uint32_t error_id);
 
 void collect_rsp (uint8_t rsp_char);
@@ -84,10 +88,18 @@ void ticks_reset ()
 
 void timeout_handler ()
 {
-//    stop_uart ();
     mod_is_busy = false;
-    handle_critical ();
-    cmd_failed_handle (1, cmd_is_critical, AT_PROC_MAX_ERRORS);
+    if (rsp_is_var)
+    {
+        g_current_status = CMD_SUCCESSFUL;
+        cmd_successful_data_handle (g_arr_at_rsp, g_var_rsp_lcnt);
+        g_var_rsp_lcnt = 0;
+    }
+    else
+    {
+        handle_critical ();
+        cmd_failed_handle (1, cmd_is_critical, AT_PROC_MAX_ERRORS);
+    }
 
 }
 
@@ -138,6 +150,43 @@ void handle_stray ()
 {
 }
 
+
+void set_rsps (at_proc_cmd_t * cmd)
+{
+    for(uint32_t cnt = 0; cnt < AT_PROC_MAX_RESPOSES; cnt++)
+    {
+        if((cmd->resp[cnt].ptr != NULL) && (cmd->resp[cnt].len < HAL_UARTE_TX_BUFF_SIZE))
+        {
+            memcpy (&g_arr_rsp[cnt][0], cmd->resp[cnt].ptr, cmd->resp[cnt].len);
+        }
+    }
+}
+
+void set_errs (at_proc_cmd_t * cmd)
+{
+    
+    for(uint32_t cnt = 0; cnt < AT_PROC_MAX_ERRORS; cnt++)
+    {
+        if((cmd->err[cnt].ptr != NULL) && (cmd->err[cnt].len < HAL_UARTE_TX_BUFF_SIZE))
+        {
+            memcpy (&g_arr_err[cnt][0], cmd->err[cnt].ptr, cmd->err[cnt].len);
+        }
+    }
+}
+
+void set_data_buff ()
+{
+    for (uint32_t cnt_first_h = 0; cnt_first_h < AT_PROC_MAX_RESPOSES; cnt_first_h++)
+    {
+        g_arr_at_rsp[cnt_first_h].ptr = (char *)&g_arr_rsp[cnt_first_h][0];
+    }
+    for (uint32_t cnt_sec_h = 0; cnt_sec_h < AT_PROC_MAX_ERRORS; cnt_sec_h++)
+    {
+        g_arr_at_rsp[(cnt_sec_h + AT_PROC_MAX_RESPOSES)].ptr = 
+            (char *)&g_arr_err[cnt_sec_h][0];
+    }
+}
+
 void fix_rsp ()
 {
     chk_rsp ();
@@ -146,6 +195,19 @@ void fix_rsp ()
 
 void var_rsp ()
 {
+    g_arr_at_rsp[g_var_rsp_lcnt].len = strlen ((char *)response);
+    if (g_var_rsp_lcnt < (AT_PROC_MAX_RESPOSES + AT_PROC_MAX_ERRORS))
+    {
+        strcpy (g_arr_at_rsp[g_var_rsp_lcnt].ptr, (char *)response);
+    }
+    else
+    {
+        cmd_successful_data_handle (g_arr_at_rsp, g_var_rsp_lcnt);
+        g_var_rsp_lcnt = 0;
+    }
+    log_printf("C %d L %d c %c\n",g_var_rsp_lcnt,g_arr_at_rsp[g_var_rsp_lcnt].len,
+               *g_arr_at_rsp[g_var_rsp_lcnt].ptr);
+    g_var_rsp_lcnt++;
 }
 
 void process_rsp ()
@@ -193,6 +255,7 @@ void AT_proc_init (AT_proc_init_t * init)
     hal_uarte_init (HAL_UARTE_BAUD_9600, APP_IRQ_PRIORITY_MID);
     cmd_successful_handle = init->cmd_successful;
     cmd_failed_handle = init->cmd_failed;
+    cmd_successful_data_handle = init->cmd_successful_data;
 }
 
 
@@ -206,21 +269,16 @@ at_proc_cmd_check_t AT_proc_send_cmd (at_proc_cmd_t * cmd)
     
     memcpy (g_arr_cmd, cmd->cmd.ptr, cmd->cmd.len);
     
-    for(uint32_t cnt = 0; cnt < AT_PROC_MAX_RESPOSES; cnt++)
+    if(cmd->is_response_variable)
     {
-        if((cmd->resp[cnt].ptr != NULL) && (cmd->resp[cnt].len < HAL_UARTE_TX_BUFF_SIZE))
-        {
-            memcpy (&g_arr_rsp[cnt][0], cmd->resp[cnt].ptr, cmd->resp[cnt].len);
-        }
+        set_data_buff ();
+    }
+    else
+    {
+        set_rsps (cmd);
+        set_errs (cmd);
     }
     
-    for(uint32_t cnt = 0; cnt < AT_PROC_MAX_ERRORS; cnt++)
-    {
-        if((cmd->err[cnt].ptr != NULL) && (cmd->err[cnt].len < HAL_UARTE_TX_BUFF_SIZE))
-        {
-            memcpy (&g_arr_err[cnt][0], cmd->err[cnt].ptr, cmd->err[cnt].len);
-        }
-    }
     ticks_reset ();
     g_timeout_ticks = MS_TIMER_TICKS_MS (cmd->timeout);
     cmd_is_critical = cmd->is_critical;
@@ -250,37 +308,33 @@ void AT_proc_send_cmd_no_rsp (uint8_t * cmd, uint32_t len, uint32_t duration)
 
 void AT_proc_add_ticks (uint32_t ticks)
 {
-    if ((mod_is_busy))
+    g_current_ticks += ticks;
+    switch(g_current_status)
     {
-        g_current_ticks += ticks;
-        switch(g_current_status)
+        case CMD_SUCCESSFUL :
+            break;
+        case CMD_RUNNING : 
         {
-            case CMD_SUCCESSFUL :
-                break;
-            case CMD_RUNNING : 
+            if (g_timeout_ticks <= g_current_ticks)
             {
-                
-                if (g_timeout_ticks <= g_current_ticks)
-                {
-                    ticks_reset ();
-                    g_current_status = CMD_FAILED;
-                    timeout_handler ();
-                }
-                break;
+                ticks_reset ();
+                g_current_status = CMD_FAILED;
+                timeout_handler ();
             }
-            case CMD_REPEAT : 
-            {
-                log_printf ("Here\n");
-                {
-                    g_current_status = CMD_RUNNING;
-                    hal_uarte_start_rx (collect_rsp);
-                    hal_uarte_puts (g_arr_cmd, g_cmd_len);
-                }
-                break;
-            }
-            case CMD_FAILED : 
-                break;
+            break;
         }
+        case CMD_REPEAT : 
+        {
+            log_printf ("Here\n");
+            {
+                g_current_status = CMD_RUNNING;
+                hal_uarte_start_rx (collect_rsp);
+                hal_uarte_puts (g_arr_cmd, g_cmd_len);
+            }
+            break;
+        }
+        case CMD_FAILED : 
+            break;
     }
 }
 
