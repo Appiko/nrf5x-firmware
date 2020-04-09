@@ -140,6 +140,11 @@ void AT_proc_process ();
 uint8_t AT_proc_is_busy ();
 
 /**
+ * @brief Function to repeat the last instruction with same parameters.
+ */
+void AT_proc_repeat_last_cmd ();
+
+/**
  * @brief Function to execute an AT command where response is not needed.
  * @param cmd Command string
  * @param len Length of command string

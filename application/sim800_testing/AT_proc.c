@@ -28,6 +28,7 @@ typedef enum
 {
     CMD_SUCCESSFUL,
     CMD_RUNNING,
+    CMD_REPEAT,
     CMD_FAILED,
 }cmd_status_t;
 
@@ -44,7 +45,9 @@ static at_proc_cmd_t g_buff_cmd;
 
 static bool cmd_is_critical = false;
 
-static cmd_status_t g_current_status = CMD_SUCCESSFUL; 
+static bool rsp_is_var = false;
+
+static cmd_status_t g_current_status = CMD_FAILED; 
 
 volatile bool mod_is_busy = false;
 
@@ -63,7 +66,6 @@ void collect_rsp (uint8_t rsp_char);
 void stop_uart ()
 {
     hal_uarte_stop_rx ();
-    mod_is_busy = false;
 }
 
 void handle_critical ()
@@ -82,38 +84,88 @@ void ticks_reset ()
 
 void timeout_handler ()
 {
-    log_printf("%s\n", __func__);
-    stop_uart ();
+//    stop_uart ();
+    mod_is_busy = false;
     handle_critical ();
     cmd_failed_handle (1, cmd_is_critical, AT_PROC_MAX_ERRORS);
 
 }
 
-void check_rsp ()
-{    
+void chk_rsp ()
+{
     for(uint32_t rsp_cnt = 0; rsp_cnt < AT_PROC_MAX_RESPOSES; rsp_cnt++)
     {
         if (strcmp ((char * )response, (char *)&g_arr_rsp[rsp_cnt][0]) == 0)
         {
-            stop_uart ();
+//            stop_uart ();
+            mod_is_busy = false;
+            log_printf("Rsp : %d\n", rsp_cnt);
             g_current_status = CMD_SUCCESSFUL;
             cmd_successful_handle (rsp_cnt);
             break;
         }
     }
-    
+}
+
+void chk_err ()
+{
     for(uint32_t err_cnt = 0; err_cnt < AT_PROC_MAX_ERRORS; err_cnt++)
     {
         if(strcmp ((char *)response, (char *)&g_arr_err[err_cnt][0]) == 0)
         {
-            g_current_status = CMD_FAILED;
-            if(cmd_is_critical == false)
+            log_printf("Err : %d\n", err_cnt);
+            if(cmd_is_critical)
             {
-                stop_uart ();
+//                stop_uart ();
+                mod_is_busy = false;
+                handle_critical ();
+                g_current_status = CMD_REPEAT;
+            }
+            else
+            {
+//                stop_uart ();
+                mod_is_busy = false;
                 cmd_failed_handle (0, cmd_is_critical, err_cnt);
+                g_current_status = CMD_FAILED;
                 break;
             }
         }
+    }
+}
+
+
+void handle_stray ()
+{
+}
+
+void fix_rsp ()
+{
+    chk_rsp ();
+    chk_err ();
+}
+
+void var_rsp ()
+{
+}
+
+void process_rsp ()
+{  
+    log_printf ("Status : %d\n", g_current_status);
+    if((g_current_status == CMD_RUNNING) || (g_current_status == CMD_REPEAT))
+    {
+        log_printf ("Process\n");
+        if(rsp_is_var)
+        {
+            var_rsp ();
+        }
+        else
+        {
+            fix_rsp ();
+        }
+    }
+    else
+    {
+        log_printf ("Skip\n");
     }
 }
 
@@ -127,7 +179,7 @@ void collect_rsp (uint8_t rsp_char)
     if((l_prev_char == '\r') && (rsp_char == '\n'))
     {
         log_printf("%s\n",(char *)response);
-        check_rsp ();
+        process_rsp ();
         memset (response, 0, sizeof(response));
         len=0;
     }
@@ -138,7 +190,7 @@ void collect_rsp (uint8_t rsp_char)
 
 void AT_proc_init (AT_proc_init_t * init)
 {
-    hal_uarte_init (HAL_UARTE_BAUD_115200, APP_IRQ_PRIORITY_MID);
+    hal_uarte_init (HAL_UARTE_BAUD_9600, APP_IRQ_PRIORITY_MID);
     cmd_successful_handle = init->cmd_successful;
     cmd_failed_handle = init->cmd_failed;
 }
@@ -172,6 +224,7 @@ at_proc_cmd_check_t AT_proc_send_cmd (at_proc_cmd_t * cmd)
     ticks_reset ();
     g_timeout_ticks = MS_TIMER_TICKS_MS (cmd->timeout);
     cmd_is_critical = cmd->is_critical;
+    rsp_is_var = cmd->is_response_variable;
     g_current_status = CMD_RUNNING;
     hal_uarte_start_rx (collect_rsp);
     hal_uarte_puts ((uint8_t * )cmd->cmd.ptr, cmd->cmd.len);
@@ -197,7 +250,6 @@ void AT_proc_send_cmd_no_rsp (uint8_t * cmd, uint32_t len, uint32_t duration)
 
 void AT_proc_add_ticks (uint32_t ticks)
 {
-    log_printf ("Busy : %d\n", mod_is_busy);
     if ((mod_is_busy))
     {
         g_current_ticks += ticks;
@@ -207,6 +259,7 @@ void AT_proc_add_ticks (uint32_t ticks)
                 break;
             case CMD_RUNNING : 
             {
+                
                 if (g_timeout_ticks <= g_current_ticks)
                 {
                     ticks_reset ();
@@ -215,10 +268,9 @@ void AT_proc_add_ticks (uint32_t ticks)
                 }
                 break;
             }
-            case CMD_FAILED : 
+            case CMD_REPEAT : 
             {
-                log_printf("Here\n");
-                if ((cmd_is_critical))
+                log_printf ("Here\n");
                 {
                     g_current_status = CMD_RUNNING;
                     hal_uarte_start_rx (collect_rsp);
@@ -226,8 +278,14 @@ void AT_proc_add_ticks (uint32_t ticks)
                 }
                 break;
             }
+            case CMD_FAILED : 
+                break;
         }
     }
 }
 
+void AT_proc_repeat_last_cmd ()
+{
+    g_current_status = CMD_REPEAT;
+}
 
