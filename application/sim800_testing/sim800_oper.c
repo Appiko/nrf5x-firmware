@@ -63,29 +63,29 @@ static char rsp_std_ERR[] = {'E','R','R','O','R','\r','\n'};
  * ATE0 -- 
  * AT+CPIN? -- 
  */
-static char cmd_init[] = {'A','T','\r','\n'}; //Res : std reply
-static char cmd_fac_reset[] = {'A','T','&','F','Z','\r','\n'};
-static char cmd_echo_off[] = {'A','T','E','0','\r','\n'}; //Res : ATE0 --std reply
-static char cmd_time_fmt[] = {'A','T','+','C','L','T','S','=','1','\r','\n'}; //Res : std reply
-static char cmd_save_nvm[] = {'A','T','&','W','\r','\n'};
-static char cmd_en_full[] = {'A','T','+','C','F','U','N','=','1',',','1','\r','\n'}; //Res : std reply
+const char cmd_init[] = {'A','T','\r','\n'}; //Res : std reply
+const char cmd_fac_reset[] = {'A','T','&','F','Z','\r','\n'};
+//static char cmd_echo_off[] = {'A','T','E','0','\r','\n'}; //Res : ATE0 --std reply
+const char cmd_time_fmt[] = {'A','T','+','C','L','T','S','=','1','\r','\n'}; //Res : std reply
+const char cmd_save_nvm[] = {'A','T','&','W','\r','\n'};
+const char cmd_en_full[] = {'A','T','+','C','F','U','N','=','1','\r','\n'}; //Res : std reply
 
-static char cmd_chk_sim[] = {'A','T','+','C','P','I','N','?','\r','\n'};
-static char rsp_sim_sts1[] = {'+','C','P','I','N',':',' ','R','E','A','D','Y','\r','\n'};
-static char err_sim_sts1[] = {'+','C','P','I','N',':',' ','E','R','R','O','R','\r','\n'};
+const char cmd_chk_sim[] = {'A','T','+','C','P','I','N','?','\r','\n'};
+const char rsp_sim_sts1[] = {'+','C','P','I','N',':',' ','R','E','A','D','Y','\r','\n'};
+const char err_sim_sts1[] = {'+','C','P','I','N',':',' ','E','R','R','O','R','\r','\n'};
 
 /**
  * Check for network
  * AT+CREG? -- 
  */
-static char cmd_nw_reg[] = {'A','T','+','C','R','E','G','?','\r','\n'};
+const char cmd_nw_reg[] = {'A','T','+','C','R','E','G','?','\r','\n'};
 
-static char rsp1l2_gprs_reg[] = {'+','C','R','E','G',':',' ','0',',','1','\r','\n'};
-static char rsp2l2_gprs_reg[] = {'+','C','R','E','G',':',' ','0',',','5','\r','\n'};
+const char rsp1l2_gprs_reg[] = {'+','C','R','E','G',':',' ','0',',','1','\r','\n'};
+const char rsp2l2_gprs_reg[] = {'+','C','R','E','G',':',' ','0',',','5','\r','\n'};
 
-static char err1l2_gprs_reg[] = {'+','C','R','E','G',':',' ','0',',','0','\r','\n'};
-static char err2l2_gprs_reg[] = {'+','C','R','E','G',':',' ','0',',','2','\r','\n'};
-static char err3l2_gprs_reg[] = {'+','C','R','E','G',':',' ','0',',','4','\r','\n'};
+const char err1l2_gprs_reg[] = {'+','C','R','E','G',':',' ','0',',','0','\r','\n'};
+const char err2l2_gprs_reg[] = {'+','C','R','E','G',':',' ','0',',','2','\r','\n'};
+const char err3l2_gprs_reg[] = {'+','C','R','E','G',':',' ','0',',','4','\r','\n'};
 
 /**
  * Connect to GPRS
@@ -109,39 +109,43 @@ static char err3l2_gprs_reg[] = {'+','C','R','E','G',':',' ','0',',','4','\r','\
  */
 
 //
-static char cmd_set_brr_ctype[] = {'A','T','+','S','A','P','B','R','=','3',',','1',',',
+const char cmd_set_brr_ctype[] = {'A','T','+','S','A','P','B','R','=','3',',','1',',',
     '\"','C','o','n','t','y','p','e','\"',',','\"','G','P','R','S','\"','\r','\n'}; //Res : std
-static char cmd_set_brr_apn[] = {'A','T','+','S','A','P','B','R','=','3',',','1',',',
+const char cmd_set_brr_apn[] = {'A','T','+','S','A','P','B','R','=','3',',','1',',',
     '\"','A','P','N','\"',',','\"','w','w','w','\"','\r','\n'};//Res : std
-static char cmd_set_brr_usr[]= {'A','T','+','S','A','P','B','R','=','3',',','1',',',
+const char cmd_set_brr_usr[]= {'A','T','+','S','A','P','B','R','=','3',',','1',',',
     '\"','U','S','E','R','\"',',','\"','\"','\r','\n'};//Res: std
-static char cmd_set_brr_pwd[] = {'A','T','+','S','A','P','B','R','=','3',',','1',',',
+const char cmd_set_brr_pwd[] = {'A','T','+','S','A','P','B','R','=','3',',','1',',',
     '\"','P','W','D','\"',',','\"','\"','\r','\n'};//Res: std
 
-static char cmd_ip_cntxt[] = {'A','T','+','C','G','D','C','O','N','T','=','1',',',
-    '\"','I','P','\"',',','\"','a','p','n','\"','\r','\n'};
+const char cmd_ip_cntxt[] = {'A','T','+','C','G','D','C','O','N','T','=','1',',',
+    '\"','I','P','\"',',','\"','w','w','w','\"','\r','\n'};
+
+const char cmd_power_off[] = {'A','T','+','C','P','O','W','D','=','1','\r','\n'};
 
 
-static char cmd_actv_cid[] = {'A','T','+','C','G','A','C','T','=',
+const char cmd_actv_cid[] = {'A','T','+','C','G','A','C','T','=',
 '1',',','1','\r','\n'};//res: Std ok, CME error
 
-static char cmd_actv_brr[] = {'A','T','+','S','A','P','B','R','=','1',',','1','\r','\n'};
-//static char cmd_chk_brr[] = {'A','T','+','S','A','P','B','R','=','2',',','1','\r','\n'}; //res: variable
+const char cmd_actv_brr[] = {'A','T','+','S','A','P','B','R','=','1',',','1','\r','\n'};
+const char cmd_chk_brr[] = {'A','T','+','S','A','P','B','R','=','2',',','1','\r','\n'}; //res: variable
 
-static char cmd_en_mux[] =  {'A','T','+','C','I','P','M','U','X','=','1','\r','\n'};
+const char cmd_en_mux[] =  {'A','T','+','C','I','P','M','U','X','=','1','\r','\n'};
 
-static char cmd_sel_dtx_mode[] = {'A','T','+','C','I','P','Q','S','E','N','D','=','1','\r','\n'};
+const char cmd_sel_dtx_mode[] = {'A','T','+','C','I','P','Q','S','E','N','D','=','1','\r','\n'};
 
 //static char cmd_get_net_data[] = {'A','T','+','C','I','P','R','X','G','E','T','=','1','\r','\n'};
 
-static char cmd_tsk_start[] = {'A','T','+','C','S','T','T','=','\"','w','w','w','\"',',','\"','\"',',','\"','\"','\r','\n'};
+const char cmd_tsk_start[] = {'A','T','+','C','S','T','T','=','\"','w','w','w','\"',',','\"','\"',',','\"','\"','\r','\n'};
 
-static char cmd_con_gprs[] = {'A','T','+','C','I','I','C','R','\r','\n'};
+const char cmd_con_gprs[] = {'A','T','+','C','I','I','C','R','\r','\n'};
 
 //static char cmd_get_ip[] = {'A','T','+','C','I','F','S','R','\r','\n'};
 
-static char cmd_set_dns[] = {'A','T','+','C','D','N','S','C','F','G','=',
+const char cmd_set_dns[] = {'A','T','+','C','D','N','S','C','F','G','=',
 '\"','8','.','8','.','8','.','8','\"',',','\"','8','.','8','.','4','.','4','\"','\r','\n'};
+
+
 /**
  * In this module we will have queue of AT_proc_cmds. 
  * On each init or enable call, we'll add appropriate AT commands to that queue
@@ -191,9 +195,17 @@ void command_processed_successfully (uint32_t rsp_id)
 //    send_next_cmd ();
 }
 
-void command_unknown_response (at_uart_data_t u_data1, at_uart_data_t u_data2)
+void command_unknown_response (at_uart_data_t * u_data1, uint32_t len)
 {
     log_printf("%s\n",__func__);
+    
+    char l_str[255];
+    for(uint32_t cnt = 0; cnt < len; cnt++)
+    {
+        memset (l_str, 0, sizeof(l_str));
+        memcpy (l_str, u_data1[cnt].ptr, u_data1[cnt].len);
+        log_printf ("%s\n", l_str);
+    }
     
 }
 
@@ -201,12 +213,9 @@ void command_process_failure (uint8_t was_critical, uint8_t was_timeout,uint32_t
 {
     log_printf("%s\n",__func__);
     
-    if (was_critical == false)
+    if (was_critical)
     {
-//        send_next_cmd ();
-    }
-    else
-    {
+        AT_proc_repeat_last_cmd ();
     }
 }
 
@@ -224,8 +233,23 @@ void sim800_oper_init (sim800_operator_t oper)
     AT_proc_init (&at_init);
     //Add Init Seq to command buffer
     at_proc_cmd_t l_at_cmd;
+
+//    
+//    reset_cmd (&l_at_cmd);
+//    l_at_cmd.cmd.ptr = (char *)cmd_power_off;
+//    l_at_cmd.cmd.len = sizeof(cmd_power_off);
+//    l_at_cmd.resp[0].ptr = rsp_std_OK;
+//    l_at_cmd.resp[0].len = sizeof(rsp_std_OK);
+//    l_at_cmd.err[0].ptr = rsp_std_ERR;
+//    l_at_cmd.err[0].len = sizeof(rsp_std_ERR);
+//    l_at_cmd.is_critical = 0;
+//    l_at_cmd.is_response_variable = 1;
+//    l_at_cmd.timeout = 2500;
+//    CBUF_Push(ATbuff, l_at_cmd);
+
+
     reset_cmd (&l_at_cmd);
-    l_at_cmd.cmd.ptr = cmd_init;
+    l_at_cmd.cmd.ptr = (char *)cmd_init;
     l_at_cmd.cmd.len = sizeof(cmd_init);
     l_at_cmd.resp[0].ptr = rsp_std_OK;
     l_at_cmd.resp[0].len = sizeof(rsp_std_OK);
@@ -237,7 +261,7 @@ void sim800_oper_init (sim800_operator_t oper)
     CBUF_Push(ATbuff, l_at_cmd);
     
     reset_cmd (&l_at_cmd);
-    l_at_cmd.cmd.ptr = cmd_fac_reset;
+    l_at_cmd.cmd.ptr = (char *)cmd_fac_reset;
     l_at_cmd.cmd.len = sizeof(cmd_fac_reset);
     l_at_cmd.resp[0].ptr = rsp_std_OK;
     l_at_cmd.resp[0].len = sizeof(rsp_std_OK);
@@ -248,20 +272,20 @@ void sim800_oper_init (sim800_operator_t oper)
     l_at_cmd.timeout = 2500;
     CBUF_Push(ATbuff, l_at_cmd);
     
-    reset_cmd (&l_at_cmd);
-    l_at_cmd.cmd.ptr = cmd_echo_off;
-    l_at_cmd.cmd.len = sizeof(cmd_echo_off);
-    l_at_cmd.resp[0].ptr = rsp_std_OK;
-    l_at_cmd.resp[0].len = sizeof(rsp_std_OK);
-    l_at_cmd.err[0].ptr = rsp_std_ERR;
-    l_at_cmd.err[0].len = sizeof(rsp_std_ERR);
-    l_at_cmd.is_critical = 0;
-    l_at_cmd.is_response_variable = 0;
-    l_at_cmd.timeout = 2500;
-    CBUF_Push(ATbuff, l_at_cmd);
+//    reset_cmd (&l_at_cmd);
+//    l_at_cmd.cmd.ptr = cmd_echo_off;
+//    l_at_cmd.cmd.len = sizeof(cmd_echo_off);
+//    l_at_cmd.resp[0].ptr = rsp_std_OK;
+//    l_at_cmd.resp[0].len = sizeof(rsp_std_OK);
+//    l_at_cmd.err[0].ptr = rsp_std_ERR;
+//    l_at_cmd.err[0].len = sizeof(rsp_std_ERR);
+//    l_at_cmd.is_critical = 0;
+//    l_at_cmd.is_response_variable = 0;
+//    l_at_cmd.timeout = 2500;
+//    CBUF_Push(ATbuff, l_at_cmd);
     
     reset_cmd (&l_at_cmd);
-    l_at_cmd.cmd.ptr = cmd_time_fmt;
+    l_at_cmd.cmd.ptr = (char *)cmd_time_fmt;
     l_at_cmd.cmd.len = sizeof(cmd_time_fmt);
     l_at_cmd.resp[0].ptr = rsp_std_OK;
     l_at_cmd.resp[0].len = sizeof(rsp_std_OK);
@@ -273,8 +297,20 @@ void sim800_oper_init (sim800_operator_t oper)
     CBUF_Push(ATbuff, l_at_cmd);
     
     reset_cmd (&l_at_cmd);
-    l_at_cmd.cmd.ptr = cmd_save_nvm;
+    l_at_cmd.cmd.ptr = (char *)cmd_save_nvm;
     l_at_cmd.cmd.len = sizeof(cmd_save_nvm);
+    l_at_cmd.resp[0].ptr = rsp_std_OK;
+    l_at_cmd.resp[0].len = sizeof(rsp_std_OK);
+    l_at_cmd.err[0].ptr = rsp_std_ERR;
+    l_at_cmd.err[0].len = sizeof(rsp_std_ERR);
+    l_at_cmd.is_critical = 0;
+    l_at_cmd.is_response_variable = 0;
+    l_at_cmd.timeout = 2500;
+    CBUF_Push(ATbuff, l_at_cmd);
+    
+    reset_cmd (&l_at_cmd);
+    l_at_cmd.cmd.ptr = (char *)cmd_en_full;
+    l_at_cmd.cmd.len = sizeof(cmd_en_full);
     l_at_cmd.resp[0].ptr = rsp_std_OK;
     l_at_cmd.resp[0].len = sizeof(rsp_std_OK);
     l_at_cmd.err[0].ptr = rsp_std_ERR;
@@ -285,25 +321,13 @@ void sim800_oper_init (sim800_operator_t oper)
     CBUF_Push(ATbuff, l_at_cmd);
 
     reset_cmd (&l_at_cmd);
-    l_at_cmd.cmd.ptr = cmd_chk_sim;
+    l_at_cmd.cmd.ptr = (char *)cmd_chk_sim;
     l_at_cmd.cmd.len = sizeof(cmd_chk_sim);
-    l_at_cmd.resp[0].ptr = rsp_sim_sts1;
+    l_at_cmd.resp[0].ptr = (char *)rsp_sim_sts1;
     l_at_cmd.resp[0].len = sizeof(rsp_sim_sts1);
-    l_at_cmd.err[0].ptr = err_sim_sts1;
+    l_at_cmd.err[0].ptr = (char *)err_sim_sts1;
     l_at_cmd.err[0].len = sizeof(err_sim_sts1);
     l_at_cmd.is_critical = 1;
-    l_at_cmd.is_response_variable = 0;
-    l_at_cmd.timeout = 2500;
-    CBUF_Push(ATbuff, l_at_cmd);
-    
-    reset_cmd (&l_at_cmd);
-    l_at_cmd.cmd.ptr = cmd_en_full;
-    l_at_cmd.cmd.len = sizeof(cmd_en_full);
-    l_at_cmd.resp[0].ptr = rsp_std_OK;
-    l_at_cmd.resp[0].len = sizeof(rsp_std_OK);
-    l_at_cmd.err[0].ptr = rsp_std_ERR;
-    l_at_cmd.err[0].len = sizeof(rsp_std_ERR);
-    l_at_cmd.is_critical = 0;
     l_at_cmd.is_response_variable = 0;
     l_at_cmd.timeout = 2500;
     CBUF_Push(ATbuff, l_at_cmd);
@@ -325,17 +349,17 @@ void sim800_oper_enable_gprs (void)
     at_proc_cmd_t l_at_cmd;
     //Network
     reset_cmd (&l_at_cmd);
-    l_at_cmd.cmd.ptr = cmd_nw_reg;
+    l_at_cmd.cmd.ptr = (char *)cmd_nw_reg;
     l_at_cmd.cmd.len = sizeof(cmd_nw_reg);
-    l_at_cmd.resp[0].ptr = rsp1l2_gprs_reg;
+    l_at_cmd.resp[0].ptr = (char *)rsp1l2_gprs_reg;
     l_at_cmd.resp[0].len = sizeof(rsp1l2_gprs_reg);
-    l_at_cmd.resp[1].ptr = rsp2l2_gprs_reg;
+    l_at_cmd.resp[1].ptr = (char *)rsp2l2_gprs_reg;
     l_at_cmd.resp[1].len = sizeof(rsp2l2_gprs_reg);
-    l_at_cmd.err[0].ptr = err1l2_gprs_reg;
+    l_at_cmd.err[0].ptr = (char *)err1l2_gprs_reg;
     l_at_cmd.err[0].len = sizeof(err1l2_gprs_reg);
-    l_at_cmd.err[1].ptr = err2l2_gprs_reg;
+    l_at_cmd.err[1].ptr = (char *)err2l2_gprs_reg;
     l_at_cmd.err[1].len = sizeof(err2l2_gprs_reg);
-    l_at_cmd.err[2].ptr = err3l2_gprs_reg;
+    l_at_cmd.err[2].ptr = (char *)err3l2_gprs_reg;
     l_at_cmd.err[2].len = sizeof(err3l2_gprs_reg);
     l_at_cmd.is_critical = 1;
     l_at_cmd.is_response_variable = 0;
@@ -344,7 +368,7 @@ void sim800_oper_enable_gprs (void)
     
     //Add GPRS
     reset_cmd (&l_at_cmd);
-    l_at_cmd.cmd.ptr = cmd_set_brr_ctype;
+    l_at_cmd.cmd.ptr = (char *)cmd_set_brr_ctype;
     l_at_cmd.cmd.len = sizeof(cmd_set_brr_ctype);
     l_at_cmd.resp[0].ptr = rsp_std_OK;
     l_at_cmd.resp[0].len = sizeof(rsp_std_OK);
@@ -356,7 +380,7 @@ void sim800_oper_enable_gprs (void)
     CBUF_Push(ATbuff, l_at_cmd);
     
     reset_cmd (&l_at_cmd);
-    l_at_cmd.cmd.ptr = cmd_set_brr_apn;
+    l_at_cmd.cmd.ptr = (char *)cmd_set_brr_apn;
     l_at_cmd.cmd.len = sizeof(cmd_set_brr_apn);
     l_at_cmd.resp[0].ptr = rsp_std_OK;
     l_at_cmd.resp[0].len = sizeof(rsp_std_OK);
@@ -368,7 +392,7 @@ void sim800_oper_enable_gprs (void)
     CBUF_Push(ATbuff, l_at_cmd);
     
     reset_cmd (&l_at_cmd);
-    l_at_cmd.cmd.ptr = cmd_set_brr_usr;
+    l_at_cmd.cmd.ptr = (char *)cmd_set_brr_usr;
     l_at_cmd.cmd.len = sizeof(cmd_set_brr_usr);
     l_at_cmd.resp[0].ptr = rsp_std_OK;
     l_at_cmd.resp[0].len = sizeof(rsp_std_OK);
@@ -380,7 +404,7 @@ void sim800_oper_enable_gprs (void)
     CBUF_Push(ATbuff, l_at_cmd);
     
     reset_cmd (&l_at_cmd);
-    l_at_cmd.cmd.ptr = cmd_set_brr_pwd;
+    l_at_cmd.cmd.ptr = (char *)cmd_set_brr_pwd;
     l_at_cmd.cmd.len = sizeof(cmd_set_brr_pwd);
     l_at_cmd.resp[0].ptr = rsp_std_OK;
     l_at_cmd.resp[0].len = sizeof(rsp_std_OK);
@@ -392,7 +416,7 @@ void sim800_oper_enable_gprs (void)
     CBUF_Push(ATbuff, l_at_cmd);
     
     reset_cmd (&l_at_cmd);
-    l_at_cmd.cmd.ptr = cmd_ip_cntxt;
+    l_at_cmd.cmd.ptr = (char *)cmd_ip_cntxt;
     l_at_cmd.cmd.len = sizeof(cmd_ip_cntxt);
     l_at_cmd.resp[0].ptr = rsp_std_OK;
     l_at_cmd.resp[0].len = sizeof(rsp_std_OK);
@@ -404,7 +428,7 @@ void sim800_oper_enable_gprs (void)
     CBUF_Push(ATbuff, l_at_cmd);
     
     reset_cmd (&l_at_cmd);
-    l_at_cmd.cmd.ptr = cmd_actv_cid;
+    l_at_cmd.cmd.ptr = (char *)cmd_actv_cid;
     l_at_cmd.cmd.len = sizeof(cmd_actv_cid);
     l_at_cmd.resp[0].ptr = rsp_std_OK;
     l_at_cmd.resp[0].len = sizeof(rsp_std_OK);
@@ -416,7 +440,7 @@ void sim800_oper_enable_gprs (void)
     CBUF_Push(ATbuff, l_at_cmd);
     
     reset_cmd (&l_at_cmd);
-    l_at_cmd.cmd.ptr = cmd_actv_brr;
+    l_at_cmd.cmd.ptr = (char *)cmd_actv_brr;
     l_at_cmd.cmd.len = sizeof(cmd_actv_brr);
     l_at_cmd.resp[0].ptr = rsp_std_OK;
     l_at_cmd.resp[0].len = sizeof(rsp_std_OK);
@@ -428,7 +452,19 @@ void sim800_oper_enable_gprs (void)
     CBUF_Push(ATbuff, l_at_cmd);
     
     reset_cmd (&l_at_cmd);
-    l_at_cmd.cmd.ptr = cmd_en_mux;
+    l_at_cmd.cmd.ptr = (char *)cmd_chk_brr;
+    l_at_cmd.cmd.len = sizeof(cmd_chk_brr);
+    l_at_cmd.resp[0].ptr = rsp_std_OK;
+    l_at_cmd.resp[0].len = sizeof(rsp_std_OK);
+    l_at_cmd.err[0].ptr = rsp_std_ERR;
+    l_at_cmd.err[0].len = sizeof(rsp_std_ERR);
+    l_at_cmd.is_critical = 0;
+    l_at_cmd.is_response_variable = 1;
+    l_at_cmd.timeout = 2500;
+    CBUF_Push(ATbuff, l_at_cmd);
+    
+    reset_cmd (&l_at_cmd);
+    l_at_cmd.cmd.ptr = (char *)cmd_en_mux;
     l_at_cmd.cmd.len = sizeof(cmd_en_mux);
     l_at_cmd.resp[0].ptr = rsp_std_OK;
     l_at_cmd.resp[0].len = sizeof(rsp_std_OK);
@@ -440,7 +476,7 @@ void sim800_oper_enable_gprs (void)
     CBUF_Push(ATbuff, l_at_cmd);
     
     reset_cmd (&l_at_cmd);
-    l_at_cmd.cmd.ptr = cmd_sel_dtx_mode;
+    l_at_cmd.cmd.ptr = (char *)cmd_sel_dtx_mode;
     l_at_cmd.cmd.len = sizeof(cmd_sel_dtx_mode);
     l_at_cmd.resp[0].ptr = rsp_std_OK;
     l_at_cmd.resp[0].len = sizeof(rsp_std_OK);
@@ -452,7 +488,7 @@ void sim800_oper_enable_gprs (void)
     CBUF_Push(ATbuff, l_at_cmd);
     
     reset_cmd (&l_at_cmd);
-    l_at_cmd.cmd.ptr = cmd_tsk_start;
+    l_at_cmd.cmd.ptr = (char *)cmd_tsk_start;
     l_at_cmd.cmd.len = sizeof(cmd_tsk_start);
     l_at_cmd.resp[0].ptr = rsp_std_OK;
     l_at_cmd.resp[0].len = sizeof(rsp_std_OK);
@@ -464,20 +500,8 @@ void sim800_oper_enable_gprs (void)
     CBUF_Push(ATbuff, l_at_cmd);
     
     reset_cmd (&l_at_cmd);
-    l_at_cmd.cmd.ptr = cmd_con_gprs;
+    l_at_cmd.cmd.ptr = (char *)cmd_con_gprs;
     l_at_cmd.cmd.len = sizeof(cmd_con_gprs);
-    l_at_cmd.resp[0].ptr = rsp_std_OK;
-    l_at_cmd.resp[0].len = sizeof(rsp_std_OK);
-    l_at_cmd.err[0].ptr = rsp_std_ERR;
-    l_at_cmd.err[0].len = sizeof(rsp_std_ERR);
-    l_at_cmd.is_critical = 0;
-    l_at_cmd.is_response_variable = 0;
-    l_at_cmd.timeout = 2500;
-    CBUF_Push(ATbuff, l_at_cmd);
-    
-    reset_cmd (&l_at_cmd);
-    l_at_cmd.cmd.ptr = cmd_set_dns;
-    l_at_cmd.cmd.len = sizeof(cmd_set_dns);
     l_at_cmd.resp[0].ptr = rsp_std_OK;
     l_at_cmd.resp[0].len = sizeof(rsp_std_OK);
     l_at_cmd.err[0].ptr = rsp_std_ERR;
@@ -523,11 +547,15 @@ void sim800_oper_process ()
 void sim800_oper_add_ticks (uint32_t ticks)
 {
     //pass on these ticks to AT_proc
-    AT_proc_add_ticks (ticks);
+    if(AT_proc_is_busy ())
+    {
+        AT_proc_add_ticks (ticks);
+    }
 }
 
 uint32_t sim800_oper_conns (sim800_server_conn_t * conn_params)
 {
+    
     return 0;
 }
 
@@ -544,6 +572,5 @@ sim800_conn_status_t sim800_oper_get_server_status (uint32_t server_id)
 {
     return SIM800_CONNECTED;
 }
-
 
 

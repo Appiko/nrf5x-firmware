@@ -60,7 +60,7 @@ void leds_init(void)
 
 void ms_timer_handler ()
 {
-    log_printf("%s\n",__func__);
+//    log_printf("%s\n",__func__);
     sim800_oper_add_ticks (MS_TIMER_TICKS_MS(MS_TIEMR_EPD_RR));
 }
 

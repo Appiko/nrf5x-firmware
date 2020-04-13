@@ -205,8 +205,8 @@ void var_rsp ()
         cmd_successful_data_handle (g_arr_at_rsp, g_var_rsp_lcnt);
         g_var_rsp_lcnt = 0;
     }
-    log_printf("C %d L %d c %c\n",g_var_rsp_lcnt,g_arr_at_rsp[g_var_rsp_lcnt].len,
-               *g_arr_at_rsp[g_var_rsp_lcnt].ptr);
+//    log_printf("C %d L %d c %c\n",g_var_rsp_lcnt,g_arr_at_rsp[g_var_rsp_lcnt].len,
+//               *g_arr_at_rsp[g_var_rsp_lcnt].ptr);
     g_var_rsp_lcnt++;
 }
 
