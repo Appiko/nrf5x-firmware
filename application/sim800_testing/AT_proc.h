@@ -64,6 +64,9 @@ typedef struct
 
 typedef struct 
 {
+    /** Command ID */
+    uint32_t cmd_id;
+    
     /** Command + parameters*/
     at_uart_data_t cmd;
 
@@ -95,18 +98,18 @@ typedef struct
      * Function pointer of function which is to be called when cmd is executed successfully
      * known response.
      */
-    void (* cmd_successful) (uint32_t response_id);
+    void (* cmd_successful) (uint32_t cmd_id, uint32_t response_id);
     
     /** 
      * Function pointer of function which is to be called when cmd is executed but 
      * response is unknown
      */
-    void (* cmd_successful_data) (at_uart_data_t * u_data1, uint32_t len);
+    void (* cmd_successful_data) (uint32_t cmd_id, at_uart_data_t * u_data1, uint32_t len);
     
     /**
      * Function pointer to function which is to be called when cmd is failed
      */
-    void (* cmd_failed) (uint8_t is_critical, uint8_t is_timeout, uint32_t error_id);
+    void (* cmd_failed) (uint32_t cmd_id, uint8_t is_critical, uint8_t is_timeout, uint32_t error_id);
     
 }AT_proc_init_t;
 

@@ -47,6 +47,8 @@ static uint8_t g_cmd_len = 0;
 
 static at_proc_cmd_t g_buff_cmd;
 
+static uint32_t g_cmd_id;
+
 static bool cmd_is_critical = false;
 
 static bool rsp_is_var = false;
@@ -60,9 +62,9 @@ volatile uint32_t g_timeout_ticks;
 volatile uint32_t g_current_ticks;
 
 
-void (* cmd_successful_handle) (uint32_t response_id);
-void (* cmd_successful_data_handle) (at_uart_data_t * u_data1, uint32_t len);
-void (* cmd_failed_handle) (uint8_t is_critical, uint8_t is_timeout, uint32_t error_id);
+void (* cmd_successful_handle) (uint32_t cmd_id, uint32_t response_id);
+void (* cmd_successful_data_handle) (uint32_t cmd_id, at_uart_data_t * u_data1, uint32_t len);
+void (* cmd_failed_handle) (uint32_t cmd_id, uint8_t is_critical, uint8_t is_timeout, uint32_t error_id);
 
 void collect_rsp (uint8_t rsp_char);
 
@@ -92,13 +94,13 @@ void timeout_handler ()
     if (rsp_is_var)
     {
         g_current_status = CMD_SUCCESSFUL;
-        cmd_successful_data_handle (g_arr_at_rsp, g_var_rsp_lcnt);
+        cmd_successful_data_handle (g_cmd_id, g_arr_at_rsp, g_var_rsp_lcnt);
         g_var_rsp_lcnt = 0;
     }
     else
     {
         handle_critical ();
-        cmd_failed_handle (1, cmd_is_critical, AT_PROC_MAX_ERRORS);
+        cmd_failed_handle (g_cmd_id, 1, cmd_is_critical, AT_PROC_MAX_ERRORS);
     }
 
 }
@@ -113,7 +115,7 @@ void chk_rsp ()
             mod_is_busy = false;
             log_printf("Rsp : %d\n", rsp_cnt);
             g_current_status = CMD_SUCCESSFUL;
-            cmd_successful_handle (rsp_cnt);
+            cmd_successful_handle (g_cmd_id, rsp_cnt);
             break;
         }
     }
@@ -137,7 +139,7 @@ void chk_err ()
             {
 //                stop_uart ();
                 mod_is_busy = false;
-                cmd_failed_handle (0, cmd_is_critical, err_cnt);
+                cmd_failed_handle (g_cmd_id, 0, cmd_is_critical, err_cnt);
                 g_current_status = CMD_FAILED;
                 break;
             }
@@ -202,7 +204,7 @@ void var_rsp ()
     }
     else
     {
-        cmd_successful_data_handle (g_arr_at_rsp, g_var_rsp_lcnt);
+        cmd_successful_data_handle (g_cmd_id, g_arr_at_rsp, g_var_rsp_lcnt);
         g_var_rsp_lcnt = 0;
     }
 //    log_printf("C %d L %d c %c\n",g_var_rsp_lcnt,g_arr_at_rsp[g_var_rsp_lcnt].len,
@@ -266,6 +268,8 @@ at_proc_cmd_check_t AT_proc_send_cmd (at_proc_cmd_t * cmd)
     memset (g_arr_err, 0, sizeof(g_arr_err));
     
     g_cmd_len = cmd->cmd.len;
+    
+    g_cmd_id = cmd->cmd_id;
     
     memcpy (g_arr_cmd, cmd->cmd.ptr, cmd->cmd.len);
     
