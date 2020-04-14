@@ -146,6 +146,21 @@ const char cmd_set_dns[] = {'A','T','+','C','D','N','S','C','F','G','=',
 '\"','8','.','8','.','8','.','8','\"',',','\"','8','.','8','.','4','.','4','\"','\r','\n'};
 
 
+const char cmd_http_init[] = {'A','T','+','H','T','T','P','I','N','I','T','\r','\n'};
+
+const char cmd_http_cid[] = {'A','T','+','H','T','T','P','P','A','R','A','=','\"',
+'C','I','D','\"',',','1','\r','\n'};
+
+const char cmd_http_url[] = {'A','T','+','H','T','T','P','P','A','R','A','=','\"',
+'U','R','L','\"',',','\"','w','w','w','.','s','i','m','.','c','o','m','\"','\r','\n'};
+
+const char cmd_http_get[] = {'A','T','+','H','T','T','P','A','C','T','I','O','N',
+'=','0','\r','\n'};
+
+const char cmd_http_read[] = {'A','T','+','H','T','T','P','R','E','A','D','\r','\n'};
+
+const char cmd_http_term[] = {'A','T','+','H','T','T','P','T','E','R','M','\r','\n'};
+
 /**
  * In this module we will have queue of AT_proc_cmds. 
  * On each init or enable call, we'll add appropriate AT commands to that queue
@@ -162,16 +177,12 @@ volatile sim800_oper_status_t g_mod_current_state;
 
 volatile network_status_t g_net_state;
 
+static sim800_operator_t g_sim_oper;
 
 
-void at_process ()
+void set_oper_specific_data ()
 {
-    //Do at process
-}
-
-void network_check_process ()
-{
-    //Add check for network
+    
 }
 
 void send_next_cmd ()
@@ -189,13 +200,13 @@ void reset_cmd (at_proc_cmd_t * cmd)
     memset (cmd, 0, sizeof(at_proc_cmd_t));
 }
 
-void command_processed_successfully (uint32_t rsp_id)
+void command_processed_successfully (uint32_t cmd_id, uint32_t rsp_id)
 {
     log_printf("%s\n",__func__);
 //    send_next_cmd ();
 }
 
-void command_unknown_response (at_uart_data_t * u_data1, uint32_t len)
+void command_unknown_response (uint32_t cmd_id, at_uart_data_t * u_data1, uint32_t len)
 {
     log_printf("%s\n",__func__);
     
@@ -209,7 +220,7 @@ void command_unknown_response (at_uart_data_t * u_data1, uint32_t len)
     
 }
 
-void command_process_failure (uint8_t was_critical, uint8_t was_timeout,uint32_t error_id)
+void command_process_failure (uint32_t cmd_id, uint8_t was_critical, uint8_t was_timeout,uint32_t error_id)
 {
     log_printf("%s\n",__func__);
     
@@ -229,24 +240,11 @@ AT_proc_init_t at_init =
 
 void sim800_oper_init (sim800_operator_t oper)
 {
+    g_sim_oper = oper;
     CBUF_Init(ATbuff);
     AT_proc_init (&at_init);
     //Add Init Seq to command buffer
     at_proc_cmd_t l_at_cmd;
-
-//    
-//    reset_cmd (&l_at_cmd);
-//    l_at_cmd.cmd.ptr = (char *)cmd_power_off;
-//    l_at_cmd.cmd.len = sizeof(cmd_power_off);
-//    l_at_cmd.resp[0].ptr = rsp_std_OK;
-//    l_at_cmd.resp[0].len = sizeof(rsp_std_OK);
-//    l_at_cmd.err[0].ptr = rsp_std_ERR;
-//    l_at_cmd.err[0].len = sizeof(rsp_std_ERR);
-//    l_at_cmd.is_critical = 0;
-//    l_at_cmd.is_response_variable = 1;
-//    l_at_cmd.timeout = 2500;
-//    CBUF_Push(ATbuff, l_at_cmd);
-
 
     reset_cmd (&l_at_cmd);
     l_at_cmd.cmd.ptr = (char *)cmd_init;
@@ -537,11 +535,6 @@ void sim800_oper_process ()
         return;
     }
     return;
-    //while checking for network, try until check_time < (macro)MAX_NETWORK_TIMEOUT
-    //if (chk_nw_flag == true) && (flag_network_detected == false) &&  (check_time < MAX_NETWORK_TIMEOUT)
-        //check network
-    //else
-        //execute command
 }
 
 void sim800_oper_add_ticks (uint32_t ticks)
@@ -561,6 +554,76 @@ uint32_t sim800_oper_conns (sim800_server_conn_t * conn_params)
 
 void sim800_oper_http_req (sim800_http_req_t * http_req)
 {
+    at_proc_cmd_t l_at_cmd;
+    
+    reset_cmd (&l_at_cmd);
+    l_at_cmd.cmd.ptr = (char *)cmd_http_init;
+    l_at_cmd.cmd.len = sizeof(cmd_http_init);
+    l_at_cmd.resp[0].ptr = rsp_std_OK;
+    l_at_cmd.resp[0].len = sizeof(rsp_std_OK);
+    l_at_cmd.err[0].ptr = rsp_std_ERR;
+    l_at_cmd.err[0].len = sizeof(rsp_std_ERR);
+    l_at_cmd.is_critical = 0;
+    l_at_cmd.is_response_variable = 0;
+    l_at_cmd.timeout = 2500;
+    CBUF_Push(ATbuff, l_at_cmd);
+        
+    reset_cmd (&l_at_cmd);
+    l_at_cmd.cmd.ptr = (char *)cmd_http_cid;
+    l_at_cmd.cmd.len = sizeof(cmd_http_cid);
+    l_at_cmd.resp[0].ptr = rsp_std_OK;
+    l_at_cmd.resp[0].len = sizeof(rsp_std_OK);
+    l_at_cmd.err[0].ptr = rsp_std_ERR;
+    l_at_cmd.err[0].len = sizeof(rsp_std_ERR);
+    l_at_cmd.is_critical = 0;
+    l_at_cmd.is_response_variable = 0;
+    l_at_cmd.timeout = 2500;
+    CBUF_Push(ATbuff, l_at_cmd);
+        
+    reset_cmd (&l_at_cmd);
+    l_at_cmd.cmd.ptr = (char *)cmd_http_url;
+    l_at_cmd.cmd.len = sizeof(cmd_http_url);
+    l_at_cmd.resp[0].ptr = rsp_std_OK;
+    l_at_cmd.resp[0].len = sizeof(rsp_std_OK);
+    l_at_cmd.err[0].ptr = rsp_std_ERR;
+    l_at_cmd.err[0].len = sizeof(rsp_std_ERR);
+    l_at_cmd.is_critical = 0;
+    l_at_cmd.is_response_variable = 0;
+    l_at_cmd.timeout = 2500;
+    CBUF_Push(ATbuff, l_at_cmd);
+        
+    reset_cmd (&l_at_cmd);
+    l_at_cmd.cmd.ptr = (char *)cmd_http_get;
+    l_at_cmd.cmd.len = sizeof(cmd_http_get);
+    l_at_cmd.resp[0].ptr = rsp_std_OK;
+    l_at_cmd.resp[0].len = sizeof(rsp_std_OK);
+    l_at_cmd.err[0].ptr = rsp_std_ERR;
+    l_at_cmd.err[0].len = sizeof(rsp_std_ERR);
+    l_at_cmd.is_critical = 0;
+    l_at_cmd.is_response_variable = 0;
+    l_at_cmd.timeout = 2500;
+    CBUF_Push(ATbuff, l_at_cmd);
+        
+    reset_cmd (&l_at_cmd);
+    l_at_cmd.cmd.ptr = (char *)cmd_http_read;
+    l_at_cmd.cmd.len = sizeof(cmd_http_read);
+    l_at_cmd.is_critical = 0;
+    l_at_cmd.is_response_variable = 1;
+    l_at_cmd.timeout = 2500;
+    CBUF_Push(ATbuff, l_at_cmd);
+        
+    reset_cmd (&l_at_cmd);
+    l_at_cmd.cmd.ptr = (char *)cmd_http_term;
+    l_at_cmd.cmd.len = sizeof(cmd_http_term);
+    l_at_cmd.resp[0].ptr = rsp_std_OK;
+    l_at_cmd.resp[0].len = sizeof(rsp_std_OK);
+    l_at_cmd.err[0].ptr = rsp_std_ERR;
+    l_at_cmd.err[0].len = sizeof(rsp_std_ERR);
+    l_at_cmd.is_critical = 0;
+    l_at_cmd.is_response_variable = 0;
+    l_at_cmd.timeout = 2500;
+    CBUF_Push(ATbuff, l_at_cmd);
+        
 }
 
 sim800_conn_status_t sim800_oper_get_gprs_status ()

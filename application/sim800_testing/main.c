@@ -179,6 +179,9 @@ int main(void)
 //    log_printf("Here\n");
     sim800_oper_init (SIM800_VODAFONE);
     sim800_oper_enable_gprs ();
+    sim800_http_req_t l_http_req;
+    sim800_oper_http_req (&l_http_req);
+    
     ms_timer_start (MS_TIMER0, MS_REPEATED_CALL, MS_TIMER_TICKS_MS(MS_TIEMR_EPD_RR), ms_timer_handler);
     while (true)
     {

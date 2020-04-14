@@ -79,8 +79,8 @@ typedef struct
 /** List of HTTP request types */
 typedef enum
 {
-    SIM800_HTTP_POST,
     SIM800_HTTP_GET,
+    SIM800_HTTP_POST,
 }sim800_req_type_t;
 
 /** Structure to store information needed to access certain resource from target server */
