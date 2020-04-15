@@ -64,22 +64,29 @@ typedef struct
     uint8_t body_len;
 }sim800_oper_sms_t;
 
-/** Structure to store data needed to establish connection with server */
+/** Structure to store data needed to establish connection with server
+ * @note : Address will be "server"/"resource":"port" 
+ * @note : HTTP Timeout is 120s
+ */
 typedef struct
 {
-    /** supports Only IP address as of now. string format "x.x.x.x" */
+    
     char * server_ptr;
     uint8_t server_len;
     
-    /** Port number (will get converted into string) */
-    uint32_t port;    
+    char * resource_ptr;
+    uint8_t resource_len;
+    
+    char * port_ptr;    
+    uint8_t port_len;   
+    
 }sim800_server_conn_t;
 
 /** List of HTTP request types */
 typedef enum
 {
-    SIM800_HTTP_GET,
-    SIM800_HTTP_POST,
+    SIM800_HTTP_GET = 0x30,
+    SIM800_HTTP_POST = 0x31,
 }sim800_req_type_t;
 
 /** Structure to store information needed to access certain resource from target server */

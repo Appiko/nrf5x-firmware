@@ -150,15 +150,27 @@ const char cmd_http_init[] = {'A','T','+','H','T','T','P','I','N','I','T','\r','
 const char cmd_http_cid[] = {'A','T','+','H','T','T','P','P','A','R','A','=','\"',
 'C','I','D','\"',',','1','\r','\n'};
 
-const char cmd_http_url[] = {'A','T','+','H','T','T','P','P','A','R','A','=','\"',
-'U','R','L','\"',',','\"','w','w','w','.','s','i','m','.','c','o','m','\"','\r','\n'};
+static char cmd_http_url[MAX_LEN_CMD];
+//const char cmd_http_url[] = {'A','T','+','H','T','T','P','P','A','R','A','=','\"',
+//'U','R','L','\"',',','\"','w','w','w','.','s','i','m','.','c','o','m','\"','\r','\n'};
 
 const char cmd_http_get[] = {'A','T','+','H','T','T','P','A','C','T','I','O','N',
 '=','0','\r','\n'};
 
+const char cmd_http_post[] = {'A','T','+','H','T','T','P','A','C','T','I','O','N',
+'=','1','\r','\n'};
+
+static char cmd_http_set_pdata[MAX_LEN_CMD];
+const char rsp_http_set_pdata[] = {'D','O','W','N','L','O','A','D','\n'};
+//static char cmd_http_set_pdata[] = {'A','T','+','H','T','T','P','D','A','T','A','=','7',',','7','0','0','0','\r','\n'};
+
 const char cmd_http_read[] = {'A','T','+','H','T','T','P','R','E','A','D','\r','\n'};
 
 const char cmd_http_term[] = {'A','T','+','H','T','T','P','T','E','R','M','\r','\n'};
+
+static char data_http_post[MAX_LEN_CMD];
+
+static uint32_t http_pdata_len = 0;
 
 /**
  * In this module we will have queue of AT_proc_cmds. 
@@ -254,10 +266,15 @@ void reset_cmd (at_proc_cmd_t * cmd)
     memset (cmd, 0, sizeof(at_proc_cmd_t));
 }
 
+void send_data ()
+{
+    AT_proc_send_cmd_no_rsp ((uint8_t *)data_http_post, http_pdata_len, 5000);
+}
+
 void command_processed_successfully (uint32_t cmd_id, uint32_t rsp_id)
 {
     log_printf("%s\n",__func__);
-//    send_next_cmd ();
+    
 }
 
 void command_unknown_response (uint32_t cmd_id, at_uart_data_t * u_data1, uint32_t len)
@@ -270,6 +287,11 @@ void command_unknown_response (uint32_t cmd_id, at_uart_data_t * u_data1, uint32
         memset (l_str, 0, sizeof(l_str));
         memcpy (l_str, u_data1[cnt].ptr, u_data1[cnt].len);
         log_printf ("%s\n", l_str);
+    }
+    if(cmd_id == 0x3333)
+    {
+        log_printf("Here\n");
+        send_data ();
     }
     
 }
@@ -324,18 +346,6 @@ void sim800_oper_init (sim800_operator_t oper)
     l_at_cmd.is_response_variable = 0;
     l_at_cmd.timeout = 2500;
     CBUF_Push(ATbuff, l_at_cmd);
-    
-//    reset_cmd (&l_at_cmd);
-//    l_at_cmd.cmd.ptr = cmd_echo_off;
-//    l_at_cmd.cmd.len = sizeof(cmd_echo_off);
-//    l_at_cmd.resp[0].ptr = rsp_std_OK;
-//    l_at_cmd.resp[0].len = sizeof(rsp_std_OK);
-//    l_at_cmd.err[0].ptr = rsp_std_ERR;
-//    l_at_cmd.err[0].len = sizeof(rsp_std_ERR);
-//    l_at_cmd.is_critical = 0;
-//    l_at_cmd.is_response_variable = 0;
-//    l_at_cmd.timeout = 2500;
-//    CBUF_Push(ATbuff, l_at_cmd);
     
     reset_cmd (&l_at_cmd);
     l_at_cmd.cmd.ptr = (char *)cmd_time_fmt;
@@ -603,12 +613,87 @@ void sim800_oper_add_ticks (uint32_t ticks)
 
 uint32_t sim800_oper_conns (sim800_server_conn_t * conn_params)
 {
+    char l_http_head[] = {'A','T','+','H','T','T','P','P','A','R','A','=','\"',
+        'U','R','L','\"',',','\"','\0'};
+    char l_http_tail[] = {'\"','\r','\n','\0'};
+    strcpy (cmd_http_url, l_http_head);
+    strcat (cmd_http_url, conn_params->server_ptr);
+    //ToDo calc max resource len
+    if ((conn_params->resource_ptr) && (conn_params->resource_len < MAX_LEN_CMD))
+    {
+        strcat (cmd_http_url, "/");
+        strcat (cmd_http_url, conn_params->resource_ptr);
+    }
+    if ((conn_params->port_ptr) && (conn_params->port_len < MAX_LEN_CMD))
+    {
+        strcat (cmd_http_url, ":");
+        strcat (cmd_http_url, conn_params->port_ptr );
+    }
     
+    strcat (cmd_http_url, l_http_tail);
+    
+    log_printf ("HTTP Param : %s\n", cmd_http_url);
     return 0;
+}
+
+
+void reverse(char *s)
+{
+    uint32_t length, c;
+    char *begin, *end, temp;
+
+    length = strlen (s);
+    begin  = s;
+    end    = s;
+
+    for (c = 0; c < length - 1; c++)
+    {
+        end++;
+    }
+
+    for (c = 0; c < length/2; c++)
+    {        
+        temp   = *end;
+        *end   = *begin;
+        *begin = temp;
+
+        begin++;
+        end--;
+    }
+}
+ 
+void assign_data_len (uint32_t len)
+{
+    char l_set_pdata_head[] = {'A','T','+','H','T','T','P','D','A','T','A','=','\0'};
+    char l_set_pdata_tail[] = {',','7','0','0','0','\r','\n','\0'};
+    char l_int_str[12];
+    memset (l_int_str, 0, sizeof(l_int_str));
+    uint32_t i = 0;
+    strcpy (cmd_http_set_pdata, l_set_pdata_head);
+    if (len == 0)
+    {
+        l_int_str[i++] = '0';
+        l_int_str[i] = '\0';
+    }
+    else
+    {
+        while (len != 0) 
+        { 
+            int rem = len % 10; 
+            l_int_str[i++] = rem + '0'; 
+            len = len/10; 
+        }
+        reverse (l_int_str);
+        
+    }
+    strcat (cmd_http_set_pdata, l_int_str);
+    strcat (cmd_http_set_pdata, l_set_pdata_tail);
 }
 
 void sim800_oper_http_req (sim800_http_req_t * http_req)
 {
+    
+    
     at_proc_cmd_t l_at_cmd;
     
     reset_cmd (&l_at_cmd);
@@ -646,18 +731,58 @@ void sim800_oper_http_req (sim800_http_req_t * http_req)
     l_at_cmd.is_response_variable = 0;
     l_at_cmd.timeout = 2500;
     CBUF_Push(ATbuff, l_at_cmd);
+    
+    if(http_req->req_type == SIM800_HTTP_GET)
+    {
+
+        reset_cmd (&l_at_cmd);
+        l_at_cmd.cmd.ptr = (char *)cmd_http_get;
+        l_at_cmd.cmd.len = sizeof(cmd_http_get);
+        l_at_cmd.resp[0].ptr = (char *)rsp_http_set_pdata;
+        l_at_cmd.resp[0].len = sizeof(rsp_http_set_pdata);
+        l_at_cmd.err[0].ptr = rsp_std_ERR;
+        l_at_cmd.err[0].len = sizeof(rsp_std_ERR);
+        l_at_cmd.is_critical = 0;
+        l_at_cmd.is_response_variable = 1;
+        l_at_cmd.timeout = 7000;
+        CBUF_Push(ATbuff, l_at_cmd);
+    }
+    else
+    {
+        assign_data_len (http_req->len);
         
-    reset_cmd (&l_at_cmd);
-    l_at_cmd.cmd.ptr = (char *)cmd_http_get;
-    l_at_cmd.cmd.len = sizeof(cmd_http_get);
-    l_at_cmd.resp[0].ptr = rsp_std_OK;
-    l_at_cmd.resp[0].len = sizeof(rsp_std_OK);
-    l_at_cmd.err[0].ptr = rsp_std_ERR;
-    l_at_cmd.err[0].len = sizeof(rsp_std_ERR);
-    l_at_cmd.is_critical = 0;
-    l_at_cmd.is_response_variable = 0;
-    l_at_cmd.timeout = 2500;
-    CBUF_Push(ATbuff, l_at_cmd);
+        log_printf ("Set Data req : %s\n", cmd_http_set_pdata);
+    
+        memcpy (data_http_post, http_req->payload_ptr, http_req->len);
+        
+        http_pdata_len = http_req->len;
+        
+        reset_cmd (&l_at_cmd);
+        l_at_cmd.cmd_id = 0x3333;
+        l_at_cmd.cmd.ptr = (char *)cmd_http_set_pdata;
+        l_at_cmd.cmd.len = sizeof(cmd_http_set_pdata);
+        l_at_cmd.resp[0].ptr = rsp_std_OK;
+        l_at_cmd.resp[0].len = sizeof(rsp_std_OK);
+        l_at_cmd.err[0].ptr = rsp_std_ERR;
+        l_at_cmd.err[0].len = sizeof(rsp_std_ERR);
+        l_at_cmd.is_critical = 0;
+        l_at_cmd.is_response_variable = 1;
+        l_at_cmd.timeout = 2000;
+        CBUF_Push(ATbuff, l_at_cmd);
+
+        reset_cmd (&l_at_cmd);
+        l_at_cmd.cmd.ptr = (char *)cmd_http_post;
+        l_at_cmd.cmd.len = sizeof(cmd_http_post);
+        l_at_cmd.resp[0].ptr = rsp_std_OK;
+        l_at_cmd.resp[0].len = sizeof(rsp_std_OK);
+        l_at_cmd.err[0].ptr = rsp_std_ERR;
+        l_at_cmd.err[0].len = sizeof(rsp_std_ERR);
+        l_at_cmd.is_critical = 0;
+        l_at_cmd.is_response_variable = 1;
+        l_at_cmd.timeout = 5000;
+        CBUF_Push(ATbuff, l_at_cmd);
+
+    }
         
     reset_cmd (&l_at_cmd);
     l_at_cmd.cmd.ptr = (char *)cmd_http_read;
@@ -667,17 +792,17 @@ void sim800_oper_http_req (sim800_http_req_t * http_req)
     l_at_cmd.timeout = 2500;
     CBUF_Push(ATbuff, l_at_cmd);
         
-    reset_cmd (&l_at_cmd);
-    l_at_cmd.cmd.ptr = (char *)cmd_http_term;
-    l_at_cmd.cmd.len = sizeof(cmd_http_term);
-    l_at_cmd.resp[0].ptr = rsp_std_OK;
-    l_at_cmd.resp[0].len = sizeof(rsp_std_OK);
-    l_at_cmd.err[0].ptr = rsp_std_ERR;
-    l_at_cmd.err[0].len = sizeof(rsp_std_ERR);
-    l_at_cmd.is_critical = 0;
-    l_at_cmd.is_response_variable = 0;
-    l_at_cmd.timeout = 2500;
-    CBUF_Push(ATbuff, l_at_cmd);
+//    reset_cmd (&l_at_cmd);
+//    l_at_cmd.cmd.ptr = (char *)cmd_http_term;
+//    l_at_cmd.cmd.len = sizeof(cmd_http_term);
+//    l_at_cmd.resp[0].ptr = rsp_std_OK;
+//    l_at_cmd.resp[0].len = sizeof(rsp_std_OK);
+//    l_at_cmd.err[0].ptr = rsp_std_ERR;
+//    l_at_cmd.err[0].len = sizeof(rsp_std_ERR);
+//    l_at_cmd.is_critical = 0;
+//    l_at_cmd.is_response_variable = 0;
+//    l_at_cmd.timeout = 2500;
+//    CBUF_Push(ATbuff, l_at_cmd);
         
 }
 
