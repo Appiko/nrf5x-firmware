@@ -58,52 +58,32 @@ void leds_init(void)
     hal_gpio_pin_write(LED_2, !LEDS_ACTIVE_STATE);
 }
 
+const char addr[] = {"https://docs.postman-echo.com/?version=latest"};
+//const char res[] = {"random"};
+//const char port[] = {"8080"};
+
+
+const char post_msg[] = {"Hi..!!\r\n"};
+
+static sim800_server_conn_t server_info = 
+{
+    .server_ptr = (char *)addr,
+    .server_len = sizeof (addr),
+//    .resource_ptr = (char *)res,
+//    .resource_len = sizeof (res),
+//    .port_ptr = (char *)port,
+//    .port_len = sizeof(port),
+};
+
 void ms_timer_handler ()
 {
-//    log_printf("%s\n",__func__);
     sim800_oper_add_ticks (MS_TIMER_TICKS_MS(MS_TIEMR_EPD_RR));
 }
 
-//void uarte_rx_handler (uint8_t byte)
-//{
-//    log_printf ("%c", byte);
-//    sim800_response_handler (&state_of_sim800_num1, byte);
-//}
-//
-//void print_uart (char * str)
-//{
-//    uint8_t i=0;
-//    while(str[i])
-//    {
-//        i++;
-//    }
-//    str[i++] = '\n';
-//    hal_uarte_puts ((uint8_t*)str, i);
-//}
-//
 void HardFault_IRQHandler ()
 {
     log_printf("%s\n",__func__);
 }
-
-uint8_t init1[] = {'A','T','\n'};
-//
-//
-uint8_t init2[] = {'A','T','+','C','F','U','N','=','1','\n','\n'};
-//
-uint8_t init3[] = {"AT+CPIN?\n"};
-uint8_t init31[] = {"AT+CSPN?\n"};
-//uint8_t init4[] = {'A','T','+','C','S','T','T','=','"','a','i','r','t','e','l',
-//'g','p','r','s','.','c','o','m','"',',','"','"',',','"','"','\n'};
-//uint8_t init5[] = {"AT+CIICR\n"};
-//uint8_t init6[] = {"AT+CIFSR\n"};
-//uint8_t init7[] = {'A','T','+','C','I','P','S','T','A','R','T','=','"','T','C','P',
-//'"',',','"','e','x','p','l','o','r','e','e','m','b','e','d','d','e','d','.',
-//'c','o','m','"',',','8','0','\n'};
-//uint8_t init8[] = {"AT+CIPSEND=63\n"};
-//uint8_t init9[] = {"GET exploreembedded.com/wiki/images/1/15/Hello.txt HTTP/1.0 \n\n"};   
-//
-//
 
 int main(void)
 {
@@ -179,7 +159,13 @@ int main(void)
 //    log_printf("Here\n");
     sim800_oper_init (SIM800_VODAFONE);
     sim800_oper_enable_gprs ();
-    sim800_http_req_t l_http_req;
+    sim800_oper_conns (&server_info);
+    sim800_http_req_t l_http_req = 
+    {
+        .req_type = SIM800_HTTP_POST,
+        .payload_ptr = (uint8_t *)post_msg,
+        .len = (sizeof(post_msg) - 3)
+    };
     sim800_oper_http_req (&l_http_req);
     
     ms_timer_start (MS_TIMER0, MS_REPEATED_CALL, MS_TIMER_TICKS_MS(MS_TIEMR_EPD_RR), ms_timer_handler);
