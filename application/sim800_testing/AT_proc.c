@@ -23,6 +23,7 @@
 #include "string.h"
 #include "nrf_util.h"
 #include "ms_timer.h"
+#include "hal_nop_delay.h"
 
 typedef enum 
 {
@@ -239,7 +240,7 @@ void collect_rsp (uint8_t rsp_char)
     static uint8_t l_prev_char;
     response[len] = rsp_char;
     len++;
-    log_printf ("%c", rsp_char);
+//    log_printf ("%c", rsp_char);
     if((l_prev_char == '\r') && (rsp_char == '\n'))
     {
         log_printf("%s\n",(char *)response);
@@ -307,7 +308,11 @@ uint8_t AT_proc_is_busy ()
 
 void AT_proc_send_cmd_no_rsp (uint8_t * cmd, uint32_t len, uint32_t duration)
 {
+    mod_is_busy = true;
+    g_current_status = CMD_SUCCESSFUL;
     hal_uarte_puts (cmd,len);
+    hal_nop_delay_ms (duration);
+    mod_is_busy = false;
 }
 
 void AT_proc_add_ticks (uint32_t ticks)
