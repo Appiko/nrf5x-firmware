@@ -54,7 +54,6 @@ typedef enum
     SIM800_VODAFONE,
     SIM800_IDEA,
     SIM800_AIRTEL,
-    SIM800_DOCOMO,
 }sim800_operator_t;
 
 /** Structure to store data needed to send sms */

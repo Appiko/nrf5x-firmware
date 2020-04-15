@@ -111,15 +111,14 @@ const char err3l2_gprs_reg[] = {'+','C','R','E','G',':',' ','0',',','4','\r','\n
 //
 const char cmd_set_brr_ctype[] = {'A','T','+','S','A','P','B','R','=','3',',','1',',',
     '\"','C','o','n','t','y','p','e','\"',',','\"','G','P','R','S','\"','\r','\n'}; //Res : std
-const char cmd_set_brr_apn[] = {'A','T','+','S','A','P','B','R','=','3',',','1',',',
-    '\"','A','P','N','\"',',','\"','w','w','w','\"','\r','\n'};//Res : std
+static char cmd_set_brr_apn[MAX_LEN_CMD];
+
 const char cmd_set_brr_usr[]= {'A','T','+','S','A','P','B','R','=','3',',','1',',',
     '\"','U','S','E','R','\"',',','\"','\"','\r','\n'};//Res: std
 const char cmd_set_brr_pwd[] = {'A','T','+','S','A','P','B','R','=','3',',','1',',',
     '\"','P','W','D','\"',',','\"','\"','\r','\n'};//Res: std
 
-const char cmd_ip_cntxt[] = {'A','T','+','C','G','D','C','O','N','T','=','1',',',
-    '\"','I','P','\"',',','\"','w','w','w','\"','\r','\n'};
+static char cmd_ip_cntxt[MAX_LEN_CMD];
 
 const char cmd_power_off[] = {'A','T','+','C','P','O','W','D','=','1','\r','\n'};
 
@@ -136,7 +135,7 @@ const char cmd_sel_dtx_mode[] = {'A','T','+','C','I','P','Q','S','E','N','D','='
 
 //static char cmd_get_net_data[] = {'A','T','+','C','I','P','R','X','G','E','T','=','1','\r','\n'};
 
-const char cmd_tsk_start[] = {'A','T','+','C','S','T','T','=','\"','w','w','w','\"',',','\"','\"',',','\"','\"','\r','\n'};
+static char cmd_tsk_start[MAX_LEN_CMD];
 
 const char cmd_con_gprs[] = {'A','T','+','C','I','I','C','R','\r','\n'};
 
@@ -182,6 +181,61 @@ static sim800_operator_t g_sim_oper;
 
 void set_oper_specific_data ()
 {
+    memset (cmd_set_brr_apn, 0x00, sizeof(cmd_set_brr_apn));
+    memset (cmd_tsk_start, 0x00, sizeof(cmd_tsk_start));
+    
+    hal_nop_delay_ms (100);
+    
+    static char l_ip_cntxt_head[] = {'A','T','+','C','G','D','C','O','N','T','=','1',',',
+    '\"','I','P','\"',',','\"','\0'};    
+    static char l_ip_cntxt_tail[] = {'\"','\r','\n','\0'};
+
+    static char l_tsk_head[] = {'A','T','+','C','S','T','T','=','\"','\0'};
+    static char l_tsk_tail[] = {'\"',',','\"','\"',',','\"','\"','\r','\n','\0'};
+
+    static char l_set_brr_head[] = {'A','T','+','S','A','P','B','R','=','3',',','1',',',
+    '\"','A','P','N','\"',',','\"','\0'};
+    static char l_set_brr_tail[] = {'\"','\r','\n','\0'};
+
+    strcpy (cmd_tsk_start, l_tsk_head);
+    strcpy (cmd_set_brr_apn, l_set_brr_head);
+    strcpy (cmd_ip_cntxt, l_ip_cntxt_head);
+    
+    switch (g_sim_oper)
+    {
+        case SIM800_AIRTEL :
+        {
+            strcat (cmd_tsk_start, "airtelgprs.com");
+            strcat (cmd_set_brr_apn, "airtelgprs.com");
+            strcat (cmd_ip_cntxt, "airtelgprs.com");
+            break;
+        }
+        case SIM800_BSNL : 
+        {
+            strcat (cmd_tsk_start, "bsnlnet");
+            strcat (cmd_set_brr_apn, "bsnlnet");
+            strcat (cmd_ip_cntxt, "bsnlnet");
+            break;
+        }
+        case SIM800_IDEA :
+        {
+            strcat (cmd_tsk_start, "IMIS");
+            strcat (cmd_set_brr_apn, "IMIS");
+            strcat (cmd_ip_cntxt, "IMIS");
+            break;
+        }
+        case SIM800_VODAFONE :
+        {
+            strcat (cmd_tsk_start, "www");
+            strcat (cmd_set_brr_apn, "www");
+            strcat (cmd_ip_cntxt, "www");
+            break;
+        }
+    }
+    
+    strcat (cmd_set_brr_apn, l_set_brr_tail);
+    strcat (cmd_tsk_start, l_tsk_tail);
+    strcat (cmd_ip_cntxt, l_ip_cntxt_tail);    
     
 }
 
@@ -241,6 +295,7 @@ AT_proc_init_t at_init =
 void sim800_oper_init (sim800_operator_t oper)
 {
     g_sim_oper = oper;
+    set_oper_specific_data ();
     CBUF_Init(ATbuff);
     AT_proc_init (&at_init);
     //Add Init Seq to command buffer
