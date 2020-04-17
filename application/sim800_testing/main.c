@@ -45,6 +45,8 @@
 #include "sim800_oper.h"
 #define MS_TIEMR_EPD_RR 1000
 
+#define MS_TIMER_SRV_FREQ (3*60*1000)
+
 
 void leds_init(void)
 {
@@ -80,6 +82,16 @@ void ms_timer_handler ()
     sim800_oper_add_ticks (MS_TIMER_TICKS_MS(MS_TIEMR_EPD_RR));
 }
 
+void periodic_post_req ()
+{
+    sim800_http_req_t l_http_req = 
+    {
+        .req_type = SIM800_HTTP_POST,
+        .payload_ptr = (uint8_t *)post_msg,
+        .len = (sizeof(post_msg))
+    };
+    sim800_oper_http_req (&l_http_req);}
+
 void HardFault_IRQHandler ()
 {
     log_printf("%s\n",__func__);
@@ -106,6 +118,7 @@ int main(void)
     sim800_oper_http_req (&l_http_req);
     
     ms_timer_start (MS_TIMER0, MS_REPEATED_CALL, MS_TIMER_TICKS_MS(MS_TIEMR_EPD_RR), ms_timer_handler);
+    ms_timer_start (MS_TIMER1, MS_REPEATED_CALL, MS_TIMER_TICKS_MS(MS_TIMER_SRV_FREQ), periodic_post_req);
     while (true)
     {
         sim800_oper_process ();
