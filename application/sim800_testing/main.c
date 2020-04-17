@@ -58,12 +58,12 @@ void leds_init(void)
     hal_gpio_pin_write(LED_2, !LEDS_ACTIVE_STATE);
 }
 
-const char addr[] = {"https://docs.postman-echo.com/?version=latest"};
+const char addr[] = {"http://ptsv2.com/t/appiko/post"};
 //const char res[] = {"random"};
 //const char port[] = {"8080"};
 
 
-const char post_msg[] = {"Hi..!!\r\n"};
+const char post_msg[] = {'H','i','.','.','!','!','\r','\n'};
 
 static sim800_server_conn_t server_info = 
 {
@@ -94,69 +94,6 @@ int main(void)
     
     lfclk_init(LFCLK_SRC_Xtal);
     ms_timer_init(APP_IRQ_PRIORITY_LOW);
-//    hal_uarte_init (HAL_UARTE_BAUD_57600, APP_IRQ_PRIORITY_MID);
-//    hal_uarte_start_rx (uarte_rx_handler);
-//    hal_uarte_putchar ('\0');
-//    hal_uarte_putchar ('\n');
-//    sim800_init (&state_of_sim800_num1, print_uart, 1,0);
-//    sim800_AT_request (&state_of_sim800_num1);
-//    hal_nop_delay_ms (15000);
-//    hal_nop_delay_ms (1000);
-//    hal_uarte_process ();
-    
-//    hal_uarte_puts (init1, sizeof(init1));
-//    hal_nop_delay_ms (1000);
-//    hal_uarte_process ();
-//    hal_nop_delay_ms (30000);
-//    hal_uarte_puts (init2, sizeof(init2));
-//    hal_nop_delay_ms (15000);
-//    hal_uarte_process ();
-//    
-//    hal_nop_delay_ms (7000);
-//    hal_uarte_puts (init3, sizeof(init3));
-//    hal_nop_delay_ms (700);
-//    hal_uarte_process ();
-//    
-//    hal_uarte_puts (init31, sizeof(init31));
-//    while(state_of_sim800_num1.communication_stage != proc_completed);
-//    sim800_ATplusCFUN_request (&state_of_sim800_num1);
-//
-//    while(state_of_sim800_num1.communication_stage != proc_completed)
-//    {
-//        hal_nop_delay_ms (5000);
-//        hal_uarte_process ();
-//        log_printf("Stuck in Loop1\n");
-//    }
-//    sim800_ATplusCPINquestion_request (&state_of_sim800_num1);
-//    hal_nop_delay_ms (5000);
-//    hal_uarte_process ();
-//    
-//    
-//    sim800_ATplusCSTT_request (&state_of_sim800_num1);
-//    while(state_of_sim800_num1.communication_stage != proc_completed)
-//    {
-//        hal_nop_delay_ms (5000);
-//        hal_uarte_process ();
-//        log_printf("Stuck in Loop2\n");
-//    }
-////    hal_nop_delay_ms (10000);
-////    hal_uarte_process ();
-////    hal_nop_delay_ms (5000);
-//    sim800_ATplusCIICR_request (&state_of_sim800_num1);
-//    while(state_of_sim800_num1.communication_stage != proc_completed)
-//    {
-//        hal_nop_delay_ms (5000);
-//        hal_uarte_process ();
-//        log_printf("Stuck in Loop3\n");
-//    }
-//    sim800_ATplusCIFSR_request(&state_of_sim800_num1);
-//    while(state_of_sim800_num1.communication_stage != proc_completed)
-//    {
-//        hal_nop_delay_ms (5000);
-//        hal_uarte_process ();
-//        log_printf("Stuck in Loop4\n");
-//    }
-//    log_printf("Here\n");
     sim800_oper_init (SIM800_VODAFONE);
     sim800_oper_enable_gprs ();
     sim800_oper_conns (&server_info);
@@ -164,7 +101,7 @@ int main(void)
     {
         .req_type = SIM800_HTTP_POST,
         .payload_ptr = (uint8_t *)post_msg,
-        .len = (sizeof(post_msg) - 3)
+        .len = (sizeof(post_msg))
     };
     sim800_oper_http_req (&l_http_req);
     
