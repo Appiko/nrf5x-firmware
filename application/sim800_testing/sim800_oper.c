@@ -19,6 +19,7 @@
 
 #include "sim800_oper.h"
 #include "AT_proc.h"
+#include "sim800_cmd_id.h"
 #include "log.h"
 
 
@@ -32,12 +33,14 @@
 
 #include "CBUF.h"
 #include "hal_nop_delay.h"
+#include "ms_timer.h"
 /** Check if MSG_SIZE is power of 2 */
 #if (!(!(ATbuff_SIZE & (ATbuff_SIZE-1)) && ATbuff_SIZE))
 #error ATbuff_SIZE must be a power of 2
 #endif
 
 #define MAX_LEN_CMD 128
+#define MAX_LEN_RSP 512
 
 
 
@@ -63,11 +66,17 @@ static char rsp_std_ERR[] = {'E','R','R','O','R','\r','\n'};
  * ATE0 -- 
  * AT+CPIN? -- 
  */
+
+#define NET_CHK_FREQ    (MS_TIMER_TICKS_MS(10000))
+
 const char cmd_init[] = {'A','T','\r','\n'}; //Res : std reply
 const char cmd_fac_reset[] = {'A','T','&','F','Z','\r','\n'};
 //static char cmd_echo_off[] = {'A','T','E','0','\r','\n'}; //Res : ATE0 --std reply
 const char cmd_time_fmt[] = {'A','T','+','C','L','T','S','=','1','\r','\n'}; //Res : std reply
 const char cmd_save_nvm[] = {'A','T','&','W','\r','\n'};
+
+const char cmd_dis_full[] = {'A','T','+','C','F','U','N','=','0','\r','\n'}; //Res : std reply
+
 const char cmd_en_full[] = {'A','T','+','C','F','U','N','=','1','\r','\n'}; //Res : std reply
 
 const char cmd_chk_sim[] = {'A','T','+','C','P','I','N','?','\r','\n'};
@@ -86,6 +95,9 @@ const char rsp2l2_gprs_reg[] = {'+','C','R','E','G',':',' ','0',',','5','\r','\n
 const char err1l2_gprs_reg[] = {'+','C','R','E','G',':',' ','0',',','0','\r','\n'};
 const char err2l2_gprs_reg[] = {'+','C','R','E','G',':',' ','0',',','2','\r','\n'};
 const char err3l2_gprs_reg[] = {'+','C','R','E','G',':',' ','0',',','4','\r','\n'};
+
+
+const char cmd_chk_net[] = {'A','T','+','C','G','A','T','T','?','\r','\n'};
 
 /**
  * Connect to GPRS
@@ -139,7 +151,7 @@ static char cmd_tsk_start[MAX_LEN_CMD];
 
 const char cmd_con_gprs[] = {'A','T','+','C','I','I','C','R','\r','\n'};
 
-//static char cmd_get_ip[] = {'A','T','+','C','I','F','S','R','\r','\n'};
+const char cmd_get_ip[] = {'A','T','+','C','I','F','S','R','\r','\n'};
 
 const char cmd_set_dns[] = {'A','T','+','C','D','N','S','C','F','G','=',
 '\"','8','.','8','.','8','.','8','\"',',','\"','8','.','8','.','4','.','4','\"','\r','\n'};
@@ -148,6 +160,9 @@ const char cmd_set_dns[] = {'A','T','+','C','D','N','S','C','F','G','=',
 const char cmd_http_init[] = {'A','T','+','H','T','T','P','I','N','I','T','\r','\n'};
 
 const char cmd_http_cid[] = {'A','T','+','H','T','T','P','P','A','R','A','=','\"',
+'C','I','D','\"',',','1','\r','\n'};
+
+const char cmd_http_type[] = {'A','T','+','H','T','T','P','P','A','R','A','=','\"',
 'C','I','D','\"',',','1','\r','\n'};
 
 static char cmd_http_url[MAX_LEN_CMD];
@@ -172,6 +187,12 @@ static char data_http_post[MAX_LEN_CMD];
 
 static uint32_t http_pdata_len = 0;
 
+//static uint32_t g_rerun_cnt = 0;
+//
+//static uint8_t g_rx_data[MAX_LEN_RSP];
+
+
+
 /**
  * In this module we will have queue of AT_proc_cmds. 
  * On each init or enable call, we'll add appropriate AT commands to that queue
@@ -184,12 +205,43 @@ typedef enum
     NET_FOUND,
 }network_status_t;
 
+
+typedef enum
+{
+    CRITIC_MOD_INIT     = SIM800_MOD_INIT,
+    CRITIC_MOD_CHK_SIM  = SIM800_MOD_CHK_SIM,
+    CRITIC_NET_CHK      = SIM800_NET_CHK,
+    CRITIC_NET_EN_GPRS  = SIM800_NET_EN_GPRS,            
+}critical_cmd;
+
+typedef enum
+{
+    INFO_NET_BCHK       = SIM800_NET_BCHK,
+    INFO_NET_GET_IP     = SIM800_NET_GET_IP,
+    INFO_HTTP_RQST_GET  = SIM800_HTTP_RQST_GET,
+    INFO_HTTP_RQST_POST = SIM800_HTTP_RQST_POST,
+    INFO_HTTP_DATA_READ = SIM800_HTTP_DATA_READ,
+    INFO_HTTP_DATA_SEND = SIM800_HTTP_DATA_SEND,
+            
+}info_rsp;
+
 volatile sim800_oper_status_t g_mod_current_state;
 
+//static sim800_conn_status_t g_gprs_current_state;
+//
 volatile network_status_t g_net_state;
 
 static sim800_operator_t g_sim_oper;
 
+
+void check_network ()
+{
+    
+}
+
+void check_gprs ()
+{
+}
 
 void set_oper_specific_data ()
 {
@@ -251,15 +303,25 @@ void set_oper_specific_data ()
     
 }
 
-void send_next_cmd ()
+void critical_fail_handler (uint32_t cmd_id)
 {
-    if (CBUF_Len(ATbuff))
-    {
-        at_proc_cmd_t l_cmd;
-        l_cmd = CBUF_Pop(ATbuff);
-        AT_proc_send_cmd (&l_cmd);
-    }
+//TODO stop sim800_oper module if critical command fails after n reruns
+//    if(g_rerun_cnt)
+//    {
+//    }
+//    else
+//    {
+//        switch ((critical_cmd) cmd_id)
+//        {
+//            case CRITIC_MOD_INIT : 
+//            {
+//                break;
+//            }
+//        }
+//    }
+    AT_proc_repeat_last_cmd ();   
 }
+
 
 void reset_cmd (at_proc_cmd_t * cmd)
 {
@@ -288,10 +350,41 @@ void command_unknown_response (uint32_t cmd_id, at_uart_data_t * u_data1, uint32
         memcpy (l_str, u_data1[cnt].ptr, u_data1[cnt].len);
         log_printf ("%s\n", l_str);
     }
-    if(cmd_id == 0x3333)
+    
+    switch ((info_rsp)cmd_id)
     {
-        log_printf("Here\n");
-        send_data ();
+        case INFO_NET_BCHK : 
+        {
+            break;
+        }
+        
+        case INFO_NET_GET_IP :
+        {
+            break;
+        }
+        
+        case INFO_HTTP_DATA_SEND :
+        {
+            send_data ();
+            break;
+        }
+        
+        case INFO_HTTP_DATA_READ : 
+        {
+            
+            break;
+        }
+        
+        case INFO_HTTP_RQST_GET : 
+        {
+            break;
+        }
+        
+        case INFO_HTTP_RQST_POST : 
+        {
+            break;
+        }
+        
     }
     
 }
@@ -302,7 +395,7 @@ void command_process_failure (uint32_t cmd_id, uint8_t was_critical, uint8_t was
     
     if (was_critical)
     {
-        AT_proc_repeat_last_cmd ();
+        critical_fail_handler (cmd_id);
     }
 }
 
@@ -324,14 +417,15 @@ void sim800_oper_init (sim800_operator_t oper)
     at_proc_cmd_t l_at_cmd;
 
     reset_cmd (&l_at_cmd);
+    l_at_cmd.cmd_id = SIM800_MOD_INIT;
     l_at_cmd.cmd.ptr = (char *)cmd_init;
     l_at_cmd.cmd.len = sizeof(cmd_init);
     l_at_cmd.resp[0].ptr = rsp_std_OK;
     l_at_cmd.resp[0].len = sizeof(rsp_std_OK);
     l_at_cmd.err[0].ptr = rsp_std_ERR;
     l_at_cmd.err[0].len = sizeof(rsp_std_ERR);
-    l_at_cmd.is_critical = 1;
-    l_at_cmd.is_response_variable = 0;
+    l_at_cmd.is_critical = IS_CMD_CRITICAL(l_at_cmd.cmd_id);
+    l_at_cmd.is_response_variable = IS_RSP_VARIABLE(l_at_cmd.cmd_id);
     l_at_cmd.timeout = 2500;
     CBUF_Push(ATbuff, l_at_cmd);
     
@@ -342,56 +436,61 @@ void sim800_oper_init (sim800_operator_t oper)
     l_at_cmd.resp[0].len = sizeof(rsp_std_OK);
     l_at_cmd.err[0].ptr = rsp_std_ERR;
     l_at_cmd.err[0].len = sizeof(rsp_std_ERR);
-    l_at_cmd.is_critical = 0;
-    l_at_cmd.is_response_variable = 0;
+    l_at_cmd.cmd_id = SIM800_MOD_FCT_RST;
+    l_at_cmd.is_critical = IS_CMD_CRITICAL(l_at_cmd.cmd_id);
+    l_at_cmd.is_response_variable = IS_RSP_VARIABLE(l_at_cmd.cmd_id);
     l_at_cmd.timeout = 2500;
     CBUF_Push(ATbuff, l_at_cmd);
     
     reset_cmd (&l_at_cmd);
+    l_at_cmd.cmd_id = SIM800_MOD_TIME_FMT;
     l_at_cmd.cmd.ptr = (char *)cmd_time_fmt;
     l_at_cmd.cmd.len = sizeof(cmd_time_fmt);
     l_at_cmd.resp[0].ptr = rsp_std_OK;
     l_at_cmd.resp[0].len = sizeof(rsp_std_OK);
     l_at_cmd.err[0].ptr = rsp_std_ERR;
     l_at_cmd.err[0].len = sizeof(rsp_std_ERR);
-    l_at_cmd.is_critical = 0;
-    l_at_cmd.is_response_variable = 0;
+    l_at_cmd.is_critical = IS_CMD_CRITICAL(l_at_cmd.cmd_id);
+    l_at_cmd.is_response_variable = IS_RSP_VARIABLE(l_at_cmd.cmd_id);
     l_at_cmd.timeout = 2500;
     CBUF_Push(ATbuff, l_at_cmd);
     
     reset_cmd (&l_at_cmd);
+    l_at_cmd.cmd_id = SIM800_MOD_SAVE_NVM;
     l_at_cmd.cmd.ptr = (char *)cmd_save_nvm;
     l_at_cmd.cmd.len = sizeof(cmd_save_nvm);
     l_at_cmd.resp[0].ptr = rsp_std_OK;
     l_at_cmd.resp[0].len = sizeof(rsp_std_OK);
     l_at_cmd.err[0].ptr = rsp_std_ERR;
     l_at_cmd.err[0].len = sizeof(rsp_std_ERR);
-    l_at_cmd.is_critical = 0;
-    l_at_cmd.is_response_variable = 0;
+    l_at_cmd.is_critical = IS_CMD_CRITICAL(l_at_cmd.cmd_id);
+    l_at_cmd.is_response_variable = IS_RSP_VARIABLE(l_at_cmd.cmd_id);
     l_at_cmd.timeout = 2500;
     CBUF_Push(ATbuff, l_at_cmd);
     
     reset_cmd (&l_at_cmd);
+    l_at_cmd.cmd_id = SIM800_MOD_EN_FUNC;
     l_at_cmd.cmd.ptr = (char *)cmd_en_full;
     l_at_cmd.cmd.len = sizeof(cmd_en_full);
     l_at_cmd.resp[0].ptr = rsp_std_OK;
     l_at_cmd.resp[0].len = sizeof(rsp_std_OK);
     l_at_cmd.err[0].ptr = rsp_std_ERR;
     l_at_cmd.err[0].len = sizeof(rsp_std_ERR);
-    l_at_cmd.is_critical = 0;
-    l_at_cmd.is_response_variable = 0;
+    l_at_cmd.is_critical = IS_CMD_CRITICAL(l_at_cmd.cmd_id);
+    l_at_cmd.is_response_variable = IS_RSP_VARIABLE(l_at_cmd.cmd_id);
     l_at_cmd.timeout = 2500;
     CBUF_Push(ATbuff, l_at_cmd);
 
     reset_cmd (&l_at_cmd);
+    l_at_cmd.cmd_id = SIM800_MOD_CHK_SIM;
     l_at_cmd.cmd.ptr = (char *)cmd_chk_sim;
     l_at_cmd.cmd.len = sizeof(cmd_chk_sim);
     l_at_cmd.resp[0].ptr = (char *)rsp_sim_sts1;
     l_at_cmd.resp[0].len = sizeof(rsp_sim_sts1);
     l_at_cmd.err[0].ptr = (char *)err_sim_sts1;
     l_at_cmd.err[0].len = sizeof(err_sim_sts1);
-    l_at_cmd.is_critical = 1;
-    l_at_cmd.is_response_variable = 0;
+    l_at_cmd.is_critical = IS_CMD_CRITICAL(l_at_cmd.cmd_id);
+    l_at_cmd.is_response_variable = IS_RSP_VARIABLE(l_at_cmd.cmd_id);
     l_at_cmd.timeout = 2500;
     CBUF_Push(ATbuff, l_at_cmd);
 
@@ -412,6 +511,7 @@ void sim800_oper_enable_gprs (void)
     at_proc_cmd_t l_at_cmd;
     //Network
     reset_cmd (&l_at_cmd);
+    l_at_cmd.cmd_id = SIM800_NET_CHK;
     l_at_cmd.cmd.ptr = (char *)cmd_nw_reg;
     l_at_cmd.cmd.len = sizeof(cmd_nw_reg);
     l_at_cmd.resp[0].ptr = (char *)rsp1l2_gprs_reg;
@@ -424,153 +524,165 @@ void sim800_oper_enable_gprs (void)
     l_at_cmd.err[1].len = sizeof(err2l2_gprs_reg);
     l_at_cmd.err[2].ptr = (char *)err3l2_gprs_reg;
     l_at_cmd.err[2].len = sizeof(err3l2_gprs_reg);
-    l_at_cmd.is_critical = 1;
-    l_at_cmd.is_response_variable = 0;
+    l_at_cmd.is_critical = IS_CMD_CRITICAL(l_at_cmd.cmd_id);
+    l_at_cmd.is_response_variable = IS_RSP_VARIABLE(l_at_cmd.cmd_id);
     l_at_cmd.timeout = 15000;
     CBUF_Push(ATbuff, l_at_cmd);
     
     //Add GPRS
     reset_cmd (&l_at_cmd);
+    l_at_cmd.cmd_id = SIM800_NET_BSET_CTYPE;
     l_at_cmd.cmd.ptr = (char *)cmd_set_brr_ctype;
     l_at_cmd.cmd.len = sizeof(cmd_set_brr_ctype);
     l_at_cmd.resp[0].ptr = rsp_std_OK;
     l_at_cmd.resp[0].len = sizeof(rsp_std_OK);
     l_at_cmd.err[0].ptr = rsp_std_ERR;
     l_at_cmd.err[0].len = sizeof(rsp_std_ERR);
-    l_at_cmd.is_critical = 0;
-    l_at_cmd.is_response_variable = 0;
+    l_at_cmd.is_critical = IS_CMD_CRITICAL(l_at_cmd.cmd_id);
+    l_at_cmd.is_response_variable = IS_RSP_VARIABLE(l_at_cmd.cmd_id);
     l_at_cmd.timeout = 2500;
     CBUF_Push(ATbuff, l_at_cmd);
     
     reset_cmd (&l_at_cmd);
+    l_at_cmd.cmd_id = SIM800_NET_BSET_APN;
     l_at_cmd.cmd.ptr = (char *)cmd_set_brr_apn;
     l_at_cmd.cmd.len = sizeof(cmd_set_brr_apn);
     l_at_cmd.resp[0].ptr = rsp_std_OK;
     l_at_cmd.resp[0].len = sizeof(rsp_std_OK);
     l_at_cmd.err[0].ptr = rsp_std_ERR;
     l_at_cmd.err[0].len = sizeof(rsp_std_ERR);
-    l_at_cmd.is_critical = 0;
-    l_at_cmd.is_response_variable = 0;
+    l_at_cmd.is_critical = IS_CMD_CRITICAL(l_at_cmd.cmd_id);
+    l_at_cmd.is_response_variable = IS_RSP_VARIABLE(l_at_cmd.cmd_id);
     l_at_cmd.timeout = 2500;
     CBUF_Push(ATbuff, l_at_cmd);
     
     reset_cmd (&l_at_cmd);
+    l_at_cmd.cmd_id = SIM800_NET_BSET_USR;
     l_at_cmd.cmd.ptr = (char *)cmd_set_brr_usr;
     l_at_cmd.cmd.len = sizeof(cmd_set_brr_usr);
     l_at_cmd.resp[0].ptr = rsp_std_OK;
     l_at_cmd.resp[0].len = sizeof(rsp_std_OK);
     l_at_cmd.err[0].ptr = rsp_std_ERR;
     l_at_cmd.err[0].len = sizeof(rsp_std_ERR);
-    l_at_cmd.is_critical = 0;
-    l_at_cmd.is_response_variable = 0;
+    l_at_cmd.is_critical = IS_CMD_CRITICAL(l_at_cmd.cmd_id);
+    l_at_cmd.is_response_variable = IS_RSP_VARIABLE(l_at_cmd.cmd_id);
     l_at_cmd.timeout = 2500;
     CBUF_Push(ATbuff, l_at_cmd);
     
     reset_cmd (&l_at_cmd);
+    l_at_cmd.cmd_id = SIM800_NET_BSET_PWD;
     l_at_cmd.cmd.ptr = (char *)cmd_set_brr_pwd;
     l_at_cmd.cmd.len = sizeof(cmd_set_brr_pwd);
     l_at_cmd.resp[0].ptr = rsp_std_OK;
     l_at_cmd.resp[0].len = sizeof(rsp_std_OK);
     l_at_cmd.err[0].ptr = rsp_std_ERR;
     l_at_cmd.err[0].len = sizeof(rsp_std_ERR);
-    l_at_cmd.is_critical = 0;
-    l_at_cmd.is_response_variable = 0;
+    l_at_cmd.is_critical = IS_CMD_CRITICAL(l_at_cmd.cmd_id);
+    l_at_cmd.is_response_variable = IS_RSP_VARIABLE(l_at_cmd.cmd_id);
     l_at_cmd.timeout = 2500;
     CBUF_Push(ATbuff, l_at_cmd);
     
     reset_cmd (&l_at_cmd);
+    l_at_cmd.cmd_id = SIM800_NET_PDP_CNTX;
     l_at_cmd.cmd.ptr = (char *)cmd_ip_cntxt;
     l_at_cmd.cmd.len = sizeof(cmd_ip_cntxt);
     l_at_cmd.resp[0].ptr = rsp_std_OK;
     l_at_cmd.resp[0].len = sizeof(rsp_std_OK);
     l_at_cmd.err[0].ptr = rsp_std_ERR;
     l_at_cmd.err[0].len = sizeof(rsp_std_ERR);
-    l_at_cmd.is_critical = 0;
-    l_at_cmd.is_response_variable = 0;
+    l_at_cmd.is_critical = IS_CMD_CRITICAL(l_at_cmd.cmd_id);
+    l_at_cmd.is_response_variable = IS_RSP_VARIABLE(l_at_cmd.cmd_id);
     l_at_cmd.timeout = 2500;
     CBUF_Push(ATbuff, l_at_cmd);
     
     reset_cmd (&l_at_cmd);
+    l_at_cmd.cmd_id = SIM800_NET_ACTV_CID;
     l_at_cmd.cmd.ptr = (char *)cmd_actv_cid;
     l_at_cmd.cmd.len = sizeof(cmd_actv_cid);
     l_at_cmd.resp[0].ptr = rsp_std_OK;
     l_at_cmd.resp[0].len = sizeof(rsp_std_OK);
     l_at_cmd.err[0].ptr = rsp_std_ERR;
     l_at_cmd.err[0].len = sizeof(rsp_std_ERR);
-    l_at_cmd.is_critical = 0;
-    l_at_cmd.is_response_variable = 0;
+    l_at_cmd.is_critical = IS_CMD_CRITICAL(l_at_cmd.cmd_id);
+    l_at_cmd.is_response_variable = IS_RSP_VARIABLE(l_at_cmd.cmd_id);
     l_at_cmd.timeout = 2500;
     CBUF_Push(ATbuff, l_at_cmd);
     
     reset_cmd (&l_at_cmd);
+    l_at_cmd.cmd_id = SIM800_NET_BEN;
     l_at_cmd.cmd.ptr = (char *)cmd_actv_brr;
     l_at_cmd.cmd.len = sizeof(cmd_actv_brr);
     l_at_cmd.resp[0].ptr = rsp_std_OK;
     l_at_cmd.resp[0].len = sizeof(rsp_std_OK);
     l_at_cmd.err[0].ptr = rsp_std_ERR;
     l_at_cmd.err[0].len = sizeof(rsp_std_ERR);
-    l_at_cmd.is_critical = 0;
-    l_at_cmd.is_response_variable = 0;
+    l_at_cmd.is_critical = IS_CMD_CRITICAL(l_at_cmd.cmd_id);
+    l_at_cmd.is_response_variable = IS_RSP_VARIABLE(l_at_cmd.cmd_id);
     l_at_cmd.timeout = 2500;
     CBUF_Push(ATbuff, l_at_cmd);
     
     reset_cmd (&l_at_cmd);
+    l_at_cmd.cmd_id = SIM800_NET_BCHK;
     l_at_cmd.cmd.ptr = (char *)cmd_chk_brr;
     l_at_cmd.cmd.len = sizeof(cmd_chk_brr);
     l_at_cmd.resp[0].ptr = rsp_std_OK;
     l_at_cmd.resp[0].len = sizeof(rsp_std_OK);
     l_at_cmd.err[0].ptr = rsp_std_ERR;
     l_at_cmd.err[0].len = sizeof(rsp_std_ERR);
-    l_at_cmd.is_critical = 0;
-    l_at_cmd.is_response_variable = 1;
+    l_at_cmd.is_critical = IS_CMD_CRITICAL(l_at_cmd.cmd_id);
+    l_at_cmd.is_response_variable = IS_RSP_VARIABLE(l_at_cmd.cmd_id);
     l_at_cmd.timeout = 2500;
     CBUF_Push(ATbuff, l_at_cmd);
     
     reset_cmd (&l_at_cmd);
+    l_at_cmd.cmd_id = SIM800_NET_EN_MUX;
     l_at_cmd.cmd.ptr = (char *)cmd_en_mux;
     l_at_cmd.cmd.len = sizeof(cmd_en_mux);
     l_at_cmd.resp[0].ptr = rsp_std_OK;
     l_at_cmd.resp[0].len = sizeof(rsp_std_OK);
     l_at_cmd.err[0].ptr = rsp_std_ERR;
     l_at_cmd.err[0].len = sizeof(rsp_std_ERR);
-    l_at_cmd.is_critical = 0;
-    l_at_cmd.is_response_variable = 0;
+    l_at_cmd.is_critical = IS_CMD_CRITICAL(l_at_cmd.cmd_id);
+    l_at_cmd.is_response_variable = IS_RSP_VARIABLE(l_at_cmd.cmd_id);
     l_at_cmd.timeout = 2500;
     CBUF_Push(ATbuff, l_at_cmd);
     
     reset_cmd (&l_at_cmd);
+    l_at_cmd.cmd_id = SIM800_NET_SEL_DTX;
     l_at_cmd.cmd.ptr = (char *)cmd_sel_dtx_mode;
     l_at_cmd.cmd.len = sizeof(cmd_sel_dtx_mode);
     l_at_cmd.resp[0].ptr = rsp_std_OK;
     l_at_cmd.resp[0].len = sizeof(rsp_std_OK);
     l_at_cmd.err[0].ptr = rsp_std_ERR;
     l_at_cmd.err[0].len = sizeof(rsp_std_ERR);
-    l_at_cmd.is_critical = 0;
-    l_at_cmd.is_response_variable = 0;
+    l_at_cmd.is_critical = IS_CMD_CRITICAL(l_at_cmd.cmd_id);
+    l_at_cmd.is_response_variable = IS_RSP_VARIABLE(l_at_cmd.cmd_id);
     l_at_cmd.timeout = 2500;
     CBUF_Push(ATbuff, l_at_cmd);
     
     reset_cmd (&l_at_cmd);
+    l_at_cmd.cmd_id = SIM800_NET_TSK_START;
     l_at_cmd.cmd.ptr = (char *)cmd_tsk_start;
     l_at_cmd.cmd.len = sizeof(cmd_tsk_start);
     l_at_cmd.resp[0].ptr = rsp_std_OK;
     l_at_cmd.resp[0].len = sizeof(rsp_std_OK);
     l_at_cmd.err[0].ptr = rsp_std_ERR;
     l_at_cmd.err[0].len = sizeof(rsp_std_ERR);
-    l_at_cmd.is_critical = 0;
-    l_at_cmd.is_response_variable = 0;
+    l_at_cmd.is_critical = IS_CMD_CRITICAL(l_at_cmd.cmd_id);
+    l_at_cmd.is_response_variable = IS_RSP_VARIABLE(l_at_cmd.cmd_id);
     l_at_cmd.timeout = 2500;
     CBUF_Push(ATbuff, l_at_cmd);
     
     reset_cmd (&l_at_cmd);
+    l_at_cmd.cmd_id = SIM800_NET_EN_GPRS;
     l_at_cmd.cmd.ptr = (char *)cmd_con_gprs;
     l_at_cmd.cmd.len = sizeof(cmd_con_gprs);
     l_at_cmd.resp[0].ptr = rsp_std_OK;
     l_at_cmd.resp[0].len = sizeof(rsp_std_OK);
     l_at_cmd.err[0].ptr = rsp_std_ERR;
     l_at_cmd.err[0].len = sizeof(rsp_std_ERR);
-    l_at_cmd.is_critical = 0;
-    l_at_cmd.is_response_variable = 0;
+    l_at_cmd.is_critical = IS_CMD_CRITICAL(l_at_cmd.cmd_id);
+    l_at_cmd.is_response_variable = IS_RSP_VARIABLE(l_at_cmd.cmd_id);
     l_at_cmd.timeout = 2500;
     CBUF_Push(ATbuff, l_at_cmd);
     
@@ -596,7 +708,6 @@ void sim800_oper_process ()
     }
     else
     {
-//        log_printf("Return\n");
         return;
     }
     return;
@@ -604,10 +715,23 @@ void sim800_oper_process ()
 
 void sim800_oper_add_ticks (uint32_t ticks)
 {
+    static uint32_t l_current_ticks = 0;
+    
     //pass on these ticks to AT_proc
     if(AT_proc_is_busy ())
     {
+        l_current_ticks = 0;
         AT_proc_add_ticks (ticks);
+    }
+    else
+    {
+        l_current_ticks += ticks;
+    }
+    if (l_current_ticks >= NET_CHK_FREQ)
+    {
+        l_current_ticks = 0;
+        check_network ();
+        check_gprs ();
     }
 }
 
