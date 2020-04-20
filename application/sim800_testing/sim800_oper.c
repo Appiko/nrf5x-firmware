@@ -190,8 +190,6 @@ const char cmd_http_term[] = {'A','T','+','H','T','T','P','T','E','R','M','\r','
 static char data_http_post[MAX_LEN_CMD];
 
 static uint32_t http_pdata_len = 0;
-
-//static uint32_t g_rerun_cnt = 0;
 //
 //static uint8_t g_rx_data[MAX_LEN_RSP];
 
@@ -204,10 +202,10 @@ static uint32_t http_pdata_len = 0;
 
 typedef enum
 {
-    NET_LOST,
-    NET_SEARCHING,
-    NET_FOUND,
-}network_status_t;
+    CCMD_DONE,
+    CCMD_RUNNING,
+    CCMD_FAIL,
+}crit_cmd_status_t;
 
 
 typedef enum
@@ -218,6 +216,13 @@ typedef enum
     CRITIC_NET_EN_GPRS  = SIM800_NET_EN_GPRS,            
 }critical_cmd;
 
+enum critical_cmd_reruns
+{
+    MOD_INIT_RERUN      = 10,
+    MOD_CHK_SIM_RERUN   = 5,
+    NET_CHK             = 30,
+    NET_EN_GPRS         = 10,
+};
 typedef enum
 {
     INFO_NET_BCHK       = SIM800_NET_BCHK,
@@ -231,9 +236,12 @@ typedef enum
 
 volatile sim800_oper_status_t g_mod_current_state;
 
-//static sim800_conn_status_t g_gprs_current_state;
+static sim800_conn_status_t g_gprs_current_state;
 //
-volatile network_status_t g_net_state;
+static crit_cmd_status_t g_ccmd_status;
+
+
+static uint32_t g_rerun_cnt = 0;
 
 static sim800_operator_t g_sim_oper;
 
@@ -264,18 +272,18 @@ void reconnect ()
 //    l_at_cmd.timeout = 2500;
 //    CBUF_Push(ATbuff, l_at_cmd);
 //    
-//    reset_cmd (&l_at_cmd);
-//    l_at_cmd.cmd_id = SIM800_MOD_TIME_FMT;
-//    l_at_cmd.cmd.ptr = (char *)cmd_time_fmt;
-//    l_at_cmd.cmd.len = sizeof(cmd_time_fmt);
-//    l_at_cmd.resp[0].ptr = rsp_std_OK;
-//    l_at_cmd.resp[0].len = sizeof(rsp_std_OK);
-//    l_at_cmd.err[0].ptr = rsp_std_ERR;
-//    l_at_cmd.err[0].len = sizeof(rsp_std_ERR);
-//    l_at_cmd.is_critical = IS_CMD_CRITICAL(l_at_cmd.cmd_id);
-//    l_at_cmd.is_response_variable = IS_RSP_VARIABLE(l_at_cmd.cmd_id);
-//    l_at_cmd.timeout = 2500;
-//    CBUF_Push(ATbuff, l_at_cmd);
+    reset_cmd (&l_at_cmd);
+    l_at_cmd.cmd_id = SIM800_MOD_TIME_FMT;
+    l_at_cmd.cmd.ptr = (char *)cmd_time_fmt;
+    l_at_cmd.cmd.len = sizeof(cmd_time_fmt);
+    l_at_cmd.resp[0].ptr = rsp_std_OK;
+    l_at_cmd.resp[0].len = sizeof(rsp_std_OK);
+    l_at_cmd.err[0].ptr = rsp_std_ERR;
+    l_at_cmd.err[0].len = sizeof(rsp_std_ERR);
+    l_at_cmd.is_critical = IS_CMD_CRITICAL(l_at_cmd.cmd_id);
+    l_at_cmd.is_response_variable = IS_RSP_VARIABLE(l_at_cmd.cmd_id);
+    l_at_cmd.timeout = 2500;
+    CBUF_Push(ATbuff, l_at_cmd);
     
     reset_cmd (&l_at_cmd);
     l_at_cmd.cmd_id = SIM800_MOD_DIS_FUNC;
@@ -473,24 +481,64 @@ void set_oper_specific_data ()
     strcat (cmd_ip_cntxt, l_ip_cntxt_tail);    
     
 }
-
+void assign_rerun_count (critical_cmd cmd_id)
+{
+    switch (cmd_id)
+    {
+        case CRITIC_MOD_INIT : 
+        {
+            g_rerun_cnt = MOD_INIT_RERUN;
+            break;
+        }
+        case CRITIC_MOD_CHK_SIM :
+        {
+            g_rerun_cnt = MOD_CHK_SIM_RERUN;
+            break;
+        }
+        case CRITIC_NET_CHK :
+        {
+            g_rerun_cnt = NET_CHK;
+            break;
+        }
+        case CRITIC_NET_EN_GPRS :
+        {
+            g_rerun_cnt = NET_EN_GPRS;
+            break;
+        }
+    }
+}
 void critical_fail_handler (uint32_t cmd_id)
 {
-//TODO stop sim800_oper module if critical command fails after n reruns
-//    if(g_rerun_cnt)
-//    {
-//    }
-//    else
-//    {
-//        switch ((critical_cmd) cmd_id)
-//        {
-//            case CRITIC_MOD_INIT : 
-//            {
-//                break;
-//            }
-//        }
-//    }
-    AT_proc_repeat_last_cmd ();   
+    switch (g_ccmd_status)
+    {
+        case CCMD_DONE : 
+        {
+            assign_rerun_count ((critical_cmd)cmd_id);
+            g_ccmd_status = CCMD_RUNNING;
+            AT_proc_repeat_last_cmd ();   
+            break;
+        }
+        case CCMD_RUNNING :
+        {
+            if (g_rerun_cnt)
+            {
+                g_rerun_cnt--;
+            }
+            else
+            {
+                g_ccmd_status = CCMD_FAIL;
+            }
+            AT_proc_repeat_last_cmd ();   
+            break;
+        }
+        case CCMD_FAIL :
+        {
+            log_printf("Go to Halt");
+            g_mod_current_state = SIM800_HALT;
+            
+            break;
+        }
+    }
 }
 
 
@@ -501,6 +549,7 @@ void normal_fail_handler (uint32_t cmd_id)
     {
         case SIM800_NET_CHK : 
         {
+            g_gprs_current_state = SIM800_DISCONNECTED;
             log_printf("GSM failed\n");
             if (g_is_autoconn_en)
             {
@@ -510,6 +559,7 @@ void normal_fail_handler (uint32_t cmd_id)
         }
         case SIM800_NET_CHK_GPRS : 
         {
+            g_gprs_current_state = SIM800_DISCONNECTED;
             log_printf("GPRS failed\n");
             if (g_is_autoconn_en)
             {
@@ -542,6 +592,7 @@ void command_processed_successfully (uint32_t cmd_id, uint32_t rsp_id)
         }
         case SIM800_NET_CHK_GPRS : 
         {
+            g_gprs_current_state = SIM800_CONNECTED;
             log_printf ("GPRS is working fine\n");
             break;
         }
@@ -627,6 +678,8 @@ AT_proc_init_t at_init =
 
 void sim800_oper_init (sim800_operator_t oper)
 {
+    g_mod_current_state = SIM800_IDLE;
+    g_gprs_current_state = SIM800_DISCONNECTED;
     g_sim_oper = oper;
     set_oper_specific_data ();
     CBUF_Init(ATbuff);
@@ -911,24 +964,31 @@ void sim800_oper_enable_gprs (void)
  */
 void sim800_oper_process ()
 {
-//    log_printf("SIM800 Proc : ");
-    at_proc_cmd_t l_cmd;
-    if(AT_proc_is_busy ())
+    if (g_mod_current_state != SIM800_HALT)
     {
-//        log_printf("Process\n");
-        AT_proc_process ();
-    }
-    else if(CBUF_Len(ATbuff))
-    {
-//        log_printf("Cmd\n");
-        l_cmd = CBUF_Pop(ATbuff);
-        AT_proc_send_cmd (&l_cmd);
+    //    log_printf("SIM800 Proc : ");
+        at_proc_cmd_t l_cmd;
+        if(AT_proc_is_busy ())
+        {
+    //        log_printf("Process\n");
+            AT_proc_process ();
+        }
+        else if(CBUF_Len(ATbuff))
+        {
+    //        log_printf("Cmd\n");
+            l_cmd = CBUF_Pop(ATbuff);
+
+            AT_proc_send_cmd (&l_cmd);
+        }
+        else
+        {
+            return;
+        }
     }
     else
     {
         return;
     }
-    return;
 }
 
 void sim800_oper_add_ticks (uint32_t ticks)
@@ -1169,12 +1229,16 @@ void sim800_oper_http_req (sim800_http_req_t * http_req)
 
 sim800_conn_status_t sim800_oper_get_gprs_status ()
 {
-    return SIM800_CONNECTED;
+    return g_gprs_current_state;
 }
 
 sim800_conn_status_t sim800_oper_get_server_status (uint32_t server_id)
 {
     return SIM800_CONNECTED;
+}
+sim800_oper_status_t sim800_oper_get_status ()
+{
+    return g_mod_current_state;
 }
 
 
