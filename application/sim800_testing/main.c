@@ -45,7 +45,7 @@
 #include "sim800_oper.h"
 #define MS_TIEMR_EPD_RR 1000
 
-#define MS_TIMER_SRV_FREQ (3*60*1000)
+#define MS_TIMER_SRV_FREQ (60*1000)
 
 
 void leds_init(void)
@@ -90,7 +90,10 @@ void periodic_post_req ()
         .payload_ptr = (uint8_t *)post_msg,
         .len = (sizeof(post_msg))
     };
-    sim800_oper_http_req (&l_http_req);}
+    if (sim800_oper_get_gprs_status () == SIM800_CONNECTED)
+    {
+        sim800_oper_http_req (&l_http_req);}
+    }
 
 void HardFault_IRQHandler ()
 {
@@ -106,7 +109,7 @@ int main(void)
     
     lfclk_init(LFCLK_SRC_Xtal);
     ms_timer_init(APP_IRQ_PRIORITY_LOW);
-    sim800_oper_init (SIM800_VODAFONE);
+    sim800_oper_init (SIM800_BSNL);
     sim800_oper_enable_gprs ();
     sim800_oper_conns (&server_info);
     sim800_http_req_t l_http_req = 
