@@ -1,6 +1,6 @@
 /*
- *  sim800_oper.c : <Write brief>
- *  Copyright (C) 2019  Appiko
+ *  sim800_oper.c : Module to access SIM800 HW module with AT commands
+ *  Copyright (C) 2020  Appiko
  *
  *  This program is free software: you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -31,6 +31,8 @@ typedef enum
     SIM800_BUSY,
     /** SIM800 present and halted. Some critical command failed */
     SIM800_HALT, //(needs reinitialization)
+    /** SIM800 present and overloaded. Number of commands exceeded the buffer length */
+    SIM800_OVERLOAD, //(needs reinitialization)
     /** SIM800 not present or not connected properly */
     SIM800_NOT_FOUND,
             

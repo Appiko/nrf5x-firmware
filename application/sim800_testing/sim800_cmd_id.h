@@ -1,6 +1,6 @@
 /*
  *  sim800_cmd_id.h : File to store Command IDs
- *  Copyright (C) 2019  Appiko
+ *  Copyright (C) 2020  Appiko
  *
  *  This program is free software: you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -24,17 +24,28 @@
 extern "C" {
 #endif
 
+/** Primary Base */
+/** Base value for Module related commands */
 #define SIM800_MOD_CMD_BASE (0x0000)
+/** Base value for network related commands */
 #define SIM800_NET_CMD_BASE (0x1000)
+/** Base value for HTTP related commands */
 #define SIM800_HTTP_CMD_BASE (0x2000)
 
+/** Secondary Base */
+/** Base value for commands which has definite responses, errors and isn't critical*/
 #define SIM800_NORMAL_CMD_BASE (0x000)
+/** Base value for commands which has definite responses, errors and is critical*/
 #define SIM800_CRITICAL_CMD_BASE (0x100)
+/** Base value for commands which has variable response */
 #define SIM800_INFO_CMD_BASE (0x200)
   
+/** Macro to check if command is critical */
 #define IS_CMD_CRITICAL(x) ((x & SIM800_CRITICAL_CMD_BASE) >> 8)
+/** Macro to check if variable response is expected */
 #define IS_RSP_VARIABLE(x) ((x & SIM800_INFO_CMD_BASE) >> 9)
 
+/** List of Command IDs for SIM800 module related commands */
 enum SIM800_MOD_CMD
 {
     SIM800_MOD_INIT     = (SIM800_MOD_CMD_BASE+SIM800_CRITICAL_CMD_BASE+1),
@@ -44,8 +55,10 @@ enum SIM800_MOD_CMD
     SIM800_MOD_DIS_FUNC = (SIM800_MOD_CMD_BASE+SIM800_NORMAL_CMD_BASE+5),
     SIM800_MOD_EN_FUNC  = (SIM800_MOD_CMD_BASE+SIM800_NORMAL_CMD_BASE+6),
     SIM800_MOD_CHK_SIM  = (SIM800_MOD_CMD_BASE+SIM800_CRITICAL_CMD_BASE+7),
+    SIM800_MOD_ECHO_OFF  = (SIM800_MOD_CMD_BASE+SIM800_NORMAL_CMD_BASE+8),
 };
 
+/** List of Command IDs for Network related commands */
 enum SIM800_NET_CMD
 {
     SIM800_NET_CRT_CHK      = (SIM800_NET_CMD_BASE+SIM800_CRITICAL_CMD_BASE+1),
@@ -66,6 +79,7 @@ enum SIM800_NET_CMD
     SIM800_NET_CHK_GPRS     = (SIM800_NET_CMD_BASE+SIM800_NORMAL_CMD_BASE+16)
 };
 
+/** List of Command IDs for HTTP related commands */
 enum SIM800_HTTP_CMD
 {
     SIM800_HTTP_INIT        = (SIM800_HTTP_CMD_BASE+SIM800_NORMAL_CMD_BASE+1),
