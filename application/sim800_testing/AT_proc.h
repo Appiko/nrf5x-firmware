@@ -1,5 +1,5 @@
 /*
- *  AT_proc.h : <Write brief>
+ *  AT_proc.h : Module to process AT commands
  *  Copyright (C) 2020  Appiko
  *
  *  This program is free software: you can redistribute it and/or modify
