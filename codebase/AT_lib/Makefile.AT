@@ -1,0 +1,7 @@
+INCLUDEDIRS += $(AT_DIR)
+C_SRC_DIRS += $(AT_DIR)
+C_SRC += AT_proc.c
+ifeq ($(AT_MOD_USED), SIM800)
+C_SRC += sim800_oper.c
+endif
+

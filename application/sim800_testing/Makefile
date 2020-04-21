@@ -13,6 +13,7 @@ DISPLAY_USED	:= blank
 SD_VER          := 6.0.0
 CONFIG_HEADER	:= 0
 SHARED_RESOURCES := 0
+AT_MOD_USED := SIM800
 	
 SDK_DIR         = ../../SDK_components
 DOC_DIR         = ../../doc
@@ -53,11 +54,11 @@ C_SRC += hal_uart.c tinyprintf.c
 else
 endif
 C_SRC += hal_uarte.c tinyprintf.c 
-C_SRC += AT_proc.c sim800_oper.c
+#C_SRC += AT_proc.c sim800_oper.c
 
-ifneq ($(DISPLAY_USED), blank)
-DISPLAY_DIR	= $(CODEBASE_DIR)/display_lib
-include $(DISPLAY_DIR)/Makefile.display
+ifneq ($(AT_MOD_USED), blank)
+AT_DIR	= $(CODEBASE_DIR)/AT_lib
+include $(AT_DIR)/Makefile.AT
 endif
 
 #Gets the name of the application folder

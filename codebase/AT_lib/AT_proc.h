@@ -16,6 +16,17 @@
  *  along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
+/**
+ * @addtogroup group_at_lib
+ * @{
+ *
+ * @defgroup group_at_proc AT Process
+ * @brief Driver to Process AT commands using hal_uarte module
+ *
+ * @warning This module needs the device_tick and to be on and running to be able to work
+ * @note This module uses UARTE peripheral. So developer can't use uart prints for debugging
+ * @{
+ */
 
 #ifndef AT_PROC_H
 #define AT_PROC_H
@@ -138,7 +149,7 @@ void AT_proc_process ();
 /**
  * @brief Function to check if AT command process module is busy
  * @return 1 if module is executing some AT command
- *         0 if module is available
+ * @return 0 if module is available
  */
 uint8_t AT_proc_is_busy ();
 
@@ -157,3 +168,7 @@ void AT_proc_repeat_last_cmd ();
 void AT_proc_send_cmd_no_rsp (uint8_t * cmd, uint32_t len, uint32_t duration);
 
 #endif /* AT_PROC_H */
+/**
+ * @}
+ * @}
+ */

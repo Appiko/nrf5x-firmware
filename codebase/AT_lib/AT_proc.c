@@ -358,7 +358,7 @@ void AT_proc_add_ticks (uint32_t ticks)
         {
             {
                 g_current_status = CMD_RUNNING;
-                /** uncomment this if UART is being disabled after command execution is done */
+                // uncomment this if UART is being disabled after command execution is done 
                 //hal_uarte_start_rx (collect_rsp);
                 hal_uarte_puts (g_arr_cmd, g_cmd_len);
             }

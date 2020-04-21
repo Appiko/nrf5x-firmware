@@ -16,6 +16,16 @@
  *  along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
+/**
+ * @addtogroup group_at_lib
+ * @{
+ *
+ * @defgroup group_sim800 SIM800 Operations
+ * @brief Driver to use SIM800 module using the AT Process
+ *
+ * @warning This module needs the device_tick to be on and running to be able to work
+ * @{
+ */
 
 #ifndef SIM800_OPER_H
 #define SIM800_OPER_H
@@ -174,3 +184,7 @@ sim800_conn_status_t sim800_oper_get_server_status (uint32_t server_id);
 
 
 #endif /* SIM800_OPER_H */
+/**
+ * @}
+ * @}
+ */
