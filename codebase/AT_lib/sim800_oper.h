@@ -123,12 +123,6 @@ typedef struct
 void sim800_oper_init (sim800_operator_t oper);
 
 /**
- * @brief Function to initialize full functionality for sim800 module
- * @param oper Mobile operator @ref sim800_operator_t
- */
-void sim800_oper_full_init (sim800_operator_t oper);
-
-/**
  * @brief Function to process SIM800 operations. 
  * @note it has to be called in while(true)
  */
@@ -149,7 +143,7 @@ sim800_oper_status_t sim800_oper_get_status ();
 /**
  * @brief Function to enable SMS service.
  */
-void sim800_oper_enable_sms (void);
+//void sim800_oper_enable_sms (void);
 
 /**
  * @brief Function to enable GPRS service.
@@ -180,7 +174,7 @@ sim800_conn_status_t sim800_oper_get_gprs_status ();
  * @param server_id Server ID
  * @return Server status for given server ID
  */
-sim800_conn_status_t sim800_oper_get_server_status (uint32_t server_id);
+//sim800_conn_status_t sim800_oper_get_server_status (uint32_t server_id);
 
 
 #endif /* SIM800_OPER_H */

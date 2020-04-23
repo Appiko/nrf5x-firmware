@@ -87,9 +87,6 @@ typedef struct
     /** Response */
     at_uart_data_t resp[AT_PROC_MAX_RESPOSES];
     
-    /** Response data */
-    at_uart_data_t resp_u1;
-    at_uart_data_t resp_u2;
     
     /** Timeout */
     uint32_t timeout;

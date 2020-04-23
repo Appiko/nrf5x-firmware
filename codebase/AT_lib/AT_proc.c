@@ -122,7 +122,6 @@ void chk_rsp ()
         if (strcmp ((char * )response, (char *)&g_arr_rsp[rsp_cnt][0]) == 0)
         {
             mod_is_busy = false;
-            log_printf("Rsp : %d\n", rsp_cnt);
             g_current_status = CMD_SUCCESSFUL;
             cmd_successful_handle (g_cmd_id, rsp_cnt);
             break;
@@ -139,7 +138,6 @@ void chk_err ()
     {
         if(strcmp ((char *)response, (char *)&g_arr_err[err_cnt][0]) == 0)
         {
-            log_printf("Err : %d\n", err_cnt);
             if(cmd_is_critical)
             {
                 mod_is_busy = false;
@@ -264,7 +262,6 @@ void collect_rsp (uint8_t rsp_char)
     len++;
     if((l_prev_char == '\r') && (rsp_char == '\n'))
     {
-        log_printf("%s\n",(char *)response);
         process_rsp ();
         memset (response, 0, sizeof(response));
         len=0;

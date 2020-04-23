@@ -734,7 +734,6 @@ void command_unknown_response (uint32_t cmd_id, at_uart_data_t * u_data1, uint32
         log_printf ("%s\n", l_str);
     }
     
-    log_printf ("CMD : 0x%x\n",cmd_id);
     switch ((info_rsp)cmd_id)
     {
         case INFO_NET_BCHK : 
@@ -749,7 +748,6 @@ void command_unknown_response (uint32_t cmd_id, at_uart_data_t * u_data1, uint32
         
         case INFO_HTTP_DATA_SEND :
         {
-            log_printf ("Here\n");
             stream_req_data ();
             break;
         }
@@ -914,9 +912,9 @@ void sim800_oper_full_init (sim800_operator_t oper)
     sim800_oper_init (oper);
 }
 
-void sim800_oper_enable_sms (void)
-{
-}
+//void sim800_oper_enable_sms (void)
+//{
+//}
 
 void sim800_oper_enable_gprs (void)
 {
@@ -1121,7 +1119,6 @@ uint32_t sim800_oper_conns (sim800_server_conn_t * conn_params)
     
     strcat (cmd_http_url, l_http_tail);
     
-    log_printf ("HTTP Param : %s\n", cmd_http_url);
     return 0;
 }
 
@@ -1201,8 +1198,6 @@ void sim800_oper_http_req (sim800_http_req_t * http_req)
     else
     {
         assign_data_len (http_req->len);
-        
-        log_printf ("Set Data req : %s\n", cmd_http_set_pdata);
     
         memcpy (data_http_post, http_req->payload_ptr, http_req->len);
         
@@ -1310,10 +1305,10 @@ sim800_conn_status_t sim800_oper_get_gprs_status ()
     return g_gprs_current_state;
 }
 
-sim800_conn_status_t sim800_oper_get_server_status (uint32_t server_id)
-{
-    return SIM800_CONNECTED;
-}
+//sim800_conn_status_t sim800_oper_get_server_status (uint32_t server_id)
+//{
+//    return SIM800_CONNECTED;
+//}
 
 sim800_oper_status_t sim800_oper_get_status ()
 {
