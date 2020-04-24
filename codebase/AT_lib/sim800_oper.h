@@ -115,12 +115,27 @@ typedef struct
     
 }sim800_http_req_t;
 
+/** Structure to store the initialization information */
+typedef struct 
+{
+    /** GSM Operator */
+    sim800_operator_t operator;
+    /** Function pointer to the callback function which is to be called when SIM800 state is changed */
+    void (* sim800_oper_state_changed) (sim800_oper_status_t new_sts);
+    /** Function pointer to the callback function which is to be called when GPRS state is changed */
+    void (* sim800_gprs_state_changed) (sim800_conn_status_t new_sts);
+    /** Function pointer to the callback function which is to be called when HTTP response is received */
+    void (* sim800_http_response) (uint32_t status_code);
+    /** Auto-Connect Enable */
+    uint8_t autoconn_enable;
+}sim800_init_t;
+
 /**
  * @brief Function to initialize basic operations of sim800 module
- * @param oper Mobile operator
+ * @param init Structure pointer to the structure holding initialization information
  * @note use to check if module is presented and connected properly
  */
-void sim800_oper_init (sim800_operator_t oper);
+void sim800_oper_init (sim800_init_t * init);
 
 /**
  * @brief Function to process SIM800 operations. 

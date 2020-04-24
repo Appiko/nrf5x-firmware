@@ -17,6 +17,8 @@
  */
 
 
+#include <stdlib.h>
+
 #include "sim800_oper.h"
 #include "AT_proc.h"
 #include "sim800_cmd_id.h"
@@ -253,7 +255,7 @@ static uint32_t http_pdata_len = 0;
 /** Variable to store current state of SIM800 module */
 volatile sim800_oper_status_t g_mod_current_state;
 /** Variable to store current GPRS status */
-static sim800_conn_status_t g_gprs_current_state;
+static sim800_conn_status_t g_gprs_current_state = SIM800_DISCONNECTED;
 /** Variable to store status of critical command */
 static crit_cmd_status_t g_ccmd_status;
 
@@ -263,8 +265,87 @@ static uint32_t g_rerun_cnt = 0;
 static sim800_operator_t g_sim_oper;
 /** Variable to store the auto connect flag  */
 static bool g_is_autoconn_en = true;
+/** Variable to store status code for last HTTP operation */
+static uint32_t g_http_status_code = 0;
+/** Function pointer to the callback function which is to be called when SIM800 state is changed */
+void (* p_oper_state_changed) (sim800_oper_status_t new_sts);
+/** Function pointer to the callback function which is to be called when GPRS state is changed */
+void (* p_gprs_state_changed) (sim800_conn_status_t new_sts);
+/** Function pointer to the callback function which is to be called when HTTP response is received */
+void (* p_http_response) (uint32_t status_code);
 
 /** Local support functions */
+
+/**
+ * @brief Function to update Module's state
+ * @param new_state New state of module
+ */
+void update_mod_status (sim800_oper_status_t new_state)
+{
+    if (g_mod_current_state != new_state)
+    {
+        g_mod_current_state = new_state;
+        if (p_oper_state_changed)
+        {
+            p_oper_state_changed (new_state);
+        }
+    }
+}
+
+/**
+ * @brief Function to update GPRS state
+ * @param new_state New state of GPRS
+ */
+void update_gprs_status (sim800_conn_status_t new_state)
+{
+    if (g_gprs_current_state != new_state)
+    {
+        g_gprs_current_state = new_state;
+        if (p_gprs_state_changed)
+        {
+            p_gprs_state_changed (new_state);
+        }
+    }
+}
+
+/**
+ * @brief Function to update status code of last HTTP request
+ * @param code New code.
+ */
+void update_htttp_status_code (uint32_t code)
+{
+    if (code)
+    {
+        g_http_status_code = code;
+        if (p_http_response)
+        {
+            p_http_response (code);
+        }
+    }
+}
+
+/**
+ * @brief Function to extract status code from the response received from AT module
+ * @param str Response string received from AT process module
+ * @return Status code if 
+ */
+uint32_t get_status_code (char * str)
+{
+    log_printf ("%s : %s\n", __func__, str);
+    //Expected response +HTTPACTION: x,yyy,zzzz
+    const char l_hact_rsp[] = {'+','H','T','T','P','A','C','T','I','O','N',':',' '};
+    if(memcmp (str, l_hact_rsp, sizeof(l_hact_rsp)))
+    {
+        return 0;
+    }
+    else
+    {
+        uint8_t rcode_s[4];
+        memcpy (rcode_s, &str[sizeof(l_hact_rsp) + 2], 3); //+2 is to handle "x," part
+        rcode_s[3] = '\0';
+        return (uint32_t)  atoi ((char*)rcode_s);
+    }
+}
 
 /**
  * @brief Function to reset an AT command 
@@ -287,7 +368,7 @@ void push_cmd (at_proc_cmd_t cmd)
     }
     else
     {
-        g_mod_current_state = SIM800_OVERLOAD;
+        update_mod_status (SIM800_OVERLOAD);
         //TODO : Handle Overload condition
     }
 }
@@ -635,11 +716,11 @@ void critical_fail_handler (uint32_t cmd_id)
         {
             if (cmd_id == CRITIC_MOD_INIT)
             {
-                g_mod_current_state = SIM800_NOT_FOUND;
+                update_mod_status (SIM800_NOT_FOUND);
             }
             else
             {
-                g_mod_current_state = SIM800_HALT;
+                update_mod_status (SIM800_HALT);
             }
             
             break;
@@ -657,7 +738,7 @@ void normal_fail_handler (uint32_t cmd_id)
     {
         case SIM800_NET_CHK : 
         {
-            g_gprs_current_state = SIM800_DISCONNECTED;
+            update_gprs_status (SIM800_DISCONNECTED);
             log_printf("GSM failed\n");
             if (g_is_autoconn_en)
             {
@@ -667,7 +748,7 @@ void normal_fail_handler (uint32_t cmd_id)
         }
         case SIM800_NET_CHK_GPRS : 
         {
-            g_gprs_current_state = SIM800_DISCONNECTED;
+            update_gprs_status (SIM800_DISCONNECTED);
             log_printf("GPRS failed\n");
             if (g_is_autoconn_en)
             {
@@ -707,9 +788,14 @@ void command_processed_successfully (uint32_t cmd_id, uint32_t rsp_id)
         }
         case SIM800_NET_CHK_GPRS : 
         {
-            g_gprs_current_state = SIM800_CONNECTED;
+            update_gprs_status (SIM800_CONNECTED);
             log_printf ("GPRS is working fine\n");
             break;
+        }
+        case SIM800_NET_EN_GPRS : 
+        {
+            update_gprs_status (SIM800_CONNECTED);
+            log_printf ("GPRS Connected...\n");
         }
         
         default :
@@ -731,43 +817,43 @@ void command_unknown_response (uint32_t cmd_id, at_uart_data_t * u_data1, uint32
     {
         memset (l_str, 0, sizeof(l_str));
         memcpy (l_str, u_data1[cnt].ptr, u_data1[cnt].len);
-        log_printf ("%s\n", l_str);
-    }
-    
-    switch ((info_rsp)cmd_id)
-    {
-        case INFO_NET_BCHK : 
+        log_printf ("%s\n", l_str);    
+        switch ((info_rsp)cmd_id)
         {
-            break;
+            case INFO_NET_BCHK : 
+            {
+                break;
+            }
+
+            case INFO_NET_GET_IP :
+            {
+                break;
+            }
+
+            case INFO_HTTP_DATA_SEND :
+            {
+                stream_req_data ();
+                break;
+            }
+
+            case INFO_HTTP_DATA_READ : 
+            {
+                break;
+            }
+
+            case INFO_HTTP_RQST_GET : 
+            {
+//                update_htttp_status_code (get_status_code (l_str));
+                break;
+            }
+
+            case INFO_HTTP_RQST_POST : 
+            {
+                break;
+            }
+
         }
-        
-        case INFO_NET_GET_IP :
-        {
-            break;
-        }
-        
-        case INFO_HTTP_DATA_SEND :
-        {
-            stream_req_data ();
-            break;
-        }
-        
-        case INFO_HTTP_DATA_READ : 
-        {
-            
-            break;
-        }
-        
-        case INFO_HTTP_RQST_GET : 
-        {
-            break;
-        }
-        
-        case INFO_HTTP_RQST_POST : 
-        {
-            break;
-        }
-        
+        update_htttp_status_code (get_status_code (l_str));
     }
     
 }
@@ -795,7 +881,7 @@ void command_process_failure (uint32_t cmd_id, uint8_t was_critical, uint8_t was
 
 
 /** Refer sim800_oper.h for documentation */
-void sim800_oper_init (sim800_operator_t oper)
+void sim800_oper_init (sim800_init_t * init)
 {
     AT_proc_init_t at_init = 
     {
@@ -803,10 +889,14 @@ void sim800_oper_init (sim800_operator_t oper)
         .cmd_successful_data = command_unknown_response,
         .cmd_failed = command_process_failure,
     };
+    p_http_response = init->sim800_http_response;
+    p_oper_state_changed = init->sim800_oper_state_changed;
+    p_gprs_state_changed = init->sim800_gprs_state_changed;
     
-    g_mod_current_state = SIM800_IDLE;
-    g_gprs_current_state = SIM800_DISCONNECTED;
-    g_sim_oper = oper;
+    update_mod_status (SIM800_IDLE);
+    update_gprs_status (SIM800_DISCONNECTED);
+    g_sim_oper = init->operator;
+    g_is_autoconn_en = init->autoconn_enable;
     set_oper_specific_data ();
     CBUF_Init(ATbuff);
     AT_proc_init (&at_init);
@@ -907,10 +997,6 @@ void sim800_oper_init (sim800_operator_t oper)
     
 }
 
-void sim800_oper_full_init (sim800_operator_t oper)
-{
-    sim800_oper_init (oper);
-}
 
 //void sim800_oper_enable_sms (void)
 //{
@@ -1304,11 +1390,6 @@ sim800_conn_status_t sim800_oper_get_gprs_status ()
 {
     return g_gprs_current_state;
 }
-
-//sim800_conn_status_t sim800_oper_get_server_status (uint32_t server_id)
-//{
-//    return SIM800_CONNECTED;
-//}
 
 sim800_oper_status_t sim800_oper_get_status ()
 {
