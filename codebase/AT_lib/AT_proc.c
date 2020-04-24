@@ -32,6 +32,7 @@ typedef enum
     CMD_RUNNING,
     CMD_REPEAT,
     CMD_FAILED,
+    CMD_NO_RPLY,
 }cmd_status_t;
 
 /** Buffer to store data received over uart */
@@ -328,10 +329,9 @@ uint8_t AT_proc_is_busy ()
 void AT_proc_send_cmd_no_rsp (uint8_t * cmd, uint32_t len, uint32_t duration)
 {
     mod_is_busy = true;
-    g_current_status = CMD_SUCCESSFUL;
+    g_current_status = CMD_NO_RPLY;
+    g_timeout_ticks = MS_TIMER_TICKS_MS (duration);
     hal_uarte_puts (cmd,len);
-    hal_nop_delay_ms (duration);
-    mod_is_busy = false;
 }
 
 void AT_proc_add_ticks (uint32_t ticks)
@@ -363,6 +363,16 @@ void AT_proc_add_ticks (uint32_t ticks)
         }
         case CMD_FAILED : 
             break;
+        case CMD_NO_RPLY :
+        {
+            if (g_timeout_ticks <= g_current_ticks)
+            {
+                ticks_reset ();
+                g_current_status = CMD_SUCCESSFUL;
+                mod_is_busy = false;
+            }
+            break;
+        }
     }
 }
 
