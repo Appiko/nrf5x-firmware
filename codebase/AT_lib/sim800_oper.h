@@ -164,8 +164,10 @@ sim800_oper_status_t sim800_oper_get_status ();
 
 /**
  * @brief Function to enable GPRS service.
+ * @param ip_addr Pointer to the memory where IP address is to be stored
+ * @param len Pointer to the memory where length of IP address is to be stored
  */
-void sim800_oper_enable_gprs (void);
+void sim800_oper_enable_gprs (uint8_t * ip_addr, uint32_t * len);
 
 /**
  * @brief Function to connect to a server

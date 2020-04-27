@@ -267,6 +267,10 @@ static sim800_operator_t g_sim_oper;
 static bool g_is_autoconn_en = true;
 /** Variable to store status code for last HTTP operation */
 static uint32_t g_http_status_code = 0;
+/** Pointer to the length of IP address */
+static uint32_t *p_ip_len;
+/** Pointer to store the address of IP address */
+static uint8_t *p_ip_addr;
 /** Function pointer to the callback function which is to be called when SIM800 state is changed */
 void (* p_oper_state_changed) (sim800_oper_status_t new_sts);
 /** Function pointer to the callback function which is to be called when GPRS state is changed */
@@ -847,6 +851,11 @@ void command_unknown_response (uint32_t cmd_id, at_uart_data_t * u_data1, uint32
 
             case INFO_NET_GET_IP :
             {
+                if (strlen (l_str) - 2)
+                {
+                    *p_ip_len = strlen (l_str) - 2;
+                    memcpy (p_ip_addr, l_str, *p_ip_len);
+                }
                 break;
             }
 
@@ -865,7 +874,6 @@ void command_unknown_response (uint32_t cmd_id, at_uart_data_t * u_data1, uint32
                     l_recv_len = 0;
                 }
                 l_recv_len = get_recv_data_len (l_str);
-                log_printf ("Received data len : %d\n", l_recv_len);
                 break;
             }
 
@@ -1030,8 +1038,13 @@ void sim800_oper_init (sim800_init_t * init)
 //{
 //}
 
-void sim800_oper_enable_gprs (void)
+void sim800_oper_enable_gprs (uint8_t * ip_addr, uint32_t * len)
 {
+    if (ip_addr && len)
+    {
+        p_ip_addr = ip_addr;
+        p_ip_len = len;
+    }
     at_proc_cmd_t l_at_cmd;
     //Network
     reset_cmd (&l_at_cmd);
@@ -1205,6 +1218,15 @@ void sim800_oper_enable_gprs (void)
     l_at_cmd.resp[0].len = sizeof(rsp_std_OK);
     l_at_cmd.err[0].ptr = rsp_std_ERR;
     l_at_cmd.err[0].len = sizeof(rsp_std_ERR);
+    l_at_cmd.is_critical = IS_CMD_CRITICAL(l_at_cmd.cmd_id);
+    l_at_cmd.is_response_variable = IS_RSP_VARIABLE(l_at_cmd.cmd_id);
+    l_at_cmd.timeout = 2500;
+    push_cmd(l_at_cmd);
+    
+    reset_cmd (&l_at_cmd);
+    l_at_cmd.cmd_id = SIM800_NET_GET_IP;
+    l_at_cmd.cmd.ptr = (char *)cmd_get_ip;
+    l_at_cmd.cmd.len = sizeof(cmd_get_ip);
     l_at_cmd.is_critical = IS_CMD_CRITICAL(l_at_cmd.cmd_id);
     l_at_cmd.is_response_variable = IS_RSP_VARIABLE(l_at_cmd.cmd_id);
     l_at_cmd.timeout = 2500;
