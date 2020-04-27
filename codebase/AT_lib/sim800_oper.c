@@ -273,6 +273,8 @@ void (* p_oper_state_changed) (sim800_oper_status_t new_sts);
 void (* p_gprs_state_changed) (sim800_conn_status_t new_sts);
 /** Function pointer to the callback function which is to be called when HTTP response is received */
 void (* p_http_response) (uint32_t status_code);
+/** Function pointer to the callback function which is to be called when HTTP data received */
+void (* p_http_received_data) (uint8_t * p_data, uint32_t len);
 
 /** Local support functions */
 
@@ -321,6 +323,24 @@ void update_htttp_status_code (uint32_t code)
         {
             p_http_response (code);
         }
+    }
+}
+
+/**
+ * @brief Function to extract received data length from the response
+ * @param str Response String
+ * @return Length of received data
+ */
+uint32_t get_recv_data_len (char * str)
+{
+    const char l_read_rsp[] = {'+','H','T','T','P','R','E','A','D',':',' '};
+    if (memcmp (str, l_read_rsp, sizeof(l_read_rsp)))
+    {
+        return 0;
+    }
+    else
+    {
+        return (uint32_t)(atoi (&str[sizeof (l_read_rsp)]));
     }
 }
 
@@ -838,22 +858,30 @@ void command_unknown_response (uint32_t cmd_id, at_uart_data_t * u_data1, uint32
 
             case INFO_HTTP_DATA_READ : 
             {
+                static uint32_t l_recv_len = 0;
+                if(l_recv_len && p_http_received_data)
+                {
+                    p_http_received_data((uint8_t *)l_str,l_recv_len);
+                    l_recv_len = 0;
+                }
+                l_recv_len = get_recv_data_len (l_str);
+                log_printf ("Received data len : %d\n", l_recv_len);
                 break;
             }
 
             case INFO_HTTP_RQST_GET : 
             {
-//                update_htttp_status_code (get_status_code (l_str));
+                update_htttp_status_code (get_status_code (l_str));
                 break;
             }
 
             case INFO_HTTP_RQST_POST : 
             {
+                update_htttp_status_code (get_status_code (l_str));
                 break;
             }
 
         }
-        update_htttp_status_code (get_status_code (l_str));
     }
     
 }
@@ -1184,7 +1212,7 @@ void sim800_oper_enable_gprs (void)
     
 }
 
-uint32_t sim800_oper_conns (sim800_server_conn_t * conn_params)
+void sim800_oper_conns (sim800_server_conn_t * conn_params)
 {
     char l_http_head[] = {'A','T','+','H','T','T','P','P','A','R','A','=','\"',
         'U','R','L','\"',',','\"','\0'};
@@ -1205,11 +1233,15 @@ uint32_t sim800_oper_conns (sim800_server_conn_t * conn_params)
     
     strcat (cmd_http_url, l_http_tail);
     
-    return 0;
+    return;
 }
 
 void sim800_oper_http_req (sim800_http_req_t * http_req)
 {
+    if (http_req->p_received_data_handler)
+    {
+        p_http_received_data = http_req->p_received_data_handler;
+    }
 
     at_proc_cmd_t l_at_cmd;
     
@@ -1303,7 +1335,7 @@ void sim800_oper_http_req (sim800_http_req_t * http_req)
         push_cmd(l_at_cmd);
 
         reset_cmd (&l_at_cmd);
-        l_at_cmd.cmd_id = SIM800_HTTP_POST;
+        l_at_cmd.cmd_id = SIM800_HTTP_RQST_POST;
         l_at_cmd.cmd.ptr = (char *)cmd_http_post;
         l_at_cmd.cmd.len = sizeof(cmd_http_post);
         l_at_cmd.resp[0].ptr = rsp_std_OK;

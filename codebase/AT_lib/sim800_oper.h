@@ -112,6 +112,8 @@ typedef struct
     uint8_t * payload_ptr;
     /** Length of payload in bytes */
     uint8_t len;
+    /** Function pointer to the function which is to be called to handle data received */
+    void (* p_received_data_handler)(uint8_t * received_data, uint32_t len);
     
 }sim800_http_req_t;
 
@@ -168,9 +170,9 @@ void sim800_oper_enable_gprs (void);
 /**
  * @brief Function to connect to a server
  * @param conn_params Structure pointer to the structure to store connection parameters 
- * @return Connection ID
+ * @TODO Return Connection ID when multiple Connections are needed. 
  */
-uint32_t sim800_oper_conns (sim800_server_conn_t * conn_params);
+void sim800_oper_conns (sim800_server_conn_t * conn_params);
 
 /**
  * @brief Function to generate http request
