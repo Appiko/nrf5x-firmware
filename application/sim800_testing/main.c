@@ -67,6 +67,10 @@ const char addr[] = {"http://ptsv2.com/t/appiko/post"};
 
 const char post_msg[] = {'H','i','.','.','!','!','\r','\n'};
 
+static char g_ip_addr[15];
+
+static uint32_t g_ip_len = 0;
+
 static sim800_server_conn_t server_info = 
 {
     .server_ptr = (char *)addr,
@@ -77,6 +81,42 @@ static sim800_server_conn_t server_info =
 //    .port_len = sizeof(port),
 };
 
+
+void http_req_done (uint32_t http_sts)
+{
+    log_printf ("HTTP Status : %d\n", http_sts);
+}
+
+void gprs_state_changed (sim800_conn_status_t gprs_sts)
+{
+    log_printf ("Current GPRS Status : %d\n", gprs_sts);
+}
+
+void sim_mod_state_changed (sim800_oper_status_t mod_sts)
+{
+    log_printf ("SIM moduel status : %d\n", mod_sts);
+}
+
+void receivd_data_handler (uint8_t * p_data, uint32_t len)
+{
+    log_printf ("Received Data :\n");
+    for (uint32_t pos = 0; pos < len; pos++)
+    {
+        log_printf ("%c",p_data[pos]);
+    }
+    log_printf ("\n");
+}
+
+void print_ip_addr ()
+{
+    log_printf ("IP Address : ");
+    for(uint32_t pos; pos < g_ip_len; pos++)
+    {
+        log_printf ("%c",g_ip_addr[g_ip_len]);
+    }
+    log_printf ("\n");
+}
+
 void ms_timer_handler ()
 {
     sim800_oper_add_ticks (MS_TIMER_TICKS_MS(MS_TIEMR_EPD_RR));
@@ -84,6 +124,12 @@ void ms_timer_handler ()
 
 void periodic_post_req ()
 {
+    log_printf ("IP Address of this device : ");
+    for (uint32_t pos = 0; pos < g_ip_len; pos++)
+    {
+        log_printf ("%c",g_ip_addr[pos]);
+    }
+    log_printf ("\n");
     sim800_http_req_t l_http_req = 
     {
         .req_type = SIM800_HTTP_POST,
@@ -92,13 +138,24 @@ void periodic_post_req ()
     };
     if (sim800_oper_get_gprs_status () == SIM800_CONNECTED)
     {
-        sim800_oper_http_req (&l_http_req);}
+        sim800_oper_http_req (&l_http_req);
     }
+}
 
 void HardFault_IRQHandler ()
 {
     log_printf("%s\n",__func__);
 }
+
+static sim800_init_t init = 
+{
+    .operator = SIM800_BSNL,
+    .autoconn_enable = 1,
+    .sim800_http_response = http_req_done,
+    .sim800_gprs_state_changed = gprs_state_changed,
+    .sim800_oper_state_changed = sim_mod_state_changed,
+};
+
 
 int main(void)
 {
@@ -109,14 +166,15 @@ int main(void)
     
     lfclk_init(LFCLK_SRC_Xtal);
     ms_timer_init(APP_IRQ_PRIORITY_LOW);
-    sim800_oper_init (SIM800_BSNL);
-    sim800_oper_enable_gprs ();
+    sim800_oper_init (&init);
+    sim800_oper_enable_gprs ((uint8_t *)g_ip_addr, &g_ip_len);
     sim800_oper_conns (&server_info);
     sim800_http_req_t l_http_req = 
     {
         .req_type = SIM800_HTTP_POST,
         .payload_ptr = (uint8_t *)post_msg,
-        .len = (sizeof(post_msg))
+        .len = (sizeof(post_msg)),
+        .p_received_data_handler = receivd_data_handler,
     };
     sim800_oper_http_req (&l_http_req);
     
