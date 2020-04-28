@@ -188,9 +188,8 @@ const char cmd_http_init[] = {'A','T','+','H','T','T','P','I','N','I','T','\r','
 /** Command to set HTTP parameter : CID */
 const char cmd_http_cid[] = {'A','T','+','H','T','T','P','P','A','R','A','=','\"',
 'C','I','D','\"',',','1','\r','\n'};
-/** Command to set HTTP parameter : Content type */ //TODO : Make content type variable
-const char cmd_http_type[] = {'A','T','+','H','T','T','P','P','A','R','A','=','\"',
-'C','O','N','T','E','N','T','\"',',','\"','t','e','x','t','/','p','l','a','i','n','\"','\r','\n'};
+/** Command to set HTTP parameter : Content type */ 
+static char cmd_http_type[MAX_LEN_CMD];
 /** Command to set HTTP parameter : URL */
 static char cmd_http_url[MAX_LEN_CMD];
 /** Command to make GET request */
@@ -456,6 +455,29 @@ void assign_data_len (uint32_t len)
     }
     strcat (cmd_http_set_pdata, l_int_str);
     strcat (cmd_http_set_pdata, l_set_pdata_tail);
+}
+
+void assign_content_type (sim800_oper_http_contn_typ_t ctype)
+{
+    memset (cmd_http_type, 0, sizeof(cmd_http_type));
+    const char http_ctype_head[] = {'A','T','+','H','T','T','P','P','A','R','A','=','\"',
+'C','O','N','T','E','N','T','\"',',','\"','\0'};
+    const char http_ctype_tail[] = {'\"','\r','\n','\0'};
+    strcpy (cmd_http_type, http_ctype_head);    
+    switch (ctype)
+    {
+        case SIM800_HTTP_CONTENT_PTXT : 
+            strcat (cmd_http_type, "text/plain");
+            break;
+        case SIM800_HTTP_CONTENT_RTXT : 
+            strcat (cmd_http_type, "text/richtext");
+            break;
+        case SIM800_HTTP_CONTENT_OCT_S : 
+            strcat (cmd_http_type, "application/octet-stream");
+            break;
+    }
+    strcat (cmd_http_type, http_ctype_tail);
+
 }
 
 /**
@@ -1242,14 +1264,19 @@ void sim800_oper_conns (sim800_server_conn_t * conn_params)
     strcpy (cmd_http_url, l_http_head);
     strcat (cmd_http_url, conn_params->server_ptr);
     //ToDo calc max resource len
-    if ((conn_params->resource_ptr) && (conn_params->resource_len < MAX_LEN_CMD))
+    if ((conn_params->path_ptr) && (conn_params->path_len < MAX_LEN_CMD))
     {
         strcat (cmd_http_url, "/");
-        strcat (cmd_http_url, conn_params->resource_ptr);
+        strcat (cmd_http_url, conn_params->path_ptr);
     }
     if ((conn_params->port_ptr) && (conn_params->port_len < MAX_LEN_CMD))
     {
         strcat (cmd_http_url, ":");
+        strcat (cmd_http_url, conn_params->port_ptr );
+    }
+    if ((conn_params->resource_ptr) && (conn_params->resource_len < MAX_LEN_CMD))
+    {
+        strcat (cmd_http_url, "/");
         strcat (cmd_http_url, conn_params->port_ptr );
     }
     
@@ -1264,6 +1291,7 @@ void sim800_oper_http_req (sim800_http_req_t * http_req)
     {
         p_http_received_data = http_req->p_received_data_handler;
     }
+    assign_content_type (http_req->content_type);
 
     at_proc_cmd_t l_at_cmd;
     

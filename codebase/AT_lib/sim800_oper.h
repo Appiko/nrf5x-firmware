@@ -59,7 +59,7 @@ typedef enum
 }sim800_conn_status_t;
 
 /** For India */
-/**JIO doesn't support 2G*/
+/** @note JIO doesn't support 2G*/
 typedef enum
 {
     SIM800_BSNL,
@@ -68,29 +68,42 @@ typedef enum
     SIM800_AIRTEL,
 }sim800_operator_t;
 
-/** Structure to store data needed to send sms */
-typedef struct
+/** List of all the content types supported by this library */
+typedef enum
 {
-    uint8_t mob_no[10];
-    char * body_buff;
-    uint8_t body_len;
-}sim800_oper_sms_t;
+    /** Plain Text */
+    SIM800_HTTP_CONTENT_PTXT,
+    /** Rich Text */
+    SIM800_HTTP_CONTENT_RTXT,
+    /** Octet stream  */
+    SIM800_HTTP_CONTENT_OCT_S,
+}sim800_oper_http_contn_typ_t;
 
 /** Structure to store data needed to establish connection with server
- * @note : Address will be "server"/"resource":"port" 
+ * @note : Address will be "server"/"path":"port"/"resource"
  * @note : HTTP Timeout is 120s
  */
 typedef struct
 {
-    
+    /** Pointer to Server URL */
     char * server_ptr;
+    /** Length Server URL */
     uint8_t server_len;
     
-    char * resource_ptr;
-    uint8_t resource_len;
+    /** Pointer to the resource path */
+    char * path_ptr;
+    /** Length of resource path */
+    uint32_t path_len;
     
+    /** Pointer to the port id through which resource is to be used */
     char * port_ptr;    
+    /** Length the port id */
     uint8_t port_len;   
+    
+    /** Pointer to the resource which is to be handled */
+    char * resource_ptr;
+    /** Length of resource */
+    uint8_t resource_len;
     
 }sim800_server_conn_t;
 
@@ -108,6 +121,8 @@ typedef struct
     uint32_t conn_id;
     /** HTTP request type */
     sim800_req_type_t req_type;
+    /** HTTP header content type */
+    sim800_oper_http_contn_typ_t content_type;
     /** Payload data pointer (RAW data) */
     uint8_t * payload_ptr;
     /** Length of payload in bytes */
