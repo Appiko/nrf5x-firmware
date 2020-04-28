@@ -35,6 +35,7 @@
 
 #if SYS_CFG_PRESENT == 1
 #include "sys_config.h"
+#include "aux_clk.h"
 #endif
 
 #ifndef RTC_USED_TSSP_DETECT 
@@ -69,6 +70,14 @@
 /** Macro to find out the rounded number of TSSP_DETECT ticks for the passed time in milli-seconds */
 #define TSSP_DETECT_TICKS_MS(ms)                ((uint32_t) ROUNDED_DIV( (TSSP_DETECT_FREQ*(uint64_t)(ms)) , 1000) )
 
+/** List of Clock Sources that can be used to drive this module */
+typedef enum
+{
+    /** Low freq clock : low power mode */
+    TSSP_DETECT_LF_CLK = AUX_CLK_SRC_LFCLK,
+    /** High freq clock : high power mode */
+    TSSP_DETECT_HF_CLK = AUX_CLK_SRC_HFCLK,
+}tssp_detect_clk_src_t;
 
 /**
  * @brief Structure to store information required to use this module.
@@ -85,7 +94,7 @@ typedef struct
     bool detect_logic_level;
 
     /** Window duration in RTC ticks for which if no pulse is detected, some operation will done */
-    uint32_t window_duration_ticks;
+    uint32_t window_duration_ms;
 
     /** Function pointer for a function which is to be called when no pulse is detected\ 
      *  for window duration */
@@ -93,6 +102,9 @@ typedef struct
 
     /** Function pointer for a function which is to be called when a pulse is detected */
     void (*tssp_detect_handler) (uint32_t ticks);
+    
+    /** Clock source to which module has to be initiated */
+    tssp_detect_clk_src_t clk_src;
 
 }tssp_detect_config_t;
 
@@ -132,6 +144,17 @@ void tssp_detect_pulse_detect (void);
  */
 void tssp_detect_window_sync (uint32_t sync_ms);
 
+/**
+ * @brief Function to update the window duration for which beam has to be blocked
+ * @param window_duration_ms New window duration for which beam has to be blocked
+ */
+void tssp_detect_update_window (uint32_t window_duration_ms);
+
+/**
+ * @brief Function to switch clock source
+ * @param clk_src
+ */
+void tssp_detect_switch_clock (tssp_detect_clk_src_t clk_src);
 #endif /* TSSP_DETECT_H */
 /**
  * @}

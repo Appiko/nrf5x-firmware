@@ -112,6 +112,21 @@ enum
  */
 #define MSEC_TO_UNITS(TIME, RESOLUTION) (((TIME) * 1000) / (RESOLUTION))
 
+/**
+ * @brief Macro to set particular bit in a given variable without
+ *  affecting other bits
+ * @param[in] VAR           Variable from which bit is to be set
+ * @param[in] BIT_NO        Bit number which is be set
+ */
+#define SET_BIT_VAR(VAR, BIT_NO)    (VAR | (1 << BIT_NO))
+
+/**
+ * @brief Macro to clear particular bit in a given variable without
+ *  affecting other bits
+ * @param[in] VAR           Variable from which bit is to be clear
+ * @param[in] BIT_NO        Bit number which is be clear
+ */
+#define CLR_BIT_VAR(VAR, BIT_NO)    (VAR & ~(1 << BIT_NO))
 
 #endif /* CODEBASE_COMMON_UTIL_H_ */
 

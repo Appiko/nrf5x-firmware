@@ -31,6 +31,20 @@
 
 #include "stdint.h"
 #include "stddef.h"
+#ifdef CODEBASE_HAL_HAL_UARTE_H_
+#error "UART is being used by newer driver"
+#endif
+
+#if SYS_CFG_PRESENT == 1
+#include "sys_config.h"
+#endif
+#ifndef HAL_UART_PERIPH_USED 
+#define HAL_UART_PERIPH_USED 0
+#endif
+
+
+/** Specify which TWIM peripheral is used for this HAL module */
+#define UART_USED           HAL_UART_PERIPH_USED
 
 /** The character that is checked by rx_collect to determine if a line of characters is received */
 #define LINE_END                '\n'
@@ -72,6 +86,8 @@ void hal_uart_init(hal_uart_baud_t baud, void (*handler) (uint8_t * ptr));
  * @param cr The character to be sent
  */
 void hal_uart_putchar(uint8_t cr);
+
+void hal_uart_putdata (uint8_t * p_data, uint32_t len);
 
 #endif /* CODEBASE_HAL_HAL_UART_H_ */
 

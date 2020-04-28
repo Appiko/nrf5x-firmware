@@ -20,6 +20,12 @@
 #include "nrf.h"
 #include "common_util.h"
 #include "nrf_util.h"
+#include "hal_ppi.h"
+#include "aux_clk.h"
+
+#if ISR_MANAGER == 1
+#include "isr_manager.h"
+#endif
 
 /** Specify which RTC peripheral would be used for the PIR Sense module */
 #define PIR_SENSE_RTC_USED           RTC_USED_PIR_SENSE
@@ -35,13 +41,18 @@ static int16_t saadc_result[1];
 void (*sense_handler)(int32_t adc_val);
 
 /** @brief Implementation of the SAADC interrupt handler */
+#if ISR_MANAGER == 1
+void pir_sense_saadc_Handler (void)
+#else
 void SAADC_IRQHandler(void)
+#endif
 {
+#if ISR_MANAGER == 0
     NRF_SAADC->EVENTS_CH[SAADC_CHANNEL].LIMITH = 0;
     (void) NRF_SAADC->EVENTS_CH[SAADC_CHANNEL].LIMITH;
     NRF_SAADC->EVENTS_CH[SAADC_CHANNEL].LIMITL = 0;
     (void) NRF_SAADC->EVENTS_CH[SAADC_CHANNEL].LIMITL;
-
+#endif
     sense_handler(saadc_result[0]);
 }
 
@@ -82,31 +93,64 @@ void pir_sense_start(pir_sense_cfg * init)
     NRF_SAADC->INTENSET = ((1 << (SAADC_CHANNEL*2 + 6)) | (1 << (SAADC_CHANNEL*2 + 7)));
 
     //On ADC start event, trigger the ADC sampling
-    NRF_PPI->CH[PPI_CHANNEL_USED_PIR_SENSE_1].EEP = (uint32_t) &(NRF_SAADC->EVENTS_STARTED);
-    NRF_PPI->CH[PPI_CHANNEL_USED_PIR_SENSE_1].TEP = (uint32_t) &(NRF_SAADC->TASKS_SAMPLE);
+//    NRF_PPI->CH[PPI_CHANNEL_USED_PIR_SENSE_1].EEP = (uint32_t) &(NRF_SAADC->EVENTS_STARTED);
+//    NRF_PPI->CH[PPI_CHANNEL_USED_PIR_SENSE_1].TEP = (uint32_t) &(NRF_SAADC->TASKS_SAMPLE);
+    
+    hal_ppi_setup_t pir_ppi1 = 
+    {
+        .ppi_id = PPI_CHANNEL_USED_PIR_SENSE_1,
+        .event = (uint32_t) &(NRF_SAADC->EVENTS_STARTED),
+        .task = (uint32_t) &(NRF_SAADC->TASKS_SAMPLE),
+    };
+    hal_ppi_set (&pir_ppi1);
 
     //On RTC0 Compare0 event, trigger ADC start task and also clear the RTC0 counter
-    NRF_PPI->CH[PPI_CHANNEL_USED_PIR_SENSE_2].EEP = (uint32_t) &(RTC_ID->EVENTS_COMPARE[0]);
-    NRF_PPI->CH[PPI_CHANNEL_USED_PIR_SENSE_2].TEP = (uint32_t) &(NRF_SAADC->TASKS_START);
-    NRF_PPI->FORK[PPI_CHANNEL_USED_PIR_SENSE_2].TEP = (uint32_t) &(RTC_ID->TASKS_CLEAR);
+//    NRF_PPI->CH[PPI_CHANNEL_USED_PIR_SENSE_2].EEP = (uint32_t) &(RTC_ID->EVENTS_COMPARE[0]);
+//    NRF_PPI->CH[PPI_CHANNEL_USED_PIR_SENSE_2].TEP = (uint32_t) &(NRF_SAADC->TASKS_START);
+//    NRF_PPI->FORK[PPI_CHANNEL_USED_PIR_SENSE_2].TEP = (uint32_t) &(RTC_ID->TASKS_CLEAR);
+    
 
     //On ADC end event, stop the ADC to disable it and save power
-    NRF_PPI->CH[PPI_CHANNEL_USED_PIR_SENSE_3].EEP = (uint32_t) &(NRF_SAADC->EVENTS_END);
-    NRF_PPI->CH[PPI_CHANNEL_USED_PIR_SENSE_3].TEP = (uint32_t) &(NRF_SAADC->TASKS_STOP);
+//    NRF_PPI->CH[PPI_CHANNEL_USED_PIR_SENSE_3].EEP = (uint32_t) &(NRF_SAADC->EVENTS_END);
+//    NRF_PPI->CH[PPI_CHANNEL_USED_PIR_SENSE_3].TEP = (uint32_t) &(NRF_SAADC->TASKS_STOP);
+
+    hal_ppi_setup_t pir_ppi3 = 
+    {
+        .ppi_id = PPI_CHANNEL_USED_PIR_SENSE_3,
+        .event = (uint32_t) &(NRF_SAADC->EVENTS_STOPPED),
+        .task = (uint32_t) &(NRF_SAADC->TASKS_STOP),
+    };
+    hal_ppi_set (&pir_ppi3);
 
     //Enable the above three PPIs
-    NRF_PPI->CHENSET = (1 << PPI_CHANNEL_USED_PIR_SENSE_1) |
-            (1 << PPI_CHANNEL_USED_PIR_SENSE_2) |
-            (1 << PPI_CHANNEL_USED_PIR_SENSE_3);
+//    NRF_PPI->CHENSET = (1 << PPI_CHANNEL_USED_PIR_SENSE_1) |
+//            (1 << PPI_CHANNEL_USED_PIR_SENSE_2) |
+//            (1 << PPI_CHANNEL_USED_PIR_SENSE_3);
+//
+//    //Start off the ADC with CC0 as the sensing interval
+//    RTC_ID->TASKS_STOP = 1;
+//    RTC_ID->PRESCALER = 0;
+//    RTC_ID->CC[0] = LFCLK_TICKS_MS(init->sense_interval_ms);
+//    RTC_ID->EVTENSET = (RTC_EVTENSET_COMPARE0_Enabled << RTC_EVTENSET_COMPARE0_Pos);
+//    RTC_ID->EVENTS_COMPARE[0] = 0;
+//    RTC_ID->TASKS_START = 1;
 
-    //Start off the ADC with CC0 as the sensing interval
-    RTC_ID->TASKS_STOP = 1;
-    RTC_ID->PRESCALER = 0;
-    RTC_ID->CC[0] = LFCLK_TICKS_MS(init->sense_interval_ms);
-    RTC_ID->EVTENSET = (RTC_EVTENSET_COMPARE0_Enabled << RTC_EVTENSET_COMPARE0_Pos);
-    RTC_ID->EVENTS_COMPARE[0] = 0;
-    RTC_ID->TASKS_START = 1;
-
+    hal_ppi_en_ch (PPI_CHANNEL_USED_PIR_SENSE_1);
+    hal_ppi_en_ch (PPI_CHANNEL_USED_PIR_SENSE_3);
+    aux_clk_setup_t aux_clk_setup = 
+    {
+        .arr_cc_ms[0] = (init->sense_interval_ms),
+        .arr_ppi_cnf[0].event = AUX_CLK_EVT_CC0,
+        .arr_ppi_cnf[0].task1 = (uint32_t) &(NRF_SAADC->TASKS_START),
+        .arr_ppi_cnf[0].task2 = AUX_CLK_TASKS_CLEAR,
+        .source = init->clk_src,
+        .events_en = AUX_CLK_EVT_CC0,
+        .callback_handler = 0,
+        .irq_priority = init->irq_priority,
+    };
+    aux_clk_set (&aux_clk_setup);
+    aux_clk_start ();
+    
     NRF_SAADC->ENABLE = (SAADC_ENABLE_ENABLE_Enabled << SAADC_ENABLE_ENABLE_Pos);
 }
 
@@ -121,10 +165,31 @@ void pir_sense_stop(void)
     NRF_SAADC->INTENCLR = 0xFFFFFFFF;
     NRF_SAADC->CH[SAADC_CHANNEL].PSELP = SAADC_CH_PSELP_PSELP_NC;
 
-    NRF_PPI->CHENCLR = (PPI_CHENCLR_CH0_Clear << PPI_CHANNEL_USED_PIR_SENSE_1) |
-                (PPI_CHENCLR_CH1_Clear << PPI_CHANNEL_USED_PIR_SENSE_2) |
-                (PPI_CHENCLR_CH2_Clear << PPI_CHANNEL_USED_PIR_SENSE_3);
-
-    RTC_ID->TASKS_CLEAR = 1;
-    RTC_ID->TASKS_STOP = 1;
+//    NRF_PPI->CHENCLR = (PPI_CHENCLR_CH0_Clear << PPI_CHANNEL_USED_PIR_SENSE_1) |
+//                (PPI_CHENCLR_CH1_Clear << PPI_CHANNEL_USED_PIR_SENSE_2) |
+//                (PPI_CHENCLR_CH2_Clear << PPI_CHANNEL_USED_PIR_SENSE_3);
+//
+//    RTC_ID->TASKS_CLEAR = 1;
+//    RTC_ID->TASKS_STOP = 1;
+    
+    hal_ppi_dis_ch (PPI_CHANNEL_USED_PIR_SENSE_1);
+    hal_ppi_dis_ch (PPI_CHANNEL_USED_PIR_SENSE_3);
+    aux_clk_dis_ppi_ch (PPI_CHANNEL_USED_PIR_SENSE_2);
+    aux_clk_clear ();
+    aux_clk_stop ();
 }
+
+void pir_sense_update_threshold (uint32_t threshold)
+{
+
+    NRF_SAADC->CH[SAADC_CHANNEL].LIMIT = (
+                (((-1*((int16_t) threshold)) << SAADC_CH_LIMIT_LOW_Pos) & SAADC_CH_LIMIT_LOW_Msk)
+              | (((uint16_t) threshold << SAADC_CH_LIMIT_HIGH_Pos) & SAADC_CH_LIMIT_HIGH_Msk));
+    
+}
+
+void pir_sense_switch_clock (pir_sense_clk_t clk_src)
+{
+    aux_clk_select_src ((aux_clk_source_t)clk_src);
+}
+

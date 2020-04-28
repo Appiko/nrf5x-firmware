@@ -36,6 +36,13 @@
 
 #include "ble.h"
 
+#if SYS_CFG_PRESENT == 1
+#include "sys_config.h"
+#endif
+#ifndef SWI_USED_EVT_SD_HANDLER 
+#define SWI_USED_EVT_SD_HANDLER 2
+#endif
+
 /**
  * @brief Initializes the SWI2 interrupt routine and stores the
  *  handlers for the BLE and SoC events.

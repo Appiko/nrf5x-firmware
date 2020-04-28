@@ -33,8 +33,15 @@
 #include "nrf.h"
 #include "nrf_util.h"
 
+#if SYS_CFG_PRESENT == 1
+#include "sys_config.h"
+#endif
+#ifndef HAL_SPIM_PERIPH_USED 
+#define HAL_SPIM_PERIPH_USED 0
+#endif
+
 #ifndef SPIM_USED 
-#define SPIM_USED 0
+#define SPIM_USED HAL_SPIM_PERIPH_USED
 #endif
 
 

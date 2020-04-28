@@ -38,6 +38,7 @@ typedef struct
     uint8_t rf_rx_rssi;
     uint8_t CRC_ERR;
     uint16_t pkt_no;
+    uint8_t mag_status;
 }mod_ble_data_t;
 
 /**

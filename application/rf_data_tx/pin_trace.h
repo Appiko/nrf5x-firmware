@@ -7,15 +7,22 @@
 //#define SCK  22 //With BMP:Bluey
 #define CS   04
 
-#define GPIO0 11  //With BMP:Hackable
-#define GPIO1 12  //With BMP:Hackable
-#define GPIO2 13  //With BMP:Hackable
-#define GPIO3 14  //With BMP:Hackable
+//#define GPIO0 11  //With BMP:Hackable
+//#define GPIO1 12  //With BMP:Hackable
+//#define GPIO2 13  //With BMP:Hackable
+//#define GPIO3 14  //With BMP:Hackable
 //#define GPIO0 03
 //#define GPIO1 28
 //#define GPIO2 29
 //#define GPIO3 31
+#define GPIO0 26
+#define GPIO1 27
+#define GPIO2 28
+#define GPIO3 29
 
 #define SDN   05  //With BMP:Hackable
 //#define SDN   18  //With JLINK
 //#define SDN   26 //With BMP:Bluey
+#define PA_EN_PIN   30
+#define LNA_EN_PIN  31
+#define HALL_PIN 27

@@ -1,0 +1,31 @@
+digraph lrf_node_app_flow {
+  rankdir = "LR";
+  ratio = "fill";
+  size = "8,8";
+  boot [label = "Boot"];
+  cp [label = "Check Point"];
+  lp [shape = circle, width = 1.0, label = "RF\nLoop"];
+  p_dp [shape = circle, width = 1.0, label = "Pre-deploy"];
+  sense [ shape = circle, width = 1.0, label = "Sensing"];
+  dply [shape = circle, width = 1.0, label = "Deployment"];
+  mntn [shape = circle, width = 1.0, label = "Maintainance "];
+  boot -> cp [label = "Boot Up"];
+
+  cp -> sense [label = "Deploy Flag\nTrue"];
+  cp -> p_dp [label = "Deploy Flag\nFalsee"];
+
+  dply -> cp [label = "Disconnect\nor Timeout"];
+  
+  p_dp -> dply [label = "Magnet Proximity"];
+  mntn  -> dply[label = "Magnet Proximity"];
+  sense -> dply[label = "Magnet Proximity"];
+  lp -> dply[label = "Magnet Proximity"];
+  sense -> lp [label = "Tilt\Detected"];
+  lp -> sense [label = "Packet\nCount up"];
+
+  lp -> lp [label = "Packet_count+1"]
+  
+  sense   -> mntn [label = "Battery Low,\n Long senses"];
+ }
+
+                          

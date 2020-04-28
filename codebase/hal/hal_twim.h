@@ -31,21 +31,30 @@
 #define CODEBASE_HAL_HAL_TWIM_H_
 
 #include "nrf.h"
+//#include "nrf52_bitfields.h"
 
 #ifdef NRF51
 #error TWIM peripheral is not present in the nRF51 SoC
 #endif
 
+#if SYS_CFG_PRESENT == 1
+#include "sys_config.h"
+#endif
+#ifndef HAL_TWIM_PERIPH_USED 
+#define HAL_TWIM_PERIPH_USED 0
+#endif
+
+
 /** Specify which TWIM peripheral is used for this HAL module */
-#define TWIM_USED           0
+#define TWIM_USED           HAL_TWIM_PERIPH_USED
 
 /** @brief Defines for TWI master clock frequency.
  */
 typedef enum
 {
-    HAL_TWI_FREQ_100K = TWI_FREQUENCY_FREQUENCY_K100, ///< 100 kbps
-    HAL_TWI_FREQ_250K = TWI_FREQUENCY_FREQUENCY_K250, ///< 250 kbps
-    HAL_TWI_FREQ_400K = TWI_FREQUENCY_FREQUENCY_K400  ///< 400 kbps
+    HAL_TWI_FREQ_100K = TWIM_FREQUENCY_FREQUENCY_K100, ///< 100 kbps
+    HAL_TWI_FREQ_250K = TWIM_FREQUENCY_FREQUENCY_K250, ///< 250 kbps
+    HAL_TWI_FREQ_400K = TWIM_FREQUENCY_FREQUENCY_K400  ///< 400 kbps
 } hal_twim_freq_t;
 
 /** @brief Defines for the types of transfers possible.
@@ -144,6 +153,13 @@ twim_ret_status hal_twim_tx_rx(uint8_t * tx_ptr, uint32_t tx_len,
  */
 uint32_t hal_twim_get_current_adrs(void);
 
+/**
+ * @brief Function to get twim's status. 
+ * @return Transfer status of TWIM
+ * @retval true if transfer is still happening
+ * @retval false if transfer is done
+ */
+uint8_t hal_twim_is_working (void);
 #endif /* CODEBASE_HAL_HAL_TWIM_H_ */
 /**
  * @}

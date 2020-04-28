@@ -23,6 +23,12 @@
 #include "nrf_util.h"
 #include "stddef.h"
 #include "log.h"
+#include "hal_ppi.h"
+#include "aux_clk.h"
+
+#if ISR_MANAGER == 1
+#include "isr_manager.h"
+#endif
 
 /** RTC used by this module */
 #define TSSP_DETECT_RTC_USED CONCAT_2(NRF_RTC, RTC_USED_TSSP_DETECT)
@@ -31,7 +37,7 @@
 #define TSSP_DETECT_EGU_USED CONCAT_2(NRF_EGU,EGU_USED_TSSP_DETECT)
 
 /** Channel 1 of PPI is used here for RTC */
-#define PPI_CHANNEL_USED_RTC PPI_CH_USED_TSSP_DETECT_1
+#define PPI_CHANNEL_USED_CLK AUX_CLK_PPI_CHANNEL_1
 
 /** Channel 2 of PPI is used here for EGU */
 #define PPI_CHANNEL_USED_EGU PPI_CH_USED_TSSP_DETECT_2
@@ -46,9 +52,9 @@
 /** Channel 1 of RTC0 is used for Synchronization */
 #define SYNC_OFF_RTC_CHANNEL 1
 /** Channel 0 of EGU0 is used here */
-#define EGU_CHANNEL_USED 0
+#define EGU_CHANNEL_USED EGU_CHANNEL_USED_TSSP_DETECT
 /** Half of duration for which sensor will be enabled while detecting window */
-#define HALF_TSSP_ENABLE_DURATION TSSP_DETECT_TICKS_MS(2)
+#define HALF_TSSP_ENABLE_DURATION (2)
 
 
 #ifndef ENABLE
@@ -79,6 +85,9 @@ void (*missed_handler)(void);
 /**Function pointer which is to be called if module detects the pulse*/
 void (*detect_handler)(uint32_t ticks);
 
+/** Callback handler for clock events */
+void tssp_detect_clk_Handler (uint8_t events);
+
 void tssp_detect_init (tssp_detect_config_t * tssp_detect_config)
 {
     tssp_en_pin = tssp_detect_config->rx_en_pin;
@@ -91,12 +100,23 @@ void tssp_detect_init (tssp_detect_config_t * tssp_detect_config)
     {
         is_window_detect_req = true;
         missed_handler = tssp_detect_config->tssp_missed_handler;
-        TSSP_DETECT_RTC_USED->PRESCALER = ROUNDED_DIV(LFCLK_FREQ, TSSP_DETECT_FREQ) - 1;
-        TSSP_DETECT_RTC_USED->CC[WINDOW_RTC_CHANNEL] = TSSP_DETECT_TICKS_MS(tssp_detect_config->window_duration_ticks);
-        TSSP_DETECT_RTC_USED->INTENSET |= ENABLE << (WINDOW_RTC_CHANNEL+16);
-                    
-        NRF_PPI->CH[PPI_CHANNEL_USED_RTC].EEP = (uint32_t) &NRF_GPIOTE->EVENTS_IN[GPIOTE_CHANNEL_USED];
-        NRF_PPI->CH[PPI_CHANNEL_USED_RTC].TEP = (uint32_t) &TSSP_DETECT_RTC_USED->TASKS_CLEAR;
+//        TSSP_DETECT_RTC_USED->PRESCALER = ROUNDED_DIV(LFCLK_FREQ, TSSP_DETECT_FREQ) - 1;
+//        TSSP_DETECT_RTC_USED->CC[WINDOW_RTC_CHANNEL] = TSSP_DETECT_TICKS_MS(tssp_detect_config->window_duration_ms);
+//        TSSP_DETECT_RTC_USED->INTENSET |= ENABLE << (WINDOW_RTC_CHANNEL+16);
+//                    
+//        NRF_PPI->CH[PPI_CHANNEL_USED_RTC].EEP = (uint32_t) &NRF_GPIOTE->EVENTS_IN[GPIOTE_CHANNEL_USED];
+//        NRF_PPI->CH[PPI_CHANNEL_USED_RTC].TEP = (uint32_t) &TSSP_DETECT_RTC_USED->TASKS_CLEAR;
+        aux_clk_setup_t aux_clk_setup = 
+        {
+            .source = tssp_detect_config->clk_src,
+            .arr_cc_ms[WINDOW_RTC_CHANNEL] = tssp_detect_config->window_duration_ms,
+            .arr_ppi_cnf[0].event = (uint32_t) &NRF_GPIOTE->EVENTS_IN[GPIOTE_CHANNEL_USED],
+            .arr_ppi_cnf[0].task1 = AUX_CLK_TASKS_CLEAR,
+            .events_en = ( 1 << WINDOW_RTC_CHANNEL),
+            .irq_priority = APP_IRQ_PRIORITY_HIGHEST,
+            .callback_handler = tssp_detect_clk_Handler,
+        };
+        aux_clk_set (&aux_clk_setup);
         
     }
     else
@@ -114,8 +134,15 @@ void tssp_detect_init (tssp_detect_config_t * tssp_detect_config)
         NVIC_EnableIRQ (SWI0_IRQn);
         NVIC_ClearPendingIRQ (SWI0_IRQn);
 
-        NRF_PPI->CH[PPI_CHANNEL_USED_EGU].EEP = (uint32_t) &NRF_GPIOTE->EVENTS_IN[GPIOTE_CHANNEL_USED];
-        NRF_PPI->CH[PPI_CHANNEL_USED_EGU].TEP = (uint32_t) &TSSP_DETECT_EGU_USED->TASKS_TRIGGER[EGU_CHANNEL_USED];
+        hal_ppi_setup_t ppi_setup = 
+        {
+            .ppi_id = PPI_CHANNEL_USED_EGU,
+            .task = (uint32_t) &TSSP_DETECT_EGU_USED->TASKS_TRIGGER[EGU_CHANNEL_USED],
+            .event = (uint32_t) &NRF_GPIOTE->EVENTS_IN[GPIOTE_CHANNEL_USED],
+        };
+        hal_ppi_set (&ppi_setup);
+//        NRF_PPI->CH[PPI_CHANNEL_USED_EGU].EEP = (uint32_t) &NRF_GPIOTE->EVENTS_IN[GPIOTE_CHANNEL_USED];
+//        NRF_PPI->CH[PPI_CHANNEL_USED_EGU].TEP = (uint32_t) &TSSP_DETECT_EGU_USED->TASKS_TRIGGER[EGU_CHANNEL_USED];
     }
     else
     {
@@ -130,8 +157,10 @@ void tssp_detect_window_detect ()
     is_window_detect_req = true;
     
     
-    TSSP_DETECT_RTC_USED->INTENSET |= ENABLE << (WINDOW_RTC_CHANNEL+16);
-    NRF_PPI->CHENSET |= 1 << PPI_CHANNEL_USED_RTC;
+//    TSSP_DETECT_RTC_USED->INTENSET |= ENABLE << (WINDOW_RTC_CHANNEL+16);
+//    NRF_PPI->CHENSET |= 1 << PPI_CHANNEL_USED_RTC;
+    aux_clk_en_evt (1 << WINDOW_RTC_CHANNEL);
+    aux_clk_en_ppi_ch (PPI_CHANNEL_USED_CLK);
 
     NRF_GPIOTE->EVENTS_IN[GPIOTE_CHANNEL_USED] = 0;
     
@@ -141,12 +170,13 @@ void tssp_detect_window_detect ()
         ((tssp_rx_pin << GPIOTE_CONFIG_PSEL_Pos) 
          & GPIOTE_CONFIG_PSEL_Msk);
 
-    TSSP_DETECT_RTC_USED->EVENTS_COMPARE[WINDOW_RTC_CHANNEL] = 0;
-    (void) TSSP_DETECT_RTC_USED->EVENTS_COMPARE[WINDOW_RTC_CHANNEL];
+    aux_clk_start ();
+//    TSSP_DETECT_RTC_USED->EVENTS_COMPARE[WINDOW_RTC_CHANNEL] = 0;
+//    (void) TSSP_DETECT_RTC_USED->EVENTS_COMPARE[WINDOW_RTC_CHANNEL];
     
-    TSSP_DETECT_RTC_USED->TASKS_START = 1;   
-    NVIC_SetPriority (RTC0_IRQn, APP_IRQ_PRIORITY_HIGHEST);
-    NVIC_EnableIRQ (RTC0_IRQn);
+//    TSSP_DETECT_RTC_USED->TASKS_START = 1;
+//    NVIC_SetPriority (RTC0_IRQn, APP_IRQ_PRIORITY_HIGHEST);
+//    NVIC_EnableIRQ (RTC0_IRQn);
 }
 
 void tssp_detect_pulse_stop ()
@@ -162,7 +192,8 @@ void tssp_detect_pulse_stop ()
 
         hal_gpio_pin_write (tssp_en_pin, DISABLE);
     }
-    NRF_PPI->CHENCLR |= 1 << PPI_CHANNEL_USED_EGU;
+    hal_ppi_dis_ch (PPI_CHANNEL_USED_EGU);
+//    NRF_PPI->CHENCLR |= 1 << PPI_CHANNEL_USED_EGU;
 }
 
 void tssp_detect_window_stop (void)
@@ -178,15 +209,21 @@ void tssp_detect_window_stop (void)
 
         hal_gpio_pin_write (tssp_en_pin, DISABLE);
     }
-    TSSP_DETECT_RTC_USED->INTENCLR |= ENABLE << (WINDOW_RTC_CHANNEL+16) | 
-                                      ENABLE << (SYNC_ON_RTC_CHANNEL+16) | 
-                                      ENABLE << (SYNC_OFF_RTC_CHANNEL+16);
-    NRF_PPI->CHENCLR |= 1 << PPI_CHANNEL_USED_RTC;
-    NVIC_DisableIRQ  (RTC0_IRQn);
+    aux_clk_dis_evt ((1 << WINDOW_RTC_CHANNEL)|(1 << SYNC_OFF_RTC_CHANNEL) 
+        |(1 << SYNC_ON_RTC_CHANNEL));
+//    TSSP_DETECT_RTC_USED->INTENCLR |= ENABLE << (WINDOW_RTC_CHANNEL+16) | 
+//                                      ENABLE << (SYNC_ON_RTC_CHANNEL+16) | 
+//                                      ENABLE << (SYNC_OFF_RTC_CHANNEL+16);
+//    NRF_PPI->CHENCLR |= 1 << PPI_CHANNEL_USED_RTC;
 
-    TSSP_DETECT_RTC_USED->TASKS_CLEAR = 1;
-    (void) TSSP_DETECT_RTC_USED->TASKS_CLEAR;
-    TSSP_DETECT_RTC_USED->TASKS_STOP = 1;
+    aux_clk_dis_ppi_ch (PPI_CHANNEL_USED_CLK);
+    aux_clk_stop ();
+
+    //    NVIC_DisableIRQ  (RTC0_IRQn);
+//
+//    TSSP_DETECT_RTC_USED->TASKS_CLEAR = 1;
+//    (void) TSSP_DETECT_RTC_USED->TASKS_CLEAR;
+//    TSSP_DETECT_RTC_USED->TASKS_STOP = 1;
 }
 
 void tssp_detect_pulse_detect ()
@@ -204,7 +241,8 @@ void tssp_detect_pulse_detect ()
     hal_gpio_pin_write (tssp_en_pin, ENABLE);
 
     TSSP_DETECT_EGU_USED->INTENSET |= ENABLE << EGU_CHANNEL_USED;
-    NRF_PPI->CHENSET |= 1 << PPI_CHANNEL_USED_EGU;
+    hal_ppi_en_ch (PPI_CHANNEL_USED_EGU);
+//    NRF_PPI->CHENSET |= 1 << PPI_CHANNEL_USED_EGU;
 }
 
 void tssp_detect_window_sync (uint32_t sync_ms)
@@ -212,52 +250,111 @@ void tssp_detect_window_sync (uint32_t sync_ms)
     tssp_sync_ms = (sync_ms);
     
     uint32_t rtc_counter;
-    rtc_counter = TSSP_DETECT_RTC_USED->COUNTER ;
-    TSSP_DETECT_RTC_USED->CC[SYNC_ON_RTC_CHANNEL] =
-        (rtc_counter + (tssp_sync_ms - HALF_TSSP_ENABLE_DURATION)) ;
-    (void)    TSSP_DETECT_RTC_USED->CC[SYNC_ON_RTC_CHANNEL];
-    TSSP_DETECT_RTC_USED->INTENSET |= ENABLE << (SYNC_ON_RTC_CHANNEL+16);
-    TSSP_DETECT_RTC_USED->EVENTS_COMPARE[SYNC_ON_RTC_CHANNEL] = 0;
+    rtc_counter = aux_clk_get_ms ();
+    
+    aux_clk_update_cc (SYNC_ON_RTC_CHANNEL, (rtc_counter +
+                            (tssp_sync_ms - HALF_TSSP_ENABLE_DURATION)));
+    
+    aux_clk_update_cc (SYNC_OFF_RTC_CHANNEL, HALF_TSSP_ENABLE_DURATION);
+//    rtc_counter = TSSP_DETECT_RTC_USED->COUNTER ;
+//    TSSP_DETECT_RTC_USED->CC[SYNC_ON_RTC_CHANNEL] =
+//        (rtc_counter + (tssp_sync_ms - HALF_TSSP_ENABLE_DURATION)) ;
+//    (void)    TSSP_DETECT_RTC_USED->CC[SYNC_ON_RTC_CHANNEL];
 
-    TSSP_DETECT_RTC_USED->CC[SYNC_OFF_RTC_CHANNEL] = HALF_TSSP_ENABLE_DURATION;
-    (void)    TSSP_DETECT_RTC_USED->CC[SYNC_OFF_RTC_CHANNEL];
-    TSSP_DETECT_RTC_USED->INTENSET |= ENABLE << (SYNC_OFF_RTC_CHANNEL+16);
-    TSSP_DETECT_RTC_USED->EVENTS_COMPARE[SYNC_OFF_RTC_CHANNEL] = 0;
+
+    
+//    TSSP_DETECT_RTC_USED->CC[SYNC_OFF_RTC_CHANNEL] = HALF_TSSP_ENABLE_DURATION;
+//    (void)    TSSP_DETECT_RTC_USED->CC[SYNC_OFF_RTC_CHANNEL];
+//    TSSP_DETECT_RTC_USED->INTENSET |= ENABLE << (SYNC_ON_RTC_CHANNEL+16);
+//    TSSP_DETECT_RTC_USED->EVENTS_COMPARE[SYNC_ON_RTC_CHANNEL] = 0;
+//    TSSP_DETECT_RTC_USED->INTENSET |= ENABLE << (SYNC_OFF_RTC_CHANNEL+16);
+//    TSSP_DETECT_RTC_USED->EVENTS_COMPARE[SYNC_OFF_RTC_CHANNEL] = 0;
+    
+    aux_clk_en_evt ((1 << SYNC_ON_RTC_CHANNEL) | (1 << SYNC_OFF_RTC_CHANNEL));
     
 }
 
-
-void SWI0_IRQHandler ()
+void tssp_detect_update_window (uint32_t window_duration_ms)
 {
-    TSSP_DETECT_EGU_USED->EVENTS_TRIGGERED[EGU_CHANNEL_USED] = 0;
-    (void) TSSP_DETECT_EGU_USED->EVENTS_TRIGGERED[EGU_CHANNEL_USED];
-    NRF_PPI->CHENCLR |= 1 << PPI_CHANNEL_USED_EGU;
-    detect_handler ( TSSP_DETECT_RTC_USED->COUNTER );
+    aux_clk_update_cc (WINDOW_RTC_CHANNEL, window_duration_ms);
 }
 
+void tssp_detect_switch_clock (tssp_detect_clk_src_t clk_src)
+{
+    aux_clk_select_src ((aux_clk_source_t)clk_src);
+}
+
+#if ISR_MANAGER == 1
+void tssp_detect_swi_Handler (void)
+#else
+void SWI0_IRQHandler ()
+#endif
+{
+#if ISR_MANAGER == 0
+    TSSP_DETECT_EGU_USED->EVENTS_TRIGGERED[EGU_CHANNEL_USED] = 0;
+    (void) TSSP_DETECT_EGU_USED->EVENTS_TRIGGERED[EGU_CHANNEL_USED];
+#endif
+    hal_ppi_dis_ch (PPI_CHANNEL_USED_EGU);
+//    NRF_PPI->CHENCLR |= 1 << PPI_CHANNEL_USED_EGU;
+    detect_handler ( TSSP_DETECT_RTC_USED->COUNTER );
+}
+/*
+#if ISR_MANAGER == 1
+void tssp_detect_rtc_Handler (void)
+#else
 void RTC0_IRQHandler (void)
+#endif
 {
     if(TSSP_DETECT_RTC_USED->EVENTS_COMPARE[SYNC_ON_RTC_CHANNEL] == 1)
     {
+#if ISR_MANAGER == 0
         TSSP_DETECT_RTC_USED->EVENTS_COMPARE[SYNC_ON_RTC_CHANNEL] = 0;
+        (void) TSSP_DETECT_RTC_USED->EVENTS_COMPARE[SYNC_ON_RTC_CHANNEL];
+#endif
         hal_gpio_pin_write (tssp_en_pin, ENABLE);
         TSSP_DETECT_RTC_USED->CC[SYNC_OFF_RTC_CHANNEL] = HALF_TSSP_ENABLE_DURATION;
         
-        (void) TSSP_DETECT_RTC_USED->EVENTS_COMPARE[SYNC_ON_RTC_CHANNEL];
     }
     if(TSSP_DETECT_RTC_USED->EVENTS_COMPARE[SYNC_OFF_RTC_CHANNEL] == 1)
     {
+#if ISR_MANAGER == 0
         TSSP_DETECT_RTC_USED->EVENTS_COMPARE[SYNC_OFF_RTC_CHANNEL] = 0;
         (void) TSSP_DETECT_RTC_USED->EVENTS_COMPARE[SYNC_OFF_RTC_CHANNEL];
+#endif
         hal_gpio_pin_write (tssp_en_pin, DISABLE);
         TSSP_DETECT_RTC_USED->CC[SYNC_ON_RTC_CHANNEL] = (tssp_sync_ms - HALF_TSSP_ENABLE_DURATION);
     }
     if(TSSP_DETECT_RTC_USED->EVENTS_COMPARE[WINDOW_RTC_CHANNEL] == 1)
     {
+#if ISR_MANAGER == 0
         TSSP_DETECT_RTC_USED->EVENTS_COMPARE[WINDOW_RTC_CHANNEL] = 0;
         (void) TSSP_DETECT_RTC_USED->EVENTS_COMPARE[WINDOW_RTC_CHANNEL];
+#endif
         missed_handler ();
         TSSP_DETECT_RTC_USED->TASKS_CLEAR = 1;
         (void) TSSP_DETECT_RTC_USED->TASKS_CLEAR;
+    }
+}
+*/
+void tssp_detect_clk_Handler (uint8_t events)
+{
+    if(events & (1 << WINDOW_RTC_CHANNEL))
+    {
+        missed_handler ();
+        aux_clk_clear ();
+        log_printf("MS : %d\n", aux_clk_get_ms ());
+//        static aux_clk_source_t clk_src = AUX_CLK_SRC_LFCLK;
+//        aux_clk_select_src ((clk_src + 1)%2);
+
+    }
+    if(events & (1 << SYNC_ON_RTC_CHANNEL))
+    {
+        hal_gpio_pin_write (tssp_en_pin, ENABLE);
+        aux_clk_update_cc (SYNC_OFF_RTC_CHANNEL, HALF_TSSP_ENABLE_DURATION);
+    }
+    if(events & (1 << SYNC_OFF_RTC_CHANNEL))
+    {
+        hal_gpio_pin_write (tssp_en_pin, DISABLE);
+        aux_clk_update_cc (SYNC_ON_RTC_CHANNEL, (tssp_sync_ms -HALF_TSSP_ENABLE_DURATION));
     }
 }

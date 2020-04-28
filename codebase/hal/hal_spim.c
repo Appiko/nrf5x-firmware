@@ -25,19 +25,37 @@
 #include "nrf_assert.h"
 #include "log.h"
 
+#if ISR_MANAGER == 1
+#include "isr_manager.h"
+#endif
+
 /** @anchor twim_defines
  * @name Defines for the specific SPI peripheral used 
  * @{*/
 #define SPIM_ID CONCAT_2(NRF_SPIM,SPIM_USED)
 
-#define SPIM_IRQN SPIM_IRQN_a(SPIM_USED)
+
 #define SPIM_IRQ_Handler SPIM_IRQ_Handler_a(SPIM_USED)
-
 #define SPIM_IRQ_Handler_a(n) SPIM_IRQ_Handler_b(n)
+#ifdef NRF52832
 #define SPIM_IRQ_Handler_b(n) SPIM##n##_SPIS##n##_TWIM##n##_TWIS##n##_SPI##n##_TWI##n##_IRQHandler
+#endif
+#ifdef NRF52810
+#define SPIM_IRQ_Handler_b(n) SPIM##n##_SPIS##n##_IRQHandler
+#endif
 
+#define SPIM_IRQN SPIM_IRQN_a(SPIM_USED)
 #define SPIM_IRQN_a(n)  SPIM_IRQN_b(n)
+
+#ifdef NRF52840
 #define SPIM_IRQN_b(n)  SPIM##n##_SPIS##n##_TWIM##n##_TWIS##n##_SPI##n##_TWI##n##_IRQn
+#endif
+#ifdef NRF52810
+#define SPIM_IRQN_b(n)  SPIM##n##_SPIS##n##_IRQn
+#endif
+#ifdef NRF52832
+#define SPIM_IRQN_b(n)  SPIM##n##_SPIS##n##_TWIM##n##_TWIS##n##_SPI##n##_TWI##n##_IRQn
+#endif
 /** @} */
 
 /** variable to store CS Bar pin number */
@@ -68,7 +86,7 @@ void hal_spim_init (hal_spim_init_t * spim_init)
     SPIM_ID->INTENSET = spim_init->en_intr | SPIM_INTENSET_END_Msk;
         NVIC_SetPriority (SPIM_IRQN, APP_IRQ_PRIORITY_MID);
         NVIC_EnableIRQ (SPIM_IRQN);
-        log_printf("Intr En : %d\n", intr_enabled);
+        //log_printf("Intr En : %d\n", intr_enabled);
     if(intr_enabled != 0)
     {
         NVIC_SetPriority (SPIM_IRQN, spim_init->irq_priority);
@@ -133,18 +151,27 @@ uint32_t hal_spim_is_busy ()
     return (uint32_t)mod_is_busy;
 }
 
-
+#if ISR_MANAGER == 1
+void hal_spim_Handler (void)
+#else
 void SPIM_IRQ_Handler (void)
+#endif
 {
     if(SPIM_ID->EVENTS_END == 1)
     {
+#if ISR_MANAGER == 0
         SPIM_ID->EVENTS_END = 0;
+#endif
         mod_is_busy = false;
         hal_gpio_pin_set (csBar);
+        SPIM_ID->ENABLE = (SPIM_ENABLE_ENABLE_Disabled << SPIM_ENABLE_ENABLE_Pos) &
+            SPIM_ENABLE_ENABLE_Msk;
     }
     if(SPIM_ID->EVENTS_ENDTX == 1 && ((intr_enabled & HAL_SPIM_TX_DONE) != 0))
     {
+#if ISR_MANAGER == 0
         SPIM_ID->EVENTS_ENDTX = 0;
+#endif
         if(tx_done != NULL)
         {
             tx_done(SPIM_ID->TXD.AMOUNT);
@@ -152,7 +179,9 @@ void SPIM_IRQ_Handler (void)
     }
     if(SPIM_ID->EVENTS_ENDRX == 1 && ((intr_enabled & HAL_SPIM_RX_DONE) != 0))
     {
+#if ISR_MANAGER == 0
         SPIM_ID->EVENTS_ENDRX = 0;
+#endif
         if(rx_done != NULL)
         {
             rx_done(SPIM_ID->RXD.AMOUNT);

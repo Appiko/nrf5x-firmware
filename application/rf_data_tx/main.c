@@ -27,118 +27,144 @@
 
 #include <stdbool.h>
 #include <stdint.h>
+#include "string.h"
 #include "math.h"
 
 #include "nrf.h"
-
+#include "common_util.h"
 #include "boards.h"
 #include "hal_clocks.h"
 #include "ms_timer.h"
-#include "hal_spim.h"
-#include "hal_gpio.h"
 #include "hal_nop_delay.h"
 #include "log.h"
 #include "nrf_util.h"
-#include "pin_trace.h"
-#include "S2LP_Config.h"
-#include "SDK_Configuration_Common.h"
 
-/**
-* @brief Radio structure fitting
-*/
-SRadioInit xRadioInit = 
+#include "hal_gpio.h"
+
+#include "rf_comm.h"
+#include "rf_spi_hw.h"
+
+void node_rf_wakeup ();
+void node_rf_sleep ();
+void node_rf_tx_done (uint32_t status);
+void node_rf_tx_failed (uint32_t status);
+
+
+void node_rf_tx_done (uint32_t status)
 {
-    
-    .lBandwidth = BANDWIDTH,
-    .lDatarate = DATARATE,
-    .xModulationSelect = MODULATION_SELECT,
-    .lFreqDev = FREQ_DEVIATION,
-    .lFrequencyBase = BASE_FREQUENCY,
-  
-  
+    log_printf("Tx Done : %d\n", status);
+    node_rf_sleep ();
+}
+
+void node_rf_tx_failed (uint32_t status)
+{
+    //in certain cases
+    log_printf("Tx Failed : %d\n", status);
+    {
+        node_rf_sleep ();
+
+    }
+}
+
+static uint32_t g_pin_tcxo_en = TCXO_EN_PIN;
+static rf_spi_init_t rf_spi = 
+{
+    .csn_pin = CSN_PIN,
+    .sclk_pin = SCLK_PIN,
+    .miso_pin = MISO_PIN,
+    .mosi_pin = MOSI_PIN,
+    .irq_priority = APP_IRQ_PRIORITY_HIGHEST,
 };
 
-
-/**
-* @brief Packet Basic structure fitting
-*/
-PktBasicInit xBasicInit={
-  PREAMBLE_LENGTH,
-  SYNC_LENGTH,
-  SYNC_WORD,
-  VARIABLE_LENGTH,
-  EXTENDED_LENGTH_FIELD,
-  CRC_MODE,
-  EN_ADDRESS,
-  EN_FEC,
-  EN_WHITENING
+static rf_comm_hw_t g_rf_comm_hw = 
+{
+    .rf_gpio2_pin = CC_GPIO2,
+    .rf_reset_pin = CC_RESET_PIN,
 };
 
-
-/**
-* @brief GPIO structure fitting
-*/
-SGpioInit xGpioIRQ={
-  S2LP_GPIO_0,
-  S2LP_GPIO_MODE_DIGITAL_OUTPUT_LP,
-  S2LP_GPIO_DIG_OUT_READY
+static rf_comm_radio_t g_rf_comm_radio = 
+{
+    .bitrate = 300,
+    .tx_power = 14,
+    .center_freq = 866000,
+    .freq_dev = 2,
+    .rf_tx_done_handler = node_rf_tx_done,
+    .rf_tx_failed_handler = node_rf_tx_failed,
+    .irq_priority = APP_IRQ_PRIORITY_LOW,
 };
 
-//S2LPIrqs myGpioIrq = 
-//{
-//    
-//    .IRQ_TX_DATA_SENT = 1,
-//};
-
-#define GPIOTE_CHANNEL_USED 0
+static rf_comm_pkt_t rf_pkt = 
+{
+    .max_len = 16,
+    .app_id  = 5,
+    .dev_id = 7,
+};
 
 /**
 * @brief IRQ status struct declaration
 */
-S2LPIrqs xIrqStatus;
-//static uint8_t arr_test[3];
-static uint16_t test_cnt;
+//S2LPIrqs xIrqStatus;
+uint8_t arr_test[2];
+uint16_t test_cnt;
+void node_rf_wakeup ()
+{
+    hal_gpio_pin_set (g_pin_tcxo_en);
+    hal_nop_delay_ms (50);
+    rf_comm_wake();
+    log_printf("Radio ID :0x%x\n", rf_comm_get_radio_id ());
+    rf_comm_radio_init (&g_rf_comm_radio, &g_rf_comm_hw);
+
+    rf_comm_idle ();
+    rf_comm_enable_irq ();
+}
+
+void node_rf_sleep ()
+{
+    log_printf("R Sl\n");
+    rf_comm_flush ();
+    rf_comm_sleep ();
+//    hal_nop_delay_ms (5);
+    hal_gpio_pin_clear (g_pin_tcxo_en);
+    rf_comm_disable_irq ();
+}
+
 void ms_timer_handler ()
 {
-    log_printf("%s \n",__func__);
-    S2LPCmdStrobeFlushTxFifo();
-//    S2LPSpiWriteFifo(sizeof(arr_test), arr_test);
-    S2LPSpiWriteFifo(sizeof(test_cnt), (uint8_t *)&test_cnt);
+    
     test_cnt++;
-
-    /* fit the TX FIFO */
-
-    /* send the TX command */
-    S2LPGpioInit(&xGpioIRQ);  
-    S2LPCmdStrobeTx();
+    arr_test[0] = (uint8_t) (test_cnt & 0xFF);
+    arr_test[1] = (uint8_t) ((test_cnt & 0xFF00) >> 8);
+    node_rf_wakeup ();
+    rf_comm_pkt_send (0, arr_test, sizeof(arr_test));
+    
 }
 
 /** @brief Configure the RGB LED pins as output and turn off LED */
 static void rgb_led_init(void)
 {
-    hal_gpio_cfg_output(LED_RED, !(LEDS_ACTIVE_STATE));
-    hal_gpio_cfg_output(LED_GREEN, !(LEDS_ACTIVE_STATE));
-    hal_gpio_cfg_output(LED_BLUE, !(LEDS_ACTIVE_STATE));
+//    hal_gpio_cfg_output(LED_RED, !(LEDS_ACTIVE_STATE));
+//    hal_gpio_cfg_output(LED_GREEN, !(LEDS_ACTIVE_STATE));
+//    hal_gpio_cfg_output(LED_BLUE, !(LEDS_ACTIVE_STATE));
 }
 
 /** @brief Configure the RGB LED pins as output and turn off LED */
 static void rgb_led_cycle(void)
 {
-    hal_gpio_pin_write(LED_RED, (LEDS_ACTIVE_STATE));
-    hal_gpio_pin_write(LED_GREEN, !(LEDS_ACTIVE_STATE));
-    hal_gpio_pin_write(LED_BLUE, !(LEDS_ACTIVE_STATE));
-    hal_nop_delay_ms(250);
-    hal_gpio_pin_write(LED_RED, !(LEDS_ACTIVE_STATE));
-    hal_gpio_pin_write(LED_GREEN, (LEDS_ACTIVE_STATE));
-    hal_gpio_pin_write(LED_BLUE, !(LEDS_ACTIVE_STATE));
-    hal_nop_delay_ms(250);
-    hal_gpio_pin_write(LED_RED, !(LEDS_ACTIVE_STATE));
-    hal_gpio_pin_write(LED_GREEN, !(LEDS_ACTIVE_STATE));
-    hal_gpio_pin_write(LED_BLUE, (LEDS_ACTIVE_STATE));
-    hal_nop_delay_ms(250);
-    hal_gpio_pin_write(LED_RED, !(LEDS_ACTIVE_STATE));
-    hal_gpio_pin_write(LED_GREEN, !(LEDS_ACTIVE_STATE));
-    hal_gpio_pin_write(LED_BLUE, !(LEDS_ACTIVE_STATE));
+//    hal_gpio_pin_write(LED_RED, (LEDS_ACTIVE_STATE));
+//    hal_gpio_pin_write(LED_GREEN, !(LEDS_ACTIVE_STATE));
+//    hal_gpio_pin_write(LED_BLUE, !(LEDS_ACTIVE_STATE));
+//    hal_nop_delay_ms(250);
+//    hal_gpio_pin_write(LED_RED, !(LEDS_ACTIVE_STATE));
+//    hal_gpio_pin_write(LED_GREEN, (LEDS_ACTIVE_STATE));
+//    hal_gpio_pin_write(LED_BLUE, !(LEDS_ACTIVE_STATE));
+//    hal_nop_delay_ms(250);
+//    hal_gpio_pin_write(LED_RED, !(LEDS_ACTIVE_STATE));
+//    hal_gpio_pin_write(LED_GREEN, !(LEDS_ACTIVE_STATE));
+//    hal_gpio_pin_write(LED_BLUE, (LEDS_ACTIVE_STATE));
+//    hal_nop_delay_ms(250);
+//    hal_gpio_pin_write(LED_RED, !(LEDS_ACTIVE_STATE));
+//    hal_gpio_pin_write(LED_GREEN, !(LEDS_ACTIVE_STATE));
+//    hal_gpio_pin_write(LED_BLUE, !(LEDS_ACTIVE_STATE));
 }
 
 void ms_timer_10ms (void)
@@ -163,19 +189,6 @@ void ms_timer_10ms (void)
 //    }
 //}
 //
-
-void GPIOTE_IRQHandler ()
-{
-    log_printf("%s\n",__func__);
-    NRF_GPIOTE->EVENTS_IN[GPIOTE_CHANNEL_USED] = 0;
-    hal_gpio_pin_toggle (LED_RED);
-    S2LPGpioInit(&xGpioIRQ);  
-    if(S2LPGpioIrqCheckFlag (TX_DATA_SENT) )
-    {
-        log_printf("Data sent\n");
-        S2LPGpioIrqClearStatus();
-    }
-}
 /**
  * @brief Function for application main entry.
  */
@@ -185,59 +198,29 @@ int main(void)
     rgb_led_cycle();
     /* Initial printf */
     log_init();
-    log_printf("Hello World from LSM6D..!!\n");
+    log_printf("Hello World from Long range RF Comm..!!\n");
 
     lfclk_init (LFCLK_SRC_Xtal);
     ms_timer_init(APP_IRQ_PRIORITY_LOWEST);
 //    for(uint8_t cnt = 0; cnt < ARRAY_SIZE(arr_test); cnt++)
 //    {
-//        arr_test[cnt] = cnt;
+//        arr_test[cnt] = cnt+1;
 //    }
     test_cnt = 0;
-    S2LPSpiInit ();
-    hal_gpio_cfg_output (SDN,0);
-    hal_gpio_pin_set (SDN);
-    hal_nop_delay_ms (1);
-    hal_gpio_pin_clear (SDN);
-    hal_gpio_cfg_input (GPIO0, HAL_GPIO_PULL_UP );
-    
-    NRF_GPIOTE->CONFIG[GPIOTE_CHANNEL_USED] = ((GPIOTE_CONFIG_MODE_Event << GPIOTE_CONFIG_MODE_Pos) & GPIOTE_CONFIG_MODE_Msk) |
-        ((GPIOTE_CONFIG_POLARITY_LoToHi << GPIOTE_CONFIG_POLARITY_Pos)&GPIOTE_CONFIG_POLARITY_Msk) |
-        ((GPIO0 << GPIOTE_CONFIG_PSEL_Pos) & GPIOTE_CONFIG_PSEL_Msk);
-    NRF_GPIOTE->INTENSET |= (GPIOTE_INTENSET_IN0_Enabled<<GPIOTE_INTENSET_IN0_Pos)&GPIOTE_INTENSET_IN0_Msk;
+    rf_spi_init (&rf_spi);
+//    S2LPSpiInit ();
+    rf_comm_pkt_config (&rf_pkt);
+    hal_gpio_cfg_output (g_pin_tcxo_en, 0);
+    node_rf_wakeup ();
+    node_rf_sleep ();
 
-    S2LPGpioInit(&xGpioIRQ);  
-    S2LPRadioInit(&xRadioInit);
-    S2LPRadioSetMaxPALevel(S_ENABLE);
-    uint8_t arr_pm_cnf_rev[5];
-    /* Set PM_CONF values */
-    S2LPSpiReadRegisters(PM_CONF4_ADDR, 5, arr_pm_cnf_rev);
-    arr_pm_cnf_rev[4] |= (111 << 4) & SET_SMPS_LVL_REGMASK; //set smps level to 1.8V
-    arr_pm_cnf_rev[3] |= (1 << 3) & 0x08; // SetTX and RX independently
-    arr_pm_cnf_rev[2] |= 0x3D; //KMR LSB
-    arr_pm_cnf_rev[1] |= 0x8A; //KMR MSB + Multiplier enabled<<7
-    S2LPSpiWriteRegisters(PM_CONF4_ADDR, 5, arr_pm_cnf_rev);
-    
-    log_printf("Max Power Val : %d\n", S2LPRadioGetPALeveldBm (8));
-    S2LPPktBasicInit(&xBasicInit);
-    S2LPGpioIrqDeInit(NULL);
-    {
-//        S2LPGpioIrqInit (&myGpioIrq);
-//        S2LPGpioIrqConfig(TX_DATA_SENT , S_ENABLE);
-//        log_printf("");
-    }
-//    S2LPPktBasicSetPayloadLength(sizeof(arr_test));
-    S2LPPktBasicSetPayloadLength(sizeof(test_cnt));
-    S2LPGpioIrqClearStatus();
-
+//    set_rf_packet_length ((unsigned char)sizeof(arr_test));
+//    radio_prepare ((unsigned char *)&test_cnt, (uint16_t)sizeof(test_cnt));
     log_printf("Here..!!\n");
+//    hal_gpio_cfg_output (PA_EN_PIN, 1);
 
-        ms_timer_start (MS_TIMER1, MS_REPEATED_CALL, MS_TIMER_TICKS_MS(1000), ms_timer_handler);
 
-    NVIC_SetPriority (GPIOTE_IRQn, APP_IRQ_PRIORITY_LOW);
-    NVIC_EnableIRQ (GPIOTE_IRQn);
-
-//    ms_timer_start (MS_TIMER2, MS_REPEATED_CALL, MS_TIMER_TICKS_MS(10), ms_timer_10ms);
+    ms_timer_start (MS_TIMER2, MS_REPEATED_CALL, MS_TIMER_TICKS_MS(1000), ms_timer_handler);
     while(1)
     {    
         __WFI ();

@@ -1,0 +1,9 @@
+/**
+* @addtogroup group_codebase
+* @{
+* @defgroup group_at_lib AT Library
+* @brief Library to handle all the modules which runs in AT commands
+* @{
+*/
+/** @} */
+/** @} */
