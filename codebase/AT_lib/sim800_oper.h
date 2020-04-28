@@ -133,36 +133,38 @@ typedef struct
 }sim800_init_t;
 
 /**
- * @brief Function to initialize basic operations of sim800 module
+ * This function add all the AT commands required to initialize the SIM800 
+ * hardware into circular buffer.
+ * @brief Function to initialize basic operations of sim800 module.
  * @param init Structure pointer to the structure holding initialization information
  * @note use to check if module is presented and connected properly
  */
 void sim800_oper_init (sim800_init_t * init);
 
 /**
+ * This function is to be called to perform background operations.
  * @brief Function to process SIM800 operations. 
  * @note it has to be called in while(true)
  */
 void sim800_oper_process ();
 
 /**
- * @brief Function to handle add ticks event for sim800 operation module
+ * The function to send Ticks to SIM800 module to keep common timebase.
+ * @brief Function to handle add ticks event for sim800 operation module.
  * @param ticks Number of ticks since last add_tick event
  */
 void sim800_oper_add_ticks (uint32_t ticks);
 
 /**
- * @brief Function to get current state of sim800 module
+ * This function returns SIM800 Operation module's status.
+ * @brief Function to get current state of sim800 module.
  * @return SIM800 status @ref sim800_oper_status_t
  */
 sim800_oper_status_t sim800_oper_get_status ();
 
 /**
- * @brief Function to enable SMS service.
- */
-//void sim800_oper_enable_sms (void);
-
-/**
+ * This function push all the AT commands required to establish GPRS connection
+ * into the circular buffer.
  * @brief Function to enable GPRS service.
  * @param ip_addr Pointer to the memory where IP address is to be stored
  * @param len Pointer to the memory where length of IP address is to be stored
@@ -170,26 +172,30 @@ sim800_oper_status_t sim800_oper_get_status ();
 void sim800_oper_enable_gprs (uint8_t * ip_addr, uint32_t * len);
 
 /**
- * @brief Function to connect to a server
+ * This function edits the AT command to required to connect to any server.
+ * @brief Function to connect to a server.
  * @param conn_params Structure pointer to the structure to store connection parameters 
  * @TODO Return Connection ID when multiple Connections are needed. 
  */
 void sim800_oper_conns (sim800_server_conn_t * conn_params);
 
 /**
- * @brief Function to generate http request
+ * This function edits and adds the AT commands required to make HTTP request.
+ * @brief Function to generate http request.
  * @param http_req Structure pointer to structure to store http request parameters.
  */
 void sim800_oper_http_req (sim800_http_req_t * http_req);
 
 /**
- * @brief Function to get gprs_status
+ * This function returns GPRS status.
+ * @brief Function to get gprs_status.
  * @return GPRS connection status
  */
 sim800_conn_status_t sim800_oper_get_gprs_status ();
 
 /**
- * @brief Function to get server's connection status
+ * This function returns server connection status.
+ * @brief Function to get server's connection status.
  * @param server_id Server ID
  * @return Server status for given server ID
  */

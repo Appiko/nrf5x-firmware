@@ -121,44 +121,54 @@ typedef struct
     
 }AT_proc_init_t;
 
-
+/**
+ * This function saves the copy of function pointer.
+ * @brief Function to initialize the AT command modules.
+ * @param init Structure pointer to AT_Proc.
+ */
 void AT_proc_init (AT_proc_init_t * init);
 
 /**
+ * This function will send an AT command to the AT based hardware.
  * @brief Function to send AT command.
  * @param cmd Structure pointer to structure which stores a AT command parameter.
- * @return Return AT_CMD_INVALID if AT command is not terminated properly
+ * @return Return AT_CMD_INVALID if AT command is not terminated properly.
  */
 at_proc_cmd_check_t AT_proc_send_cmd (at_proc_cmd_t * cmd);
 
 /**
- * @brief Function to handle add ticks event for AT command process module
- * @param ticks Number of ticks since last add_tick event
+ * The function to send Ticks to AT process module to keep common timebase.
+ * @brief Function to handle add ticks event for AT command process module.
+ * @param ticks Number of ticks since last add_tick event.
  */
 void AT_proc_add_ticks (uint32_t ticks);
 
 /**
- * @brief Function to handle event and data generated at interrupt level at thread level
- * @note it has to be called in dependent module's process function
+ * This function is to be called to perform background operations.
+ * @brief Function to handle event and data generated at interrupt level at thread level.
+ * @note it has to be called in dependent module's process function.
  */
 void AT_proc_process ();
 
 /**
- * @brief Function to check if AT command process module is busy
- * @return 1 if module is executing some AT command
- * @return 0 if module is available
+ * The function to check if module is busy.
+ * @brief Function to check if AT command process module is busy.
+ * @return 1 if module is executing some AT command.
+ * @return 0 if module is available.
  */
 uint8_t AT_proc_is_busy ();
 
 /**
+ * This function re-executes the last command again.
  * @brief Function to repeat the last instruction with same parameters.
  */
 void AT_proc_repeat_last_cmd ();
 
 /**
+ * The function to execute a AT command where no response is needed (data streaming). 
  * @brief Function to execute an AT command where response is not needed.
- * @param cmd Command string
- * @param len Length of command string
+ * @param cmd Command string.
+ * @param len Length of command string.
  * @param duration Duration for which module will be marked busy.
  * @note This function don't care if operation was successful or not.
  */
