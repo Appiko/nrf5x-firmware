@@ -40,6 +40,14 @@
 #include "sys_config.h"
 #endif
 
+#ifndef HAL_UARTE_RX_BUFF_SIZE
+#define HAL_UARTE_RX_BUFF_SIZE 128
+#endif
+
+#ifndef HAL_UARTE_TX_BUFF_SIZE
+#define HAL_UARTE_TX_BUFF_SIZE 128
+#endif
+
 #include "nrf.h"
 
 /**
@@ -62,7 +70,7 @@ typedef enum {
     HAL_UARTE_BAUD_460800 = (UARTE_BAUDRATE_BAUDRATE_Baud460800), //!< Uart baud rate of 460800
     HAL_UARTE_BAUD_921600 = (UARTE_BAUDRATE_BAUDRATE_Baud921600), //!< Uart baud rate of 921600
     HAL_UARTE_BAUD_1M     = (UARTE_BAUDRATE_BAUDRATE_Baud1M), //!< Uart baud rate of 1M
-} hal_uart_baud_t;
+} hal_uarte_baud_t;
 
 /**
  * Function to initialize the parameters of UARTE based on the configurations in @ref boards.h
@@ -70,7 +78,7 @@ typedef enum {
  * @param baud The baud rate of operation for the UART module
  * @param irq_priority Priority of the interrupts during UART reception
  */
-void hal_uarte_init(hal_uart_baud_t baud, uint32_t irq_priority);
+void hal_uarte_init(hal_uarte_baud_t baud, uint32_t irq_priority);
 
 /**
  * Function to uninitialize and disable the UARTE peripheral
@@ -107,6 +115,9 @@ void hal_uarte_stop_rx(void);
  *  so that all bytes received by UART is sent to a handler
  */
 void hal_uarte_process(void);
+
+
+uint8_t hal_uarte_is_data_present ();
 
 #endif /* CODEBASE_HAL_HAL_UART_H_ */
 
